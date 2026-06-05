@@ -28,7 +28,6 @@ import type {
 } from "@/lib/types";
 import { buildAttendanceSnapshots, buildCoverage, buildSummary, profileName, type StaffingRuleLike } from "@/lib/status";
 import { InfoTooltip } from "@/components/InfoTooltip";
-import { StatusLegend } from "@/components/StatusLegend";
 import { activeSegmentForShift, formatClock, formatDuration, formatShortDate, openShiftForUser } from "@/lib/time";
 import { convertShiftTime, tzAbbr } from "@/lib/timezone";
 
@@ -319,10 +318,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
         </div>
       )}
 
-      {/* Status color key */}
-      <StatusLegend />
-
-      <div className="dash-body">
+<div className="dash-body">
         <div className="dash-main">
           {/* On Now — coverage */}
           <div className="status-group">
@@ -604,7 +600,8 @@ function CoverageCard({ snapshot, orgTimezone, canManage, actionLoading, onForce
           <span className="coverage-status online">● On — {formatDuration(snapshot.clockedInMinutes)}{snapshot.overtimeMinutes > 0 ? ` · +${formatDuration(snapshot.overtimeMinutes)} OT` : ""}</span>
         ) : (
           <span className="coverage-status absent">
-            ● {snapshot.minutesLate > 0 ? `Late ${formatDuration(snapshot.minutesLate)}` : "Not clocked in"}
+            {/* Only managers see the "Late Xh Xm" detail; employees see "Not clocked in" */}
+            ● {canManage && snapshot.minutesLate > 0 ? `Late ${formatDuration(snapshot.minutesLate)}` : "Not clocked in"}
           </span>
         )}
         {canManage && !online && (
