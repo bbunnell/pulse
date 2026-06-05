@@ -1957,6 +1957,99 @@ body.monitor-mode              { background: #0f172a; }
   margin-top: 2px;
 }
 
+/* ─── Dashboard compact Team Events calendar ───────────────────── */
+.dash-sched-wrap {
+  margin-top: 24px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dash-sched-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-sched-grid { padding: 0 8px 8px; }
+
+.dash-sched-dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+
+.dash-sched-dow-row span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 6px 0 4px;
+}
+
+.dash-sched-week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid var(--border);
+}
+
+.dash-sched-cell {
+  min-height: 60px;
+  padding: 4px 3px 3px;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+
+.dash-sched-cell:last-child { border-right: none; }
+.dash-sched-cell.today      { background: var(--primary-soft); }
+
+.dash-sched-num {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 2px;
+  line-height: 1;
+}
+
+.dash-sched-num.today {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.dash-sched-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-sched-pill {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  display: block;
+}
+
+.dash-sched-pill.event-vacation    { background: var(--blue); }
+.dash-sched-pill.event-sick        { background: var(--red); }
+.dash-sched-pill.event-birthday    { background: #9333ea; }
+.dash-sched-pill.event-anniversary { background: #d97706; }
+.dash-sched-pill.event-company     { background: #0891b2; }
+
+.dash-sched-pill-more {
+  font-size: 9px;
+  color: var(--muted);
+  padding-left: 2px;
+}
+
 /* ─── Employee dashboard ─────────────────────────────────────── */
 .employee-dashboard {
   flex: 1;

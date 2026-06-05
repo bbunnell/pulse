@@ -518,13 +518,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
         </aside>
       </div>
 
-      {/* Time off schedule */}
-      <div style={{ marginTop: 32 }}>
-        <div className="status-group-heading" style={{ marginBottom: 0 }}>
-          <h2 style={{ fontSize: 15 }}>Time Off Schedule</h2>
-        </div>
-        <DashboardSchedule data={data} />
-      </div>
+      <DashboardSchedule data={data} />
     </section>
   );
 }
