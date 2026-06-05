@@ -147,8 +147,8 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
         </div>
       )}
 
-      {/* Summary — Working and On Break only */}
-      <div className="monitor-counts" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      {/* Summary — 4 tiles, labels explain the dot colors below */}
+      <div className="monitor-counts">
         <div className="monitor-count green">
           <span className="monitor-count-num">{active.filter(s => s.status === "available").length}</span>
           <span>Working</span>
@@ -156,6 +156,14 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
         <div className="monitor-count amber">
           <span className="monitor-count-num">{active.filter(s => s.status !== "available").length}</span>
           <span>On Break</span>
+        </div>
+        <div className="monitor-count red">
+          <span className="monitor-count-num">{notIn.filter(s => s.isLate).length}</span>
+          <span>Late</span>
+        </div>
+        <div className="monitor-count gray">
+          <span className="monitor-count-num">{notIn.filter(s => s.scheduledToday && !s.isLate).length}</span>
+          <span>Not In Yet</span>
         </div>
       </div>
 

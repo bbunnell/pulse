@@ -1120,6 +1120,7 @@ body.monitor-mode              { background: #0f172a; }
 .monitor-count.amber .monitor-count-num { color: #fbbf24; }
 .monitor-count.blue  .monitor-count-num { color: #60a5fa; }
 .monitor-count.red   .monitor-count-num { color: #f87171; }
+.monitor-count.gray  .monitor-count-num { color: #94a3b8; }
 
 .monitor-list {
   flex: 1;
