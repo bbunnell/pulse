@@ -43,6 +43,7 @@ export interface Profile {
   showOnDashboard: boolean;  // false for placeholders that never clock in
   workScheduleType: "standard" | "shift_based";
   standardWorkDays: number[];  // 0=Sun … 6=Sat, in employee's own timezone
+  hideWhenNotActive: boolean;  // only show on board when clocked in or on PTO
   birthday?: string;         // "MM-DD" — month and day only, no year
   workAnniversary?: string;  // "YYYY-MM-DD" — hire / start date
   createdAt: string;

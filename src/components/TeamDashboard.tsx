@@ -206,13 +206,18 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       if (s.status === "available") working.push(s);
       else if (s.status === "on_break" || s.status === "at_lunch") onBreak.push(s);
       else if (s.status === "out_sick" || s.status === "on_vacation") out.push(s);
-      else if (s.isLate) late.push(s);
+      else if (s.isLate) {
+        // Don't flag "late" for people who should only appear when active
+        if (!s.profile.hideWhenNotActive) late.push(s);
+      }
       else if (!s.scheduledToday) {
         // Standard workers on non-work days are just off — don't list them
-        const isStandardOffDay = s.profile.workScheduleType === "standard";
-        if (!isStandardOffDay) offToday.push(s);
+        // Neither are people set to "hide when not active"
+        const suppress = s.profile.workScheduleType === "standard"
+                      || s.profile.hideWhenNotActive;
+        if (!suppress) offToday.push(s);
       }
-      else notIn.push(s);
+      else if (!s.profile.hideWhenNotActive) notIn.push(s);
     }
     return { working, onBreak, out, late, offToday, notIn };
   }, [boardSnapshots]);

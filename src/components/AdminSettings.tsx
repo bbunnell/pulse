@@ -31,6 +31,7 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
   const [showOnDashboard,   setShowOnDashboard]   = useState(profile.showOnDashboard ?? true);
   const [workScheduleType,  setWorkScheduleType]  = useState<"standard"|"shift_based">(profile.workScheduleType ?? "shift_based");
   const [standardWorkDays,  setStandardWorkDays]  = useState<number[]>(profile.standardWorkDays ?? [1,2,3,4,5]);
+  const [hideWhenNotActive, setHideWhenNotActive] = useState(profile.hideWhenNotActive ?? false);
   const [birthday,        setBirthday]         = useState(profile.birthday ?? "");
   const [workAnniversary, setWorkAnniversary]  = useState(profile.workAnniversary ?? "");
   const [saving,          setSaving]           = useState(false);
@@ -53,7 +54,7 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
     const res = await fetch(`/api/admin/profiles/${profile.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null, workScheduleType, standardWorkDays }),
+      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null, workScheduleType, standardWorkDays, hideWhenNotActive }),
     });
     const json = (await res.json()) as { ok?: boolean; profile?: Profile; error?: string };
     if (json.ok) {
@@ -165,6 +166,15 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                     <strong>Show on attendance dashboard</strong>
                     <small className="subtle" style={{display:"block",marginTop:2}}>
                       Uncheck for placeholder or system accounts (e.g. NBIT HD) that never clock in.
+                    </small>
+                  </span>
+                </label>
+                <label className="dashboard-toggle-row" style={{marginTop:8}}>
+                  <input type="checkbox" checked={hideWhenNotActive} onChange={e => setHideWhenNotActive(e.target.checked)} />
+                  <span>
+                    <strong>Hide from board when not clocked in</strong>
+                    <small className="subtle" style={{display:"block",marginTop:2}}>
+                      Only show on the dashboard when actively clocked in or on approved leave. Use for people who work infrequently or on irregular schedules.
                     </small>
                   </span>
                 </label>
@@ -537,6 +547,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
         showOnDashboard: true,
         workScheduleType: "shift_based",
         standardWorkDays: [1,2,3,4,5],
+        hideWhenNotActive: false,
         createdAt: ts,
         updatedAt: ts,
       };

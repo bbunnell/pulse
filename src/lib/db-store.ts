@@ -387,23 +387,25 @@ export async function updateProfile(
     workAnniversary: string | null;
     workScheduleType: "standard" | "shift_based";
     standardWorkDays: number[];
+    hideWhenNotActive: boolean;
   }>,
 ): Promise<Profile> {
   const result = await query(
     `UPDATE profiles SET
-       first_name          = COALESCE($2, first_name),
-       last_name           = COALESCE($3, last_name),
-       email               = COALESCE($4, email),
-       role                = COALESCE($5::app_role, role),
-       team_id             = COALESCE($6, team_id),
-       expected_start_time = COALESCE($7::time, expected_start_time),
-       status              = COALESCE($8::profile_status, status),
-       timezone            = COALESCE($9, timezone),
-       show_on_dashboard   = COALESCE($10, show_on_dashboard),
-       birthday            = CASE WHEN $11::text IS NOT NULL THEN ('2000-' || $11::text)::date ELSE birthday END,
-       work_anniversary    = CASE WHEN $12::text IS NOT NULL THEN $12::date ELSE work_anniversary END,
-       work_schedule_type  = COALESCE($13::text, work_schedule_type),
-       standard_work_days  = COALESCE($14, standard_work_days)
+       first_name           = COALESCE($2, first_name),
+       last_name            = COALESCE($3, last_name),
+       email                = COALESCE($4, email),
+       role                 = COALESCE($5::app_role, role),
+       team_id              = COALESCE($6, team_id),
+       expected_start_time  = COALESCE($7::time, expected_start_time),
+       status               = COALESCE($8::profile_status, status),
+       timezone             = COALESCE($9, timezone),
+       show_on_dashboard    = COALESCE($10, show_on_dashboard),
+       birthday             = CASE WHEN $11::text IS NOT NULL THEN ('2000-' || $11::text)::date ELSE birthday END,
+       work_anniversary     = CASE WHEN $12::text IS NOT NULL THEN $12::date ELSE work_anniversary END,
+       work_schedule_type   = COALESCE($13::text, work_schedule_type),
+       standard_work_days   = COALESCE($14, standard_work_days),
+       hide_when_not_active = COALESCE($15, hide_when_not_active)
      WHERE id = $1
      RETURNING *`,
     [
@@ -421,6 +423,7 @@ export async function updateProfile(
       patch.workAnniversary !== undefined ? patch.workAnniversary : null,
       patch.workScheduleType ?? null,
       patch.standardWorkDays ?? null,
+      patch.hideWhenNotActive ?? null,
     ],
   );
   return mapProfile(result.rows[0]);
