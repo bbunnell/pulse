@@ -8,3 +8,6 @@ coverage
 *.tsbuildinfo
 
 avatars/
+data/
+.claude/
+Sample Documents/
