@@ -1957,6 +1957,34 @@ body.monitor-mode              { background: #0f172a; }
   margin-top: 2px;
 }
 
+/* ── Off Today compact chips ─────────────────────────────────── */
+.off-today-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+
+.off-today-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gray-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 4px 10px 4px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.off-today-avatar {
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 9px !important;
+  flex-shrink: 0;
+}
+
 /* ─── Dashboard compact Team Events calendar ───────────────────── */
 .dash-sched-wrap {
   margin-top: 24px;

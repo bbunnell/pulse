@@ -410,7 +410,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             </div>
           )}
 
-          {/* Off today (not scheduled) — collapsed, low emphasis */}
+          {/* Off today — compact inline chips */}
           {groups.offToday.length > 0 && (
             <div className="status-group">
               <div className="status-group-heading">
@@ -418,8 +418,18 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                 <h2>Off Today <InfoTooltip text="Not scheduled to work today. No action needed — shown for full team visibility." /></h2>
                 <span className="status-count gray">{groups.offToday.length}</span>
               </div>
-              <div className="attend-list">
-                {groups.offToday.map((s) => <AttendCardCompact key={s.profile.id} snapshot={s} subtitle="Not scheduled" />)}
+              <div className="off-today-chips">
+                {groups.offToday.map((s) => (
+                  <div key={s.profile.id} className="off-today-chip">
+                    <UserAvatar
+                      userId={s.profile.id}
+                      firstName={s.profile.firstName}
+                      lastName={s.profile.lastName}
+                      className="avatar off-today-avatar"
+                    />
+                    <span>{profileName(s.profile)}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
