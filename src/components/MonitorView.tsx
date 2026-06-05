@@ -5,7 +5,6 @@ import type { OrgData, ScheduledShift, Shift, ShiftSegment, TimeOffEntry } from 
 import type { StaffingRule } from "@/lib/db-store";
 import { buildAttendanceSnapshots, buildCoverage, profileName, type StaffingRuleLike } from "@/lib/status";
 import { formatDuration } from "@/lib/time";
-import { StatusLegend } from "@/components/StatusLegend";
 
 interface Props {
   data: OrgData;
@@ -148,8 +147,8 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
         </div>
       )}
 
-      {/* Summary counts */}
-      <div className="monitor-counts">
+      {/* Summary — Working and On Break only */}
+      <div className="monitor-counts" style={{ gridTemplateColumns: "1fr 1fr" }}>
         <div className="monitor-count green">
           <span className="monitor-count-num">{active.filter(s => s.status === "available").length}</span>
           <span>Working</span>
@@ -158,19 +157,11 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
           <span className="monitor-count-num">{active.filter(s => s.status !== "available").length}</span>
           <span>On Break</span>
         </div>
-        <div className="monitor-count blue">
-          <span className="monitor-count-num">{coverage.scheduledNow.length}</span>
-          <span>On Now</span>
-        </div>
-        <div className="monitor-count red">
-          <span className="monitor-count-num">{out.length}</span>
-          <span>Out</span>
-        </div>
       </div>
 
       {/* Person list */}
       <div className="monitor-list">
-        {/* Active people */}
+        {/* Working + On Break */}
         {active.map(s => {
           const segSecs = s.activeSegment?.startAt
             ? Math.max(0, Math.floor((nowSafe.getTime() - new Date(s.activeSegment.startAt).getTime()) / 1000))
@@ -189,12 +180,12 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
           );
         })}
 
-        {/* Divider if there are also not-in / out people */}
-        {(notIn.length > 0 || out.length > 0) && active.length > 0 && (
+        {/* Divider before missing/late rows */}
+        {notIn.some(s => s.isLate || s.scheduledToday) && active.length > 0 && (
           <div className="monitor-divider" />
         )}
 
-        {/* Late / not in */}
+        {/* Late */}
         {notIn.filter(s => s.isLate).map(s => (
           <div key={s.profile.id} className="monitor-row late">
             <span className="monitor-dot">🔴</span>
@@ -211,19 +202,7 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
             <span className="monitor-meta">Not in yet</span>
           </div>
         ))}
-
-        {/* Out today */}
-        {out.map(s => (
-          <div key={s.profile.id} className="monitor-row out">
-            <span className="monitor-dot">{STATUS_DOT[s.status]}</span>
-            <span className="monitor-name">{profileName(s.profile)}</span>
-            <span className="monitor-meta">{STATUS_LABEL[s.status]}</span>
-          </div>
-        ))}
       </div>
-
-      {/* Color key */}
-      <StatusLegend theme="dark" />
 
       {/* Footer */}
       <div className="monitor-footer" suppressHydrationWarning>
