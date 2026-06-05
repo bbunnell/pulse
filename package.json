@@ -1,0 +1,44 @@
+{
+  "name": "time-attendance-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:setup": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "docker:db": "bash scripts/docker-db.sh",
+    "docker:up": "bash scripts/docker-stack-up.sh",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.20.0",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "ics": "^3.12.0",
+    "iron-session": "^8.0.4",
+    "lucide-react": "^1.14.0",
+    "next": "^16.2.4",
+    "nodemailer": "^8.0.7",
+    "pg": "^8.20.0",
+    "react": "^19.2.5",
+    "react-big-calendar": "^1.19.4",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-big-calendar": "^1.16.3",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.4",
+    "typescript": "^6.0.3"
+  }
+}
