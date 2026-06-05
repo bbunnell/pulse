@@ -5,6 +5,7 @@ import type { OrgData, ScheduledShift, Shift, ShiftSegment, TimeOffEntry } from 
 import type { StaffingRule } from "@/lib/db-store";
 import { buildAttendanceSnapshots, buildCoverage, profileName, type StaffingRuleLike } from "@/lib/status";
 import { formatDuration } from "@/lib/time";
+import { StatusLegend } from "@/components/StatusLegend";
 
 interface Props {
   data: OrgData;
@@ -220,6 +221,9 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
           </div>
         ))}
       </div>
+
+      {/* Color key */}
+      <StatusLegend theme="dark" />
 
       {/* Footer */}
       <div className="monitor-footer" suppressHydrationWarning>

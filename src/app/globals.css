@@ -898,6 +898,64 @@ h2 {
 .status-count.gray  { background: var(--muted-2); }
 .status-count.blue  { background: var(--blue); }
 
+/* ── Status legend / color key ── */
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 8px 0 14px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.status-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.status-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-legend-label {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.status-legend-detail {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.status-legend-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Dark variant (monitor pop-out) */
+.status-legend.dark {
+  border-bottom-color: #1e293b;
+  padding: 8px 14px;
+  margin-bottom: 0;
+  background: #0f172a;
+  gap: 3px 12px;
+  font-size: 11px;
+}
+
+.status-legend.dark .status-legend-label  { color: #cbd5e1; }
+.status-legend.dark .status-legend-detail { color: #475569; }
+.status-legend.dark .status-legend-sep    { background: #1e293b; }
+
 /* ── Info tooltip ── */
 .info-tooltip-wrap {
   position: relative;

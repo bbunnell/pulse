@@ -28,6 +28,7 @@ import type {
 } from "@/lib/types";
 import { buildAttendanceSnapshots, buildCoverage, buildSummary, profileName, type StaffingRuleLike } from "@/lib/status";
 import { InfoTooltip } from "@/components/InfoTooltip";
+import { StatusLegend } from "@/components/StatusLegend";
 import { activeSegmentForShift, formatClock, formatDuration, formatShortDate, openShiftForUser } from "@/lib/time";
 import { convertShiftTime, tzAbbr } from "@/lib/timezone";
 
@@ -317,6 +318,9 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           </span>
         </div>
       )}
+
+      {/* Status color key */}
+      <StatusLegend />
 
       <div className="dash-body">
         <div className="dash-main">
