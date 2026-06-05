@@ -28,7 +28,9 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
   const [startTime,       setStartTime]        = useState(profile.expectedStartTime ?? "08:30");
   const [timezone,        setTimezone]         = useState(profile.timezone ?? "America/Chicago");
   const [status,          setStatus]           = useState<"active"|"inactive">(profile.status);
-  const [showOnDashboard, setShowOnDashboard]  = useState(profile.showOnDashboard ?? true);
+  const [showOnDashboard,   setShowOnDashboard]   = useState(profile.showOnDashboard ?? true);
+  const [workScheduleType,  setWorkScheduleType]  = useState<"standard"|"shift_based">(profile.workScheduleType ?? "shift_based");
+  const [standardWorkDays,  setStandardWorkDays]  = useState<number[]>(profile.standardWorkDays ?? [1,2,3,4,5]);
   const [birthday,        setBirthday]         = useState(profile.birthday ?? "");
   const [workAnniversary, setWorkAnniversary]  = useState(profile.workAnniversary ?? "");
   const [saving,          setSaving]           = useState(false);
@@ -51,7 +53,7 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
     const res = await fetch(`/api/admin/profiles/${profile.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null }),
+      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null, workScheduleType, standardWorkDays }),
     });
     const json = (await res.json()) as { ok?: boolean; profile?: Profile; error?: string };
     if (json.ok) {
@@ -158,11 +160,7 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
               <div className="control wide">
                 <label>Dashboard visibility</label>
                 <label className="dashboard-toggle-row">
-                  <input
-                    type="checkbox"
-                    checked={showOnDashboard}
-                    onChange={e => setShowOnDashboard(e.target.checked)}
-                  />
+                  <input type="checkbox" checked={showOnDashboard} onChange={e => setShowOnDashboard(e.target.checked)} />
                   <span>
                     <strong>Show on attendance dashboard</strong>
                     <small className="subtle" style={{display:"block",marginTop:2}}>
@@ -171,6 +169,41 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                   </span>
                 </label>
               </div>
+
+              <div className="control wide">
+                <label>Work schedule type</label>
+                <div style={{display:"flex",gap:8}}>
+                  {(["standard","shift_based"] as const).map(t => (
+                    <button key={t} type="button"
+                      className={`status-toggle-btn${workScheduleType===t?" active":""}`}
+                      onClick={() => setWorkScheduleType(t)}>
+                      {t === "standard" ? "Standard (M-F)" : "Shift-based"}
+                    </button>
+                  ))}
+                </div>
+                <small className="subtle" style={{fontSize:11,marginTop:4,display:"block"}}>
+                  {workScheduleType === "standard"
+                    ? "Works regular hours — never shown as 'Off Today'. Appears late based on their expected start time."
+                    : "Only active when explicitly scheduled (e.g. NOC/after-hours team). Shown as 'Off Today' when no shift is scheduled."}
+                </small>
+              </div>
+
+              {workScheduleType === "standard" && (
+                <div className="control wide">
+                  <label>Work days</label>
+                  <div className="day-picker">
+                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i) => (
+                      <button key={i} type="button"
+                        className={`day-chip${standardWorkDays.includes(i)?" selected":""}`}
+                        onClick={() => setStandardWorkDays(prev =>
+                          prev.includes(i) ? prev.filter(x=>x!==i) : [...prev,i].sort()
+                        )}>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="schedule-modal-row">
                 <div className="control" style={{flex:1}}>
@@ -502,6 +535,8 @@ export function AdminSettings({ data, currentUserId }: Props) {
         expectedStartTime: "08:30",
         timezone: newUserTz,
         showOnDashboard: true,
+        workScheduleType: "shift_based",
+        standardWorkDays: [1,2,3,4,5],
         createdAt: ts,
         updatedAt: ts,
       };

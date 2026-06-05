@@ -34,6 +34,8 @@ export async function PATCH(
     teamsWebhookUrl?: string | null;
     birthday?: string | null;
     workAnniversary?: string | null;
+    workScheduleType?: "standard" | "shift_based";
+    standardWorkDays?: number[];
   };
 
   try {

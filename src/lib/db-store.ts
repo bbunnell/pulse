@@ -385,6 +385,8 @@ export async function updateProfile(
     showOnDashboard: boolean;
     birthday: string | null;
     workAnniversary: string | null;
+    workScheduleType: "standard" | "shift_based";
+    standardWorkDays: number[];
   }>,
 ): Promise<Profile> {
   const result = await query(
@@ -399,7 +401,9 @@ export async function updateProfile(
        timezone            = COALESCE($9, timezone),
        show_on_dashboard   = COALESCE($10, show_on_dashboard),
        birthday            = CASE WHEN $11::text IS NOT NULL THEN ('2000-' || $11::text)::date ELSE birthday END,
-       work_anniversary    = CASE WHEN $12::text IS NOT NULL THEN $12::date ELSE work_anniversary END
+       work_anniversary    = CASE WHEN $12::text IS NOT NULL THEN $12::date ELSE work_anniversary END,
+       work_schedule_type  = COALESCE($13::text, work_schedule_type),
+       standard_work_days  = COALESCE($14, standard_work_days)
      WHERE id = $1
      RETURNING *`,
     [
@@ -415,6 +419,8 @@ export async function updateProfile(
       patch.showOnDashboard ?? null,
       patch.birthday !== undefined ? patch.birthday : null,
       patch.workAnniversary !== undefined ? patch.workAnniversary : null,
+      patch.workScheduleType ?? null,
+      patch.standardWorkDays ?? null,
     ],
   );
   return mapProfile(result.rows[0]);

@@ -144,7 +144,7 @@ export function buildAttendanceSnapshots(args: {
     // ── Schedule integration (anchored to the schedule reference tz, NOT employee tz) ──
     const windows = windowsForProfile(profile.id, scheduled, scheduleTz);
     const todayStr = localDateInZone(scheduleTz, now);
-    const scheduledToday = windows.some(
+    let scheduledToday = windows.some(
       (w) => w.shift.shiftDate === todayStr || (w.start <= now && now < w.end),
     );
     const activeWindow = windows.find((w) => w.start <= now && now < w.end);
@@ -159,7 +159,38 @@ export function buildAttendanceSnapshots(args: {
     if (activeWindow && !activeShift) {
       minutesLate = Math.max(0, Math.floor((now.getTime() - activeWindow.start.getTime()) / 60_000));
     }
-    const isLate = minutesLate >= LATE_GRACE_MINUTES;
+    let isLate = minutesLate >= LATE_GRACE_MINUTES;
+
+    // ── Standard work schedule (e.g. Mon-Fri office staff) ────────────────────
+    // These people are never "Off Today" — they just work regular hours.
+    // On their work days, treat them as implicitly scheduled and check lateness
+    // against their expectedStartTime rather than an explicit shift window.
+    if (profile.workScheduleType === "standard" && !activeWindow) {
+      const workDays = profile.standardWorkDays ?? [1, 2, 3, 4, 5];
+      // Use employee's own timezone to determine their day of week
+      const empTodayStr = localDateInZone(tz, now);
+      const empDow = new Date(empTodayStr + "T12:00:00").getDay();
+
+      if (workDays.includes(empDow)) {
+        scheduledToday = true;
+
+        if (!activeShift) {
+          // Late if past their expectedStartTime + grace
+          const [h, m] = (profile.expectedStartTime ?? "08:30").split(":").map(Number);
+          const expectedStart = zonedTimeToUtc(
+            empTodayStr,
+            `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+            tz,
+          );
+          if (now > expectedStart) {
+            minutesLate = Math.max(0, Math.floor((now.getTime() - expectedStart.getTime()) / 60_000));
+            isLate = minutesLate >= LATE_GRACE_MINUTES;
+          }
+        }
+      }
+      // If not a work day, leave scheduledToday as false — the dashboard will
+      // suppress them from "Off Today" based on workScheduleType.
+    }
 
     // Overtime: still clocked in past the scheduled end of the shift they punched into.
     // "Owning" window = the scheduled window whose start is nearest to (within 3h before/after) punch-in.

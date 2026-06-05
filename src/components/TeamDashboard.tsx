@@ -207,7 +207,11 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       else if (s.status === "on_break" || s.status === "at_lunch") onBreak.push(s);
       else if (s.status === "out_sick" || s.status === "on_vacation") out.push(s);
       else if (s.isLate) late.push(s);
-      else if (!s.scheduledToday) offToday.push(s);
+      else if (!s.scheduledToday) {
+        // Standard workers on non-work days are just off — don't list them
+        const isStandardOffDay = s.profile.workScheduleType === "standard";
+        if (!isStandardOffDay) offToday.push(s);
+      }
       else notIn.push(s);
     }
     return { working, onBreak, out, late, offToday, notIn };
