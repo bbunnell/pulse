@@ -1427,7 +1427,7 @@ body.monitor-mode              { background: #0f172a; }
   min-width: 0;
 }
 
-.scheduled-time-block span {
+.scheduled-time-block > span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
