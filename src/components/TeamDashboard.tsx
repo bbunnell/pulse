@@ -263,16 +263,34 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   // Employees can see who is working / out across the team.
   // Personal punch-in/out is handled by the My Clock widget in the sidebar.
   // Force-punch buttons are only rendered for managers and admins (canManage).
+  function popOutMonitor() {
+    window.open(
+      "/monitor",
+      "timeboard-monitor",
+      "width=340,height=580,resizable=yes,scrollbars=yes,menubar=no,toolbar=no,location=no,status=no",
+    );
+  }
+
   return (
     <section className="page-shell">
-      {/* Summary stat bar */}
-      <div className="dash-summary-bar">
+      {/* Summary stat bar + pop-out button */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 0 }}>
+        <div className="dash-summary-bar" style={{ flex: 1, marginBottom: 0 }}>
         <SummaryStat label="On now" value={summary.scheduledNow} tone="blue" />
         <SummaryStat label="Working" value={summary.working} tone="green" />
         <SummaryStat label="On break" value={summary.onBreakOrLunch} tone="amber" />
         <SummaryStat label="Out" value={summary.out} tone="red" />
-        {canManage && <SummaryStat label="Late" value={summary.late} tone={summary.late > 0 ? "red" : "gray"} />}
-        {canManage && <SummaryStat label="Missing punch" value={summary.missingPunches} tone={summary.missingPunches > 0 ? "amber" : "gray"} />}
+          {canManage && <SummaryStat label="Late" value={summary.late} tone={summary.late > 0 ? "red" : "gray"} />}
+          {canManage && <SummaryStat label="Missing punch" value={summary.missingPunches} tone={summary.missingPunches > 0 ? "amber" : "gray"} />}
+        </div>
+        <button
+          type="button"
+          className="button secondary monitor-popout-btn"
+          onClick={popOutMonitor}
+          title="Open compact monitor in a separate window"
+        >
+          ⧉ Monitor
+        </button>
       </div>
 
       {/* Coverage gap banner */}
