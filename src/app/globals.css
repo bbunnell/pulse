@@ -1412,6 +1412,31 @@ body.monitor-mode              { background: #0f172a; }
   color: var(--muted);
   margin-top: 2px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Two-line scheduled-time block (primary tz + employee local tz) */
+.scheduled-time-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.scheduled-time-block span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.shift-tz-secondary {
+  font-size: 11px;
+  color: var(--muted-2);
 }
 
 .attend-card-footer {

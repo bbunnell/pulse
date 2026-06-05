@@ -573,10 +573,10 @@ function ScheduledTime({ snapshot, scheduleTz }: { snapshot: AttendanceSnapshot;
   }
 
   return (
-    <small>
-      {primary} <span className="shift-tz-label">{tzAbbr(scheduleTz)}</span>
-      {secondary && <><span className="sched-secondary"> · {secondary}</span></>}
-    </small>
+    <span className="scheduled-time-block">
+      <span>{primary} <span className="shift-tz-label">{tzAbbr(scheduleTz)}</span></span>
+      {secondary && <span className="shift-tz-secondary">{secondary}</span>}
+    </span>
   );
 }
 
