@@ -898,6 +898,68 @@ h2 {
 .status-count.gray  { background: var(--muted-2); }
 .status-count.blue  { background: var(--blue); }
 
+/* ── Info tooltip ── */
+.info-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.info-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--muted-2);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.info-tooltip-wrap:hover .info-tooltip-icon { background: var(--primary); }
+
+.info-tooltip-bubble {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  width: 240px;
+  white-space: normal;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 500;
+  pointer-events: none;
+}
+
+/* Arrow */
+.info-tooltip-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1e293b;
+}
+
+.info-tooltip-wrap:hover .info-tooltip-bubble { display: block; }
+
 /* ── Monitor pop-out button ── */
 .monitor-popout-btn {
   flex-shrink: 0;

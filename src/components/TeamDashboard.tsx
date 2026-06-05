@@ -27,6 +27,7 @@ import type {
   TimeOffEntry,
 } from "@/lib/types";
 import { buildAttendanceSnapshots, buildCoverage, buildSummary, profileName, type StaffingRuleLike } from "@/lib/status";
+import { InfoTooltip } from "@/components/InfoTooltip";
 import { activeSegmentForShift, formatClock, formatDuration, formatShortDate, openShiftForUser } from "@/lib/time";
 import { convertShiftTime, tzAbbr } from "@/lib/timezone";
 
@@ -323,7 +324,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           <div className="status-group">
             <div className="status-group-heading">
               <span className="status-dot-lg blue" />
-              <h2>On Now</h2>
+              <h2>On Now <InfoTooltip text="Scheduled to be working right now based on their assigned shift. Cross-reference with 'Working' to spot coverage gaps." /></h2>
               <span className="status-count blue">{coverage.scheduledNow.length}</span>
             </div>
             {coverage.scheduledNow.length > 0 ? (
@@ -343,7 +344,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           <div className="status-group">
             <div className="status-group-heading">
               <span className="status-dot-lg green" />
-              <h2>Working</h2>
+              <h2>Working <InfoTooltip text="Has clocked in and is actively on the clock. Doesn't require a scheduled shift — anyone punched in appears here." /></h2>
               <span className="status-count green">{groups.working.length}</span>
             </div>
             {groups.working.length > 0 ? (
@@ -358,7 +359,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg amber" />
-                <h2>On Break</h2>
+                <h2>On Break <InfoTooltip text="Clocked in but currently on a break or at lunch. The timer shows how long the break has been running." /></h2>
                 <span className="status-count amber">{groups.onBreak.length}</span>
               </div>
               <div className="attend-grid">
@@ -372,7 +373,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg red" />
-                <h2>Late / Not Clocked In</h2>
+                <h2>Late / Not Clocked In <InfoTooltip text="Scheduled to work right now but hasn't clocked in. The timer shows how late they are. Use 'Clock in ↩' to log them in manually." /></h2>
                 <span className="status-count red">{groups.late.length}</span>
               </div>
               <div className="attend-grid">
@@ -386,7 +387,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg red" />
-                <h2>Out Today</h2>
+                <h2>Out Today <InfoTooltip text="On approved vacation or sick leave today. Their time off is recorded in the system." /></h2>
                 <span className="status-count red">{groups.out.length}</span>
               </div>
               <div className="attend-grid">
@@ -400,7 +401,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg gray" />
-                <h2>Not In Yet</h2>
+                <h2>Not In Yet <InfoTooltip text="Has a scheduled shift today but hasn't clocked in yet. They may not have started their shift window or are about to arrive." /></h2>
                 <span className="status-count gray">{groups.notIn.length}</span>
               </div>
               <div className="attend-grid">
@@ -414,7 +415,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg gray" />
-                <h2>Off Today</h2>
+                <h2>Off Today <InfoTooltip text="Not scheduled to work today. No action needed — shown for full team visibility." /></h2>
                 <span className="status-count gray">{groups.offToday.length}</span>
               </div>
               <div className="attend-list">
@@ -530,9 +531,19 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
 // ── Sub-components ───────────────────────────────────────────
 
+const STAT_TIPS: Record<string, string> = {
+  "On now":        "Scheduled to be working right now",
+  "Working":       "Currently clocked in",
+  "On break":      "Clocked in, currently on break or lunch",
+  "Out":           "On vacation or sick leave today",
+  "Late":          "Scheduled now but not yet clocked in",
+  "Missing punch": "Open shift older than 16h or scheduled but overdue",
+};
+
 function SummaryStat({ label, value, tone }: { label: string; value: number; tone: string }) {
+  const tip = STAT_TIPS[label];
   return (
-    <div className="dash-summary-stat">
+    <div className="dash-summary-stat" title={tip}>
       <span className={`dash-summary-value ${tone}`}>{value}</span>
       <span className="dash-summary-label">{label}</span>
     </div>
@@ -589,7 +600,7 @@ function CoverageCard({ snapshot, orgTimezone, canManage, actionLoading, onForce
           <span className="coverage-status online">● On — {formatDuration(snapshot.clockedInMinutes)}{snapshot.overtimeMinutes > 0 ? ` · +${formatDuration(snapshot.overtimeMinutes)} OT` : ""}</span>
         ) : (
           <span className="coverage-status absent">
-            ● {snapshot.minutesLate > 0 ? `Late ${snapshot.minutesLate}m` : "Not clocked in"}
+            ● {snapshot.minutesLate > 0 ? `Late ${formatDuration(snapshot.minutesLate)}` : "Not clocked in"}
           </span>
         )}
         {canManage && !online && (
@@ -674,7 +685,7 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
           </div>
         ) : snapshot.isLate ? (
           <div className="attend-card-meta">
-            <span className="late-badge">Late {snapshot.minutesLate}m</span>
+            <span className="late-badge">Late {formatDuration(snapshot.minutesLate)}</span>
           </div>
         ) : (
           <div className="attend-card-meta">

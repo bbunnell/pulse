@@ -198,7 +198,7 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
           <div key={s.profile.id} className="monitor-row late">
             <span className="monitor-dot">🔴</span>
             <span className="monitor-name">{profileName(s.profile)}</span>
-            <span className="monitor-meta">Late {s.minutesLate}m</span>
+            <span className="monitor-meta">Late {relTime(s.minutesLate)}</span>
           </div>
         ))}
 
