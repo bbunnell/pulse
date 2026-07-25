@@ -14,13 +14,13 @@ export async function POST(request: Request) {
   }
 
   const result = await sendTeamsMessage(webhookUrl, {
-    title:       "✅ TimeBoard — Test Message",
-    text:        "Your Teams webhook is working correctly. TimeBoard shift reminders will be sent to this channel.",
+    title:       "✅ Team Pulse — Test Message",
+    text:        "Your Teams webhook is working correctly. Team Pulse shift reminders will be sent to this channel.",
     facts:       [
-      { name: "Sent from", value: "TimeBoard Admin Settings" },
+      { name: "Sent from", value: "Team Pulse Admin Settings" },
       { name: "Channel",   value: "Microsoft Teams Incoming Webhook" },
     ],
-    actionLabel: "Open TimeBoard",
+    actionLabel: "Open Team Pulse",
     actionUrl:   process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
   });
 

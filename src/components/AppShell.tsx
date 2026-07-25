@@ -20,11 +20,8 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-frame">
       <aside className="sidebar">
         <Link className="brand" href="/">
-          <img src="/logo.png" alt="NBIT logo" className="brand-logo" width={36} height={36} />
-          <span>
-            <strong>TimeBoard</strong>
-            <small>Attendance</small>
-          </span>
+          <img src="/mark-dark-bg.png" alt="Team Pulse" className="brand-logo" style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }} />
+          <strong style={{ fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: "0.01em" }}>Team Pulse</strong>
         </Link>
         <SidebarNav role={currentUser.role} currentUser={sidebarUser} />
       </aside>

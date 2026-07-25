@@ -70,7 +70,7 @@ async function handler(request: Request) {
     for (const shift of dueShifts) {
       const channelsSent: string[] = [];
       const scheduledTime = fmt12h(shift.startTime);
-      const subject = "TimeBoard — Please clock in";
+      const subject = "Team Pulse — Please clock in";
       const body    = buildCheckInBody(shift.firstName, scheduledTime, baseUrl);
 
       // Email
@@ -91,14 +91,14 @@ async function handler(request: Request) {
       const teamsUrl = shift.teamsWebhookUrl || cfg.teamsWebhookUrl;
       if (teamsUrl) {
         const teamsResult = await sendTeamsMessage(teamsUrl, {
-          title:       "⏰ Please Clock In — TimeBoard",
+          title:       "⏰ Please Clock In — Team Pulse",
           text:        `Hi **${shift.firstName} ${shift.lastName}** — your shift was scheduled to start at **${scheduledTime}**. Please clock in.`,
           facts:       [
             { name: "Person",     value: `${shift.firstName} ${shift.lastName}` },
             { name: "Scheduled",  value: scheduledTime },
             { name: "Action",     value: "Please clock in" },
           ],
-          actionLabel: "Open TimeBoard",
+          actionLabel: "Open Team Pulse",
           actionUrl:   baseUrl,
         });
         const label = shift.teamsWebhookUrl ? "teams-dm" : "teams-channel";
@@ -127,7 +127,7 @@ async function handler(request: Request) {
     for (const shift of dueShifts) {
       const channelsSent: string[] = [];
       const scheduledTime = fmt12h(shift.endTime);
-      const subject = "TimeBoard — Please clock out";
+      const subject = "Team Pulse — Please clock out";
       const body    = buildCheckOutBody(shift.firstName, scheduledTime, baseUrl);
 
       // Email
@@ -148,14 +148,14 @@ async function handler(request: Request) {
       const teamsUrl = shift.teamsWebhookUrl || cfg.teamsWebhookUrl;
       if (teamsUrl) {
         const teamsResult = await sendTeamsMessage(teamsUrl, {
-          title:       "⏰ Please Clock Out — TimeBoard",
+          title:       "⏰ Please Clock Out — Team Pulse",
           text:        `Hi **${shift.firstName} ${shift.lastName}** — your shift was scheduled to end at **${scheduledTime}**. Please clock out.`,
           facts:       [
             { name: "Person",     value: `${shift.firstName} ${shift.lastName}` },
             { name: "Scheduled",  value: scheduledTime },
             { name: "Action",     value: "Please clock out" },
           ],
-          actionLabel: "Open TimeBoard",
+          actionLabel: "Open Team Pulse",
           actionUrl:   baseUrl,
         });
         const label = shift.teamsWebhookUrl ? "teams-dm" : "teams-channel";
@@ -179,13 +179,13 @@ async function handler(request: Request) {
       for (const late of lateShifts) {
         const recipients = await getEscalationRecipients(late.teamId);
         const channels: string[] = [];
-        const subject = `TimeBoard — ${late.firstName} ${late.lastName} is ${late.minutesLate}m late`;
+        const subject = `Team Pulse — ${late.firstName} ${late.lastName} is ${late.minutesLate}m late`;
         const text = `${late.firstName} ${late.lastName} was scheduled to start at ${fmt12h(late.startTime)} and still hasn't clocked in (${late.minutesLate} minutes late). Coverage may be at risk.`;
         for (const r of recipients) {
           try {
             const res = await sendTransactionalEmail({
               to: r.email, subject, text,
-              html: `<p>${text}</p><p><a href="${baseUrl}">Open TimeBoard</a></p>`,
+              html: `<p>${text}</p><p><a href="${baseUrl}">Open Team Pulse</a></p>`,
             });
             if (res.status === "sent") channels.push(`email:${r.email}`);
           } catch (e) { results.escalation.errors.push(String(e)); }
@@ -195,7 +195,7 @@ async function handler(request: Request) {
             title: "🚨 Late — Coverage at Risk",
             text: `**${late.firstName} ${late.lastName}** was scheduled at **${fmt12h(late.startTime)}** and is **${late.minutesLate} minutes late** with no clock-in.`,
             facts: [{ name: "Scheduled", value: fmt12h(late.startTime) }, { name: "Late by", value: `${late.minutesLate} min` }],
-            actionLabel: "Open TimeBoard", actionUrl: baseUrl,
+            actionLabel: "Open Team Pulse", actionUrl: baseUrl,
           });
           if (t.ok) channels.push("teams");
         }
@@ -230,18 +230,18 @@ async function handler(request: Request) {
         if (required[nowHour] > 0 && counts[nowHour] < required[nowHour] && !(await wasCoverageAlerted(todayStr, nowHour))) {
           const recipients = await getEscalationRecipients(null);
           const label = fmt12h(`${String(nowHour).padStart(2, "0")}:00`);
-          const subject = `TimeBoard — understaffed at ${label}`;
+          const subject = `Team Pulse — understaffed at ${label}`;
           const text = `Coverage at ${label} is ${counts[nowHour]} of ${required[nowHour]} required. Action may be needed to maintain coverage.`;
           for (const r of recipients) {
             try {
-              await sendTransactionalEmail({ to: r.email, subject, text, html: `<p>${text}</p><p><a href="${baseUrl}">Open TimeBoard</a></p>` });
+              await sendTransactionalEmail({ to: r.email, subject, text, html: `<p>${text}</p><p><a href="${baseUrl}">Open Team Pulse</a></p>` });
             } catch (e) { results.understaffing.errors.push(String(e)); }
           }
           if (cfg.teamsWebhookUrl) {
             await sendTeamsMessage(cfg.teamsWebhookUrl, {
               title: "⚠️ Below Minimum Staffing",
               text: `Coverage at **${label}** is **${counts[nowHour]} of ${required[nowHour]}** required.`,
-              actionLabel: "Open TimeBoard", actionUrl: baseUrl,
+              actionLabel: "Open Team Pulse", actionUrl: baseUrl,
             });
           }
           await recordCoverageAlert(todayStr, nowHour);
@@ -277,13 +277,13 @@ function buildCheckInBody(firstName: string, scheduledTime: string, baseUrl: str
     ``,
     `Clock in here: ${baseUrl}`,
     ``,
-    `— TimeBoard`,
+    `— Team Pulse`,
   ].join("\n");
 
   const html = `
     <table style="font-family:sans-serif;font-size:14px;color:#111;max-width:500px">
       <tr><td style="padding-bottom:16px">
-        <strong style="font-size:16px">⏰ TimeBoard — Please Clock In</strong>
+        <strong style="font-size:16px">⏰ Team Pulse — Please Clock In</strong>
       </td></tr>
       <tr><td style="padding-bottom:12px">
         Hi <strong>${firstName}</strong>,<br><br>
@@ -291,12 +291,12 @@ function buildCheckInBody(firstName: string, scheduledTime: string, baseUrl: str
         If you're working, please clock in now.
       </td></tr>
       <tr><td style="padding-bottom:16px">
-        <a href="${baseUrl}" style="background:#4F46E5;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
+        <a href="${baseUrl}" style="background:#00579D;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
           Clock In Now
         </a>
       </td></tr>
       <tr><td style="font-size:12px;color:#64748B">
-        This is an automated reminder from TimeBoard. If you've already clocked in, you can ignore this message.
+        This is an automated reminder from Team Pulse. If you've already clocked in, you can ignore this message.
       </td></tr>
     </table>`;
 
@@ -311,13 +311,13 @@ function buildCheckOutBody(firstName: string, scheduledTime: string, baseUrl: st
     ``,
     `Clock out here: ${baseUrl}`,
     ``,
-    `— TimeBoard`,
+    `— Team Pulse`,
   ].join("\n");
 
   const html = `
     <table style="font-family:sans-serif;font-size:14px;color:#111;max-width:500px">
       <tr><td style="padding-bottom:16px">
-        <strong style="font-size:16px">⏰ TimeBoard — Please Clock Out</strong>
+        <strong style="font-size:16px">⏰ Team Pulse — Please Clock Out</strong>
       </td></tr>
       <tr><td style="padding-bottom:12px">
         Hi <strong>${firstName}</strong>,<br><br>
@@ -325,12 +325,12 @@ function buildCheckOutBody(firstName: string, scheduledTime: string, baseUrl: st
         If you're finished, please clock out now.
       </td></tr>
       <tr><td style="padding-bottom:16px">
-        <a href="${baseUrl}" style="background:#4F46E5;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
+        <a href="${baseUrl}" style="background:#00579D;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
           Clock Out Now
         </a>
       </td></tr>
       <tr><td style="font-size:12px;color:#64748B">
-        This is an automated reminder from TimeBoard. If you've already clocked out, you can ignore this message.
+        This is an automated reminder from Team Pulse. If you've already clocked out, you can ignore this message.
       </td></tr>
     </table>`;
 

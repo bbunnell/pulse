@@ -736,7 +736,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                     </li>
                     <li>
                       Click <strong>New flow</strong> → <strong>Instant cloud flow</strong>. Name it{" "}
-                      <em>"TimeBoard Reminder"</em>.
+                      <em>"Team Pulse Reminder"</em>.
                     </li>
                     <li>
                       Choose the trigger: <strong>"When a HTTP request is received"</strong>. Click Create.
@@ -1058,7 +1058,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                 <div className="control wide">
                   <label htmlFor="smtpUser">Username / mailbox</label>
                   <input className="input" id="smtpUser" type="email" value={smtpUser} onChange={(e) => setSmtpUser(e.target.value)}
-                    placeholder="timeboard@yourdomain.com" />
+                    placeholder="teampulse@yourdomain.com" />
                 </div>
                 <div className="control wide">
                   <label htmlFor="smtpPassword">
@@ -1086,7 +1086,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                 <div className="control wide">
                   <label htmlFor="emailFrom">From address</label>
                   <input className="input" id="emailFrom" value={emailFrom} onChange={(e) => setEmailFrom(e.target.value)}
-                    placeholder='TimeBoard <timeboard@yourdomain.com>' />
+                    placeholder='Team Pulse <teampulse@yourdomain.com>' />
                 </div>
               </div>
 

@@ -39,7 +39,7 @@ function buildMessageCard(msg: TeamsMessage): object {
   ];
 
   const actions: object[] = msg.actionUrl
-    ? [{ "@type": "OpenUri", name: msg.actionLabel ?? "Open TimeBoard",
+    ? [{ "@type": "OpenUri", name: msg.actionLabel ?? "Open Team Pulse",
          targets: [{ os: "default", uri: msg.actionUrl }] }]
     : [];
 
@@ -67,7 +67,7 @@ function buildAdaptiveCard(msg: TeamsMessage): object {
   }
 
   const actions: object[] = msg.actionUrl
-    ? [{ type: "Action.OpenUrl", title: msg.actionLabel ?? "Open TimeBoard", url: msg.actionUrl }]
+    ? [{ type: "Action.OpenUrl", title: msg.actionLabel ?? "Open Team Pulse", url: msg.actionUrl }]
     : [];
 
   return {

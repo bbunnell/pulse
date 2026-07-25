@@ -20,9 +20,9 @@ export async function POST(request: Request) {
 
   const result = await sendTransactionalEmail({
     to,
-    subject: "TimeBoard — email test",
+    subject: "Team Pulse — email test",
     text: [
-      "This is a test message from TimeBoard.",
+      "This is a test message from Team Pulse.",
       "If you received this, your Microsoft 365 SMTP configuration is working correctly.",
       `Sent: ${sent} CT`,
       `Provider: ${cfg.provider}`,
@@ -32,10 +32,10 @@ export async function POST(request: Request) {
     html: `
       <table style="font-family:sans-serif;font-size:14px;color:#111;max-width:480px">
         <tr><td style="padding-bottom:16px">
-          <strong style="font-size:16px">TimeBoard — email test</strong>
+          <strong style="font-size:16px">Team Pulse — email test</strong>
         </td></tr>
         <tr><td style="padding-bottom:12px">
-          This is a test message from TimeBoard. If you received this, your
+          This is a test message from Team Pulse. If you received this, your
           Microsoft 365 SMTP configuration is working correctly.
         </td></tr>
         <tr><td style="background:#f4f4f5;border-radius:6px;padding:12px;font-size:12px;font-family:monospace">

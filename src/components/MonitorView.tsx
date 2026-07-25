@@ -131,8 +131,8 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
       {/* Header */}
       <div className="monitor-header">
         <div className="monitor-brand">
-          <img src="/logo.png" alt="TimeBoard" width={20} height={20} style={{ borderRadius: 4 }} />
-          <span>TimeBoard</span>
+          <img src="/team-pulse-app-icon.png" alt="Team Pulse" width={20} height={20} style={{ borderRadius: 4 }} />
+          <span>Team Pulse</span>
         </div>
         <div className="monitor-clock" suppressHydrationWarning>
           <span className="monitor-time">{nowTime}</span>

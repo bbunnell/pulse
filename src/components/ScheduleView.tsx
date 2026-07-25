@@ -10,16 +10,16 @@ import { RecurringRulePanel } from "@/components/schedule/RecurringRulePanel";
 import { BulkReassignModal } from "@/components/schedule/BulkReassignModal";
 import { TemplatesModal } from "@/components/schedule/TemplatesModal";
 
-// ── Colour palette ─────────────────────────────────────────────────────────────
+// ── Colour palette (NBIT brand-derived) ────────────────────────────────────────
 const PALETTE = [
-  { bg: "#EEF2FF", border: "#818CF8", text: "#3730A3" },
-  { bg: "#FEF3C7", border: "#F59E0B", text: "#78350F" },
-  { bg: "#ECFDF5", border: "#34D399", text: "#065F46" },
-  { bg: "#FDF2F8", border: "#EC4899", text: "#831843" },
-  { bg: "#F0F9FF", border: "#38BDF8", text: "#0C4A6E" },
-  { bg: "#FAF5FF", border: "#C084FC", text: "#581C87" },
-  { bg: "#FFF7ED", border: "#FB923C", text: "#7C2D12" },
-  { bg: "#F0FDF4", border: "#4ADE80", text: "#14532D" },
+  { bg: "#E6F0FA", border: "#00579D", text: "#133F62" },  // Royal Blue
+  { bg: "#E8F6FD", border: "#59BFEF", text: "#0C3A52" },  // Sky Blue
+  { bg: "#ECFDF5", border: "#059669", text: "#065F46" },  // Green
+  { bg: "#FFF8E1", border: "#FFBF1D", text: "#7A5800" },  // Yellow accent
+  { bg: "#FEF2F2", border: "#E23A39", text: "#7F1D1D" },  // Red
+  { bg: "#F0F9FF", border: "#2D81B5", text: "#133F62" },  // Mid blue
+  { bg: "#FFF7ED", border: "#D97706", text: "#7C2D12" },  // Amber
+  { bg: "#F0FDF4", border: "#34D399", text: "#14532D" },  // Teal
 ];
 
 function profileColor(id: string) {

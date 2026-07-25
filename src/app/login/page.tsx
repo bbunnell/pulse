@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogIn, Mail, KeyRound, CheckCircle, Timer } from "lucide-react";
+import { LogIn, Mail, KeyRound, CheckCircle } from "lucide-react";
 
 type View = "login" | "forgot" | "sent" | "setup" | "done";
 
@@ -29,7 +29,6 @@ function LoginForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [logoFailed, setLogoFailed] = useState(false);
   /** True only in the browser after hydration — avoids mismatches when password extensions inject into inputs. */
   const formsReady = useSyncExternalStore(
     () => () => {},
@@ -140,32 +139,16 @@ function LoginForm() {
       <div className="login-card">
 
         {/* ── Brand header ── */}
-        <Link href="/" className="login-logo login-logo-home" aria-label="TimeBoard home">
-          {logoFailed ? (
-            <span className="login-logo-fallback" aria-hidden>
-              <Timer size={22} strokeWidth={2} />
-            </span>
-          ) : (
-            <img
-              src="/logo.png"
-              alt=""
-              width={40}
-              height={40}
-              className="login-logo-img"
-              onError={() => setLogoFailed(true)}
-            />
-          )}
-          <div>
-            <strong style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>TimeBoard</strong>
-            <p className="subtle" style={{ marginTop: 1 }}>
-              {view === "login"  && "Sign in to your account"}
-              {view === "forgot" && "Reset your password"}
-              {view === "sent"   && "Check your email"}
-              {view === "setup"  && (setupFirstName ? `Welcome, ${setupFirstName}!` : "Set your password")}
-              {view === "done"   && "Password set!"}
-            </p>
-          </div>
-        </Link>
+        <div className="login-logo">
+          <img src="/team-pulse-logo-light.png" alt="Team Pulse" className="login-logo-svg" />
+          <p className="subtle" style={{ marginTop: 8, textAlign: "center" }}>
+            {view === "login"  && "Sign in to your account"}
+            {view === "forgot" && "Reset your password"}
+            {view === "sent"   && "Check your email"}
+            {view === "setup"  && (setupFirstName ? `Welcome, ${setupFirstName}!` : "Set your password")}
+            {view === "done"   && "Password set!"}
+          </p>
+        </div>
 
         {!formsReady ? (
           <div className="login-fields" style={{ minHeight: 280 }} aria-busy="true">

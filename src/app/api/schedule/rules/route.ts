@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     if (profile && profile.id !== actorId) {
       const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
       const dayNames = rule.daysOfWeek.map(d => days[d]).join(", ");
-      const subject = "TimeBoard — recurring shift assigned";
+      const subject = "Team Pulse — recurring shift assigned";
       const text = `Hi ${profile.firstName},\n\nA recurring shift has been assigned to you:\n  Days: ${dayNames}\n  Time: ${rule.startTime}–${rule.endTime}\n  Starting: ${rule.effectiveFrom}\n  Repeats every ${rule.repeatWeeks} week(s)\n\n${count} shifts have been generated.`;
       await sendTransactionalEmail({ to: profile.email, subject, text, html: `<p>${text.replace(/\n/g,"<br>")}</p>` });
       if (cfg.teamsWebhookUrl) {

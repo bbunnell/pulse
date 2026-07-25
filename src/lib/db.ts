@@ -3,15 +3,15 @@ import { Pool, type PoolClient, type QueryResultRow } from "pg";
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error("DATABASE_URL is required. Configure PostgreSQL before starting TimeBoard.");
+  throw new Error("DATABASE_URL is required. Configure PostgreSQL before starting Team Pulse.");
 }
 
 declare global {
-  var __timeboardPgPool: Pool | undefined;
+  var __teampulsePgPool: Pool | undefined;
 }
 
 const pool =
-  globalThis.__timeboardPgPool ??
+  globalThis.__teampulsePgPool ??
   new Pool({
     connectionString,
     max: 20,
@@ -19,7 +19,7 @@ const pool =
   });
 
 if (process.env.NODE_ENV !== "production") {
-  globalThis.__timeboardPgPool = pool;
+  globalThis.__teampulsePgPool = pool;
 }
 
 export function query<T extends QueryResultRow = QueryResultRow>(text: string, values: unknown[] = []) {

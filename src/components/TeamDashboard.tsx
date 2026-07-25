@@ -276,7 +276,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   function popOutMonitor() {
     window.open(
       "/monitor",
-      "timeboard-monitor",
+      "teampulse-monitor",
       "width=340,height=580,resizable=yes,scrollbars=yes,menubar=no,toolbar=no,location=no,status=no",
     );
   }

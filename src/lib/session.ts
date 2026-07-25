@@ -4,7 +4,7 @@ import type { NextRequest, NextResponse } from "next/server";
 import { isUuid } from "@/lib/uuid";
 import type { Role } from "@/lib/types";
 
-const FALLBACK_SESSION_SECRET = "timeboard-dev-secret-key-at-least-32-chars!!";
+const FALLBACK_SESSION_SECRET = "teampulse-dev-secret-key-at-least-32-chars!!";
 
 /** iron-session requires ≥32 chars; `SESSION_SECRET=` in .env is "" and would bypass `??` and crash login. */
 function resolveSessionPassword(): string {
@@ -24,7 +24,7 @@ export const sessionOptions = {
   get password() {
     return resolveSessionPassword();
   },
-  cookieName: "timeboard-session",
+  cookieName: "teampulse-session",
   cookieOptions: {
     path: "/",
     sameSite: "lax" as const,

@@ -34,8 +34,8 @@ export async function POST(request: Request) {
     const fromProfile = await getProfileById(body.fromProfileId);
     const cfg = await getNotificationSettings();
     if (toProfile && toProfile.id !== actorId) {
-      const subject = "TimeBoard — shifts reassigned to you";
-      const text = `Hi ${toProfile.firstName},\n\n${count} shift(s) from ${fromProfile?.firstName ?? "another engineer"} have been reassigned to you between ${body.fromDate} and ${body.toDate}.\n\nPlease check your schedule in TimeBoard.`;
+      const subject = "Team Pulse — shifts reassigned to you";
+      const text = `Hi ${toProfile.firstName},\n\n${count} shift(s) from ${fromProfile?.firstName ?? "another engineer"} have been reassigned to you between ${body.fromDate} and ${body.toDate}.\n\nPlease check your schedule in Team Pulse.`;
       await sendTransactionalEmail({ to: toProfile.email, subject, text, html: `<p>${text.replace(/\n/g,"<br>")}</p>` });
       if (cfg.teamsWebhookUrl) {
         await sendTeamsMessage(cfg.teamsWebhookUrl, {

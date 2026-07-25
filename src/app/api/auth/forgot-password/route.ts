@@ -18,10 +18,10 @@ export async function POST(request: Request) {
   const resetUrl = `${baseUrl}/login?token=${token}`;
 
   const isFirstTime = user.must_set_password;
-  const subject = isFirstTime ? "Set up your TimeBoard account" : "Reset your TimeBoard password";
+  const subject = isFirstTime ? "Set up your Team Pulse account" : "Reset your Team Pulse password";
   const greeting = isFirstTime
-    ? `Hi ${user.first_name}, welcome to TimeBoard! An admin has created your account.`
-    : `Hi ${user.first_name}, we received a request to reset your TimeBoard password.`;
+    ? `Hi ${user.first_name}, welcome to Team Pulse! An admin has created your account.`
+    : `Hi ${user.first_name}, we received a request to reset your Team Pulse password.`;
 
   const text = [
     greeting,
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   // In dev with no email provider configured, log the link to the console
   if (result.status === "queued") {
-    console.log(`\n[TimeBoard] Password ${isFirstTime ? "setup" : "reset"} link for ${user.email}:\n${resetUrl}\n`);
+    console.log(`\n[Team Pulse] Password ${isFirstTime ? "setup" : "reset"} link for ${user.email}:\n${resetUrl}\n`);
   }
 
   return NextResponse.json({ ok: true });
