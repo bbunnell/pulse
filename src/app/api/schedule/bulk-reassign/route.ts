@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         await sendTeamsMessage(cfg.teamsWebhookUrl, {
           title: "📋 Shifts Reassigned",
           text: `**${toProfile.firstName} ${toProfile.lastName}** has been assigned ${count} shift(s) previously belonging to ${fromProfile?.firstName ?? "another engineer"} (${body.fromDate} – ${body.toDate}).`,
-          actionLabel: "View Schedule", actionUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
+          actionLabel: "View Schedule", actionUrl: process.env.BASE_URL ?? "http://localhost:3000",
         });
       }
     }

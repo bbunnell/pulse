@@ -50,7 +50,7 @@ async function handler(request: Request) {
     return NextResponse.json({ error: "DB unavailable." }, { status: 503 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const results = {
     checkIn:  { sent: 0, skipped: 0, errors: [] as string[] },
     checkOut: { sent: 0, skipped: 0, errors: [] as string[] },

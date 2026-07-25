@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         await sendTeamsMessage(cfg.teamsWebhookUrl, {
           title: "⏰ Recurring Shift Assigned",
           text: `Hi **${profile.firstName} ${profile.lastName}** — a recurring shift has been added: **${dayNames}**, ${rule.startTime}–${rule.endTime}, starting ${rule.effectiveFrom}. ${count} shifts generated.`,
-          actionLabel: "View Schedule", actionUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
+          actionLabel: "View Schedule", actionUrl: process.env.BASE_URL ?? "http://localhost:3000",
         });
       }
     }

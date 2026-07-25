@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const state      = searchParams.get("state");
   const errorParam = searchParams.get("error");
 
-  const baseUrl  = process.env.NEXT_PUBLIC_BASE_URL ?? "https://pulse.nbit.com";
+  const baseUrl  = request.nextUrl.origin;
   const loginUrl = new URL("/login", baseUrl);
 
   if (errorParam) {

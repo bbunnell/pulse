@@ -1,0 +1,44 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "7a131604-82af-46e7-b92a-a27132673f67",
+  "packageName": "com.nbit.teampulse",
+  "developer": {
+    "name": "NBIT",
+    "websiteUrl": "https://pulse.nbit.com",
+    "privacyUrl": "https://pulse.nbit.com",
+    "termsOfUseUrl": "https://pulse.nbit.com"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "Team Pulse",
+    "full": "Team Pulse by NBIT"
+  },
+  "description": {
+    "short": "Team attendance & scheduling",
+    "full": "Team Pulse is NBIT's internal portal for team attendance, scheduling, time-off, and reporting."
+  },
+  "accentColor": "#00579D",
+  "staticTabs": [
+    {
+      "entityId": "index",
+      "name": "Team Pulse",
+      "contentUrl": "https://pulse.nbit.com",
+      "websiteUrl": "https://pulse.nbit.com",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "pulse.nbit.com"
+  ]
+}

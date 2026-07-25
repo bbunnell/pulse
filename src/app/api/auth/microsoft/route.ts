@@ -1,15 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSsoSettings } from "@/lib/db-store";
 import crypto from "crypto";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const sso = await getSsoSettings();
+  const baseUrl = request.nextUrl.origin;
+
   if (!sso.enabled || !sso.clientId || !sso.tenantId || !sso.clientSecret) {
-    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_BASE_URL ?? "https://pulse.nbit.com"));
+    return NextResponse.redirect(new URL("/login", baseUrl));
   }
 
   const state = crypto.randomBytes(16).toString("hex");
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://pulse.nbit.com";
 
   const params = new URLSearchParams({
     client_id:     sso.clientId,

@@ -19,7 +19,7 @@ export async function POST(
 
   // Generate fresh temp password so the invite is usable
   const { tempPassword } = await adminResetPassword(id);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const loginUrl = `${baseUrl}/login`;
 
   const result = await sendTransactionalEmail({

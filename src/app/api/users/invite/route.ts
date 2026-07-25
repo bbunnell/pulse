@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     initialPassword: initialPw || undefined,
   });
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const loginUrl = `${baseUrl}/login`;
 
   const result = await sendTransactionalEmail({

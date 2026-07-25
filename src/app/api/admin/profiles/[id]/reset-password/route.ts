@@ -19,7 +19,7 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
   const { tempPassword } = await adminResetPassword(id);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
 
   if (body.sendEmail) {
     await sendTransactionalEmail({

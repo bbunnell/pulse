@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       { name: "Channel",   value: "Microsoft Teams Incoming Webhook" },
     ],
     actionLabel: "Open Team Pulse",
-    actionUrl:   process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
+    actionUrl:   process.env.BASE_URL ?? "http://localhost:3000",
   });
 
   if (!result.ok) {

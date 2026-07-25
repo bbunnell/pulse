@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   }
 
   const token = await createPasswordResetToken(user.profile_id);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const resetUrl = `${baseUrl}/login?token=${token}`;
 
   const isFirstTime = user.must_set_password;
