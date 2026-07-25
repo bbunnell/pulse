@@ -15,7 +15,7 @@ const SSO_ERRORS: Record<string, string> = {
   noaccount:  "No Team Pulse account found for that Microsoft email.",
 };
 
-type View = "login" | "forgot" | "sent" | "setup" | "done";
+type View = "login" | "forgot" | "sent" | "setup" | "done" | "ready";
 
 export default function LoginPage() {
   return (
@@ -103,7 +103,10 @@ function LoginForm() {
       return;
     }
 
-    window.location.href = "/";
+    // Teams iframe blocks all programmatic navigation after login.
+    // Show a "ready" view with a plain <a href="/"> the user can click.
+    // A user-initiated link click is not blocked by Teams.
+    setView("ready");
   }
 
   async function handleForgot(e: React.FormEvent) {
@@ -166,6 +169,7 @@ function LoginForm() {
             {view === "sent"   && "Check your email"}
             {view === "setup"  && (setupFirstName ? `Welcome, ${setupFirstName}!` : "Set your password")}
             {view === "done"   && "Password set!"}
+            {view === "ready"  && "Signed in"}
           </p>
         </div>
 
@@ -342,15 +346,26 @@ function LoginForm() {
             <p style={{ textAlign: "center", color: "var(--ink-2)", lineHeight: 1.5 }}>
               Your password has been set. You&apos;re now signed in.
             </p>
-            <button
-              type="button"
-              className="button primary"
-              style={{ marginTop: 8 }}
-              onClick={() => { router.push("/"); router.refresh(); }}
-            >
+            <a href="/" className="button primary" style={{ marginTop: 8, textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <LogIn size={15} aria-hidden="true" />
               Go to Dashboard
-            </button>
+            </a>
+          </div>
+        )}
+
+        {/* ── Ready (signed in, waiting for user-click navigation) ── */}
+        {view === "ready" && (
+          <div className="login-fields">
+            <div className="login-sent-icon">
+              <CheckCircle size={36} style={{ color: "var(--green)" }} />
+            </div>
+            <p style={{ textAlign: "center", color: "var(--ink-2)", lineHeight: 1.5 }}>
+              You&apos;re signed in!
+            </p>
+            <a href="/" className="button primary" style={{ marginTop: 8, textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <LogIn size={15} aria-hidden="true" />
+              Open Team Pulse
+            </a>
           </div>
         )}
           </>

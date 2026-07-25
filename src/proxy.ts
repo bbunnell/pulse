@@ -10,12 +10,16 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname === "/login";
+  const userId = getSessionProfileId(session);
+  const hasCookie = !!request.cookies.get("teampulse-session");
 
-  if (!getSessionProfileId(session) && !isLoginPage) {
+  console.log(`[MW] ${request.method} ${pathname} cookie=${hasCookie} userId=${userId ?? "none"}`);
+
+  if (!userId && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (getSessionProfileId(session) && isLoginPage) {
+  if (userId && isLoginPage) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
