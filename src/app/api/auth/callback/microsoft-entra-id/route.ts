@@ -24,8 +24,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Decode state — may be base64url-encoded JSON {nonce, teams} or a plain hex string
+  let nonce = state;
+  let isTeamsPopup = false;
+  try {
+    const decoded = JSON.parse(Buffer.from(state, "base64url").toString());
+    nonce = decoded.nonce ?? state;
+    isTeamsPopup = decoded.teams === true;
+  } catch { /* plain hex state — not a Teams popup */ }
+
   const storedState = request.cookies.get("ms_oauth_state")?.value;
-  if (!storedState || storedState !== state) {
+  if (!storedState || storedState !== nonce) {
     loginUrl.searchParams.set("sso_error", "state");
     return NextResponse.redirect(loginUrl);
   }
@@ -98,13 +107,11 @@ export async function GET(request: NextRequest) {
 
   const profile = result.rows[0];
 
-  // If opened as a Teams popup, redirect to the teams-end page so the SDK can notifySuccess.
-  const isTeamsPopup = request.cookies.get("ms_oauth_teams_popup")?.value === "1";
+  // Teams popup: redirect to teams-end so the SDK can call notifySuccess.
+  // Regular browser: redirect straight to the app.
   const successUrl = isTeamsPopup ? new URL("/auth/teams-end", baseUrl) : new URL("/", baseUrl);
   const response = NextResponse.redirect(successUrl);
-  // Clear state + popup cookies
   response.cookies.set("ms_oauth_state", "", { maxAge: 0, path: "/" });
-  response.cookies.set("ms_oauth_teams_popup", "", { maxAge: 0, path: "/" });
 
   const session = await getIronSession<SessionData>(request, response, sessionOptions);
   session.userId    = profile.id;

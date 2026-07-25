@@ -10,7 +10,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", baseUrl));
   }
 
-  const state = crypto.randomBytes(16).toString("hex");
+  const isTeamsPopup = request.nextUrl.searchParams.get("teams") === "1";
+  const nonce = crypto.randomBytes(16).toString("hex");
+  // Encode Teams popup flag in state so it survives the Microsoft round-trip
+  // without relying on cookie storage (Teams iframe blocks cookie storage).
+  const state = Buffer.from(JSON.stringify({ nonce, teams: isTeamsPopup })).toString("base64url");
 
   const params = new URLSearchParams({
     client_id:     sso.clientId,
@@ -23,24 +27,14 @@ export async function GET(request: NextRequest) {
 
   const authUrl = `https://login.microsoftonline.com/${sso.tenantId}/oauth2/v2.0/authorize?${params}`;
 
-  const isTeamsPopup = request.nextUrl.searchParams.get("teams") === "1";
-
   const response = NextResponse.redirect(authUrl);
-  response.cookies.set("ms_oauth_state", state, {
+  // Store only the nonce in the cookie for CSRF validation
+  response.cookies.set("ms_oauth_state", nonce, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === "production",
     sameSite: "none",
     maxAge:   300,
     path:     "/",
   });
-  if (isTeamsPopup) {
-    response.cookies.set("ms_oauth_teams_popup", "1", {
-      httpOnly: true,
-      secure:   process.env.NODE_ENV === "production",
-      sameSite: "none",
-      maxAge:   300,
-      path:     "/",
-    });
-  }
   return response;
 }
