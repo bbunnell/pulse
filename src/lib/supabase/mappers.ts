@@ -100,13 +100,18 @@ export function mapReminderRule(row: DbRow): ReminderRule {
   };
 }
 
+function toIso(v: unknown): string {
+  if (v instanceof Date) return v.toISOString();
+  return v as string;
+}
+
 export function mapTimeOff(row: DbRow): TimeOffEntry {
   return {
     id: row.id as string,
     userId: row.user_id as string,
     timeOffType: row.time_off_type as TimeOffEntry["timeOffType"],
-    startAt: row.start_at as string,
-    endAt: row.end_at as string,
+    startAt: toIso(row.start_at),
+    endAt: toIso(row.end_at),
     fullDay: row.full_day as boolean,
     hours: Number(row.hours),
     status: row.status as TimeOffEntry["status"],
