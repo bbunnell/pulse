@@ -4,7 +4,7 @@ import crypto from "crypto";
 
 export async function GET(request: NextRequest) {
   const sso = await getSsoSettings();
-  const baseUrl = request.nextUrl.origin;
+  const baseUrl = process.env.BASE_URL ?? request.nextUrl.origin;
 
   if (!sso.enabled || !sso.clientId || !sso.tenantId || !sso.clientSecret) {
     return NextResponse.redirect(new URL("/login", baseUrl));

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const state      = searchParams.get("state");
   const errorParam = searchParams.get("error");
 
-  const baseUrl  = request.nextUrl.origin;
+  const baseUrl  = process.env.BASE_URL ?? request.nextUrl.origin;
   const loginUrl = new URL("/login", baseUrl);
 
   if (errorParam) {
