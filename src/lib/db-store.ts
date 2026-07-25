@@ -299,6 +299,46 @@ async function upsertSetting(client: PoolClient, key: string, value: string) {
   );
 }
 
+// ── SSO settings ──────────────────────────────────────────────────────────────
+
+export type SsoSettings = {
+  enabled: boolean;
+  clientId: string;
+  clientSecret: string;
+  tenantId: string;
+};
+
+export async function getSsoSettings(): Promise<SsoSettings> {
+  const result = await query<{ key: string; value: string }>(
+    "select key, value from app_settings where key = any($1::text[])",
+    [["sso.enabled", "sso.client_id", "sso.client_secret", "sso.tenant_id"]],
+  );
+  const values = new Map(result.rows.map((r) => [r.key, r.value]));
+  return {
+    enabled:      values.get("sso.enabled") === "true",
+    clientId:     values.get("sso.client_id") ?? "",
+    clientSecret: values.get("sso.client_secret") ?? "",
+    tenantId:     values.get("sso.tenant_id") ?? "",
+  };
+}
+
+export async function saveSsoSettings(updates: Partial<SsoSettings>): Promise<SsoSettings> {
+  const current = await getSsoSettings();
+  const next: SsoSettings = {
+    enabled:      updates.enabled ?? current.enabled,
+    clientId:     updates.clientId ?? current.clientId,
+    clientSecret: updates.clientSecret ? updates.clientSecret : current.clientSecret,
+    tenantId:     updates.tenantId ?? current.tenantId,
+  };
+  await withTransaction(async (client) => {
+    await upsertSetting(client, "sso.enabled",       String(next.enabled));
+    await upsertSetting(client, "sso.client_id",     next.clientId);
+    await upsertSetting(client, "sso.client_secret", next.clientSecret);
+    await upsertSetting(client, "sso.tenant_id",     next.tenantId);
+  });
+  return next;
+}
+
 // ── Notification settings ─────────────────────────────────────────────────────
 
 export interface NotificationSettings {

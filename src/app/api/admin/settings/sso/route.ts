@@ -1,0 +1,43 @@
+import { NextResponse } from "next/server";
+import { getSession, getSessionProfileId } from "@/lib/session";
+import { getSsoSettings, saveSsoSettings } from "@/lib/db-store";
+
+export async function GET() {
+  const session = await getSession();
+  if (!getSessionProfileId(session) || session.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  }
+  const s = await getSsoSettings();
+  return NextResponse.json({
+    enabled:         s.enabled,
+    clientId:        s.clientId,
+    tenantId:        s.tenantId,
+    hasClientSecret: s.clientSecret.length > 0,
+  });
+}
+
+export async function POST(request: Request) {
+  const session = await getSession();
+  if (!getSessionProfileId(session) || session.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  }
+  const body = (await request.json()) as {
+    enabled?: boolean;
+    clientId?: string;
+    clientSecret?: string;
+    tenantId?: string;
+  };
+  const saved = await saveSsoSettings({
+    enabled:      body.enabled,
+    clientId:     body.clientId?.trim(),
+    clientSecret: body.clientSecret?.trim(),
+    tenantId:     body.tenantId?.trim(),
+  });
+  return NextResponse.json({
+    ok:              true,
+    enabled:         saved.enabled,
+    clientId:        saved.clientId,
+    tenantId:        saved.tenantId,
+    hasClientSecret: saved.clientSecret.length > 0,
+  });
+}

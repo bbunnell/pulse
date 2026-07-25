@@ -5,6 +5,16 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LogIn, Mail, KeyRound, CheckCircle } from "lucide-react";
 
+const SSO_ERRORS: Record<string, string> = {
+  cancelled:  "Microsoft sign-in was cancelled.",
+  invalid:    "Invalid SSO response. Please try again.",
+  state:      "SSO session expired. Please try again.",
+  token:      "Could not complete sign-in with Microsoft. Check your app registration.",
+  userinfo:   "Could not retrieve your Microsoft account info.",
+  noemail:    "Your Microsoft account has no email address.",
+  noaccount:  "No Team Pulse account found for that Microsoft email.",
+};
+
 type View = "login" | "forgot" | "sent" | "setup" | "done";
 
 export default function LoginPage() {
@@ -22,6 +32,16 @@ function LoginForm() {
 
   const [view, setView] = useState<View>(token ? "setup" : "login");
   const [setupFirstName, setSetupFirstName] = useState("");
+  const [ssoAvailable, setSsoAvailable] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/sso-status")
+      .then((r) => r.json())
+      .then((d: { enabled?: boolean }) => setSsoAvailable(!!d.enabled))
+      .catch(() => {});
+  }, []);
+
+  const ssoError = searchParams.get("sso_error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -195,10 +215,28 @@ function LoginForm() {
               />
             </div>
             {error && <p className="error-line">{error}</p>}
+            {ssoError && !error && (
+              <p className="error-line">{SSO_ERRORS[ssoError] ?? "Microsoft sign-in failed."}</p>
+            )}
             <button className="button primary" type="submit" disabled={loading} style={{ marginTop: 4 }}>
               <LogIn size={15} aria-hidden="true" />
               {loading ? "Signing in…" : "Sign In"}
             </button>
+
+            {ssoAvailable && (
+              <>
+                <div className="login-divider">or</div>
+                <a href="/api/auth/microsoft" className="login-ms-btn">
+                  <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+                    <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+                    <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                  </svg>
+                  Sign in with Microsoft
+                </a>
+              </>
+            )}
           </form>
         )}
 
