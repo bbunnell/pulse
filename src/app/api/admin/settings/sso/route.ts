@@ -8,11 +8,13 @@ export async function GET() {
     return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
   const s = await getSsoSettings();
+  const base = process.env.BASE_URL ?? "https://pulse.nbit.com";
   return NextResponse.json({
     enabled:         s.enabled,
     clientId:        s.clientId,
     tenantId:        s.tenantId,
     hasClientSecret: s.clientSecret.length > 0,
+    callbackUrl:     `${base}/api/auth/callback/microsoft-entra-id`,
   });
 }
 

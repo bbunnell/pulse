@@ -398,6 +398,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
   const [ssoTenantId,        setSsoTenantId]        = useState("");
   const [ssoClientSecret,    setSsoClientSecret]    = useState("");
   const [ssoHasSecret,       setSsoHasSecret]       = useState(false);
+  const [ssoCallbackUrl,     setSsoCallbackUrl]     = useState("");
   const [ssoLoaded,          setSsoLoaded]          = useState(false);
   const [ssoSaving,          setSsoSaving]          = useState(false);
   const [ssoSaveResult,      setSsoSaveResult]      = useState<{ ok?: boolean; error?: string } | null>(null);
@@ -406,10 +407,11 @@ export function AdminSettings({ data, currentUserId }: Props) {
   useEffect(() => {
     fetch("/api/admin/settings/sso")
       .then((r) => r.json())
-      .then((json: { enabled?: boolean; clientId?: string; tenantId?: string; hasClientSecret?: boolean }) => {
+      .then((json: { enabled?: boolean; clientId?: string; tenantId?: string; hasClientSecret?: boolean; callbackUrl?: string }) => {
         if (json.enabled !== undefined) setSsoEnabled(json.enabled);
         if (json.clientId)              setSsoClientId(json.clientId);
         if (json.tenantId)              setSsoTenantId(json.tenantId);
+        if (json.callbackUrl)           setSsoCallbackUrl(json.callbackUrl);
         setSsoHasSecret(!!json.hasClientSecret);
         setSsoLoaded(true);
       })
@@ -1033,114 +1035,118 @@ export function AdminSettings({ data, currentUserId }: Props) {
         {/* SSO panel — full width */}
         <form className="panel" onSubmit={saveSsoSettings}>
           <div className="panel-header">
-            <div>
-              <h2>Microsoft SSO</h2>
-              <p className="subtle">Let staff sign in with their Microsoft 365 account.</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h2>Single sign-on — Microsoft Entra</h2>
+              {ssoLoaded && (
+                <span style={{
+                  fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 12,
+                  background: ssoEnabled ? "var(--green-bg, #d1fae5)" : "var(--surface-2)",
+                  color: ssoEnabled ? "var(--green, #059669)" : "var(--muted)",
+                }}>
+                  {ssoEnabled ? "Enabled" : "Disabled"}
+                </span>
+              )}
             </div>
-            <Lock size={17} style={{ color: "var(--muted)" }} />
           </div>
 
-          <div className="form-grid" style={{ padding: "0 18px 18px" }}>
-            <div className="control" style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={ssoEnabled}
-                  onChange={(e) => setSsoEnabled(e.target.checked)}
-                  disabled={!ssoLoaded}
-                />
-                <span>
-                  <strong>Enable &ldquo;Sign in with Microsoft&rdquo;</strong>
-                  <small className="subtle" style={{ display: "block" }}>
-                    Shows the Microsoft sign-in button on the login page. Requires all three fields below.
-                  </small>
-                </span>
-              </label>
+          <div style={{ padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
+            <p className="subtle" style={{ margin: 0 }}>
+              Let people sign in with their Microsoft (NBIT) account. Create a <strong>single-tenant</strong> app
+              registration in Entra, add the redirect URI below, then paste the three values here.
+            </p>
+
+            {/* Redirect URI box */}
+            <div style={{
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              padding: "10px 14px",
+              background: "var(--surface-2)",
+              fontSize: 13,
+            }}>
+              <div className="subtle" style={{ marginBottom: 4 }}>
+                Redirect URI — add in Entra → your app → Authentication → Web
+              </div>
+              <code style={{ wordBreak: "break-all" }}>
+                {ssoCallbackUrl || "https://pulse.nbit.com/api/auth/callback/microsoft-entra-id"}
+              </code>
             </div>
 
-            <div className="control">
-              <label htmlFor="ssoClientId">Application (client) ID</label>
-              <input
-                className="input"
-                id="ssoClientId"
-                type="text"
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                value={ssoClientId}
-                onChange={(e) => setSsoClientId(e.target.value)}
-                disabled={!ssoLoaded}
-              />
-            </div>
-
-            <div className="control">
-              <label htmlFor="ssoTenantId">Directory (tenant) ID</label>
-              <input
-                className="input"
-                id="ssoTenantId"
-                type="text"
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                value={ssoTenantId}
-                onChange={(e) => setSsoTenantId(e.target.value)}
-                disabled={!ssoLoaded}
-              />
-            </div>
-
-            <div className="control" style={{ gridColumn: "1 / -1" }}>
-              <label htmlFor="ssoClientSecret">
-                Client Secret
-                {ssoHasSecret && !ssoClientSecret && (
-                  <span className="subtle" style={{ marginLeft: 8, fontWeight: 400 }}>— saved (leave blank to keep)</span>
-                )}
-              </label>
-              <div style={{ position: "relative" }}>
+            <div className="form-grid" style={{ margin: 0 }}>
+              <div className="control">
+                <label htmlFor="ssoClientId">Application (client) ID</label>
                 <input
                   className="input"
-                  id="ssoClientSecret"
-                  type={showSsoSecret ? "text" : "password"}
-                  placeholder={ssoHasSecret ? "••••••••  (leave blank to keep existing)" : "Paste client secret value here"}
-                  value={ssoClientSecret}
-                  onChange={(e) => setSsoClientSecret(e.target.value)}
+                  id="ssoClientId"
+                  type="text"
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  value={ssoClientId}
+                  onChange={(e) => setSsoClientId(e.target.value)}
                   disabled={!ssoLoaded}
-                  style={{ paddingRight: 40 }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowSsoSecret((v) => !v)}
-                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 0 }}
-                >
-                  {showSsoSecret ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
+              </div>
+
+              <div className="control">
+                <label htmlFor="ssoTenantId">Directory (tenant) ID</label>
+                <input
+                  className="input"
+                  id="ssoTenantId"
+                  type="text"
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  value={ssoTenantId}
+                  onChange={(e) => setSsoTenantId(e.target.value)}
+                  disabled={!ssoLoaded}
+                />
+              </div>
+
+              <div className="control" style={{ gridColumn: "1 / -1" }}>
+                <label htmlFor="ssoClientSecret">
+                  Client secret {ssoHasSecret && !ssoClientSecret && <span className="subtle" style={{ fontWeight: 400 }}>(leave blank to keep the current one)</span>}
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    className="input"
+                    id="ssoClientSecret"
+                    type={showSsoSecret ? "text" : "password"}
+                    placeholder={ssoHasSecret ? "•••••••• unchanged" : "Paste client secret value here"}
+                    value={ssoClientSecret}
+                    onChange={(e) => setSsoClientSecret(e.target.value)}
+                    disabled={!ssoLoaded}
+                    style={{ paddingRight: 40 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSsoSecret((v) => !v)}
+                    style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 0 }}
+                  >
+                    {showSsoSecret ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={ssoEnabled}
+                onChange={(e) => setSsoEnabled(e.target.checked)}
+                disabled={!ssoLoaded}
+              />
+              <span>Enable &ldquo;Sign in with Microsoft&rdquo; on the login page</span>
+            </label>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button className="button primary" type="submit" disabled={ssoSaving || !ssoLoaded}>
                 <Save size={14} />
-                {ssoSaving ? "Saving…" : "Save SSO Settings"}
+                {ssoSaving ? "Saving…" : "Save SSO settings"}
               </button>
               {ssoSaveResult?.ok && <span className="success-line">✓ Saved</span>}
               {ssoSaveResult?.error && <span className="error-line">{ssoSaveResult.error}</span>}
             </div>
 
-            <div style={{ gridColumn: "1 / -1" }}>
-              <details style={{ marginTop: 4 }}>
-                <summary style={{ cursor: "pointer", color: "var(--muted)", fontSize: 13, userSelect: "none" }}>
-                  Entra app registration instructions
-                </summary>
-                <div className="sso-instructions">
-                  <p><strong>Your part — one Entra app registration (~10 min, needs tenant admin)</strong></p>
-                  <ol>
-                    <li><a href="https://entra.microsoft.com" target="_blank" rel="noreferrer">entra.microsoft.com</a> → App registrations → New registration</li>
-                    <li>Name it <strong>Team Pulse</strong>, Single tenant</li>
-                    <li>Redirect URI → platform <strong>Web</strong>:<br />
-                      <code>https://pulse.nbit.com/api/auth/callback/microsoft-entra-id</code>
-                    </li>
-                    <li>Certificates &amp; secrets → New client secret → copy the <strong>Value</strong></li>
-                    <li>From Overview, grab <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong></li>
-                  </ol>
-                  <p>Then paste them into the fields above and save.</p>
-                </div>
-              </details>
-            </div>
+            <p className="subtle" style={{ margin: 0, fontSize: 12 }}>
+              Only people listed under Users below can sign in — SSO or password — and their role comes from
+              that list. The secret is stored encrypted.
+            </p>
           </div>
         </form>
 
