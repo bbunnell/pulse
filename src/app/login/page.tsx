@@ -103,8 +103,7 @@ function LoginForm() {
       return;
     }
 
-    router.push("/");
-    router.refresh();
+    window.location.href = "/";
   }
 
   async function handleForgot(e: React.FormEvent) {
