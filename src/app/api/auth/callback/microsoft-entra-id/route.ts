@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
   );
 
   if (!tokenRes.ok) {
+    const errBody = await tokenRes.json().catch(() => ({}));
+    console.error("[SSO] token exchange failed", tokenRes.status, errBody);
     loginUrl.searchParams.set("sso_error", "token");
     return NextResponse.redirect(loginUrl);
   }
@@ -96,9 +98,13 @@ export async function GET(request: NextRequest) {
 
   const profile = result.rows[0];
 
-  const response = NextResponse.redirect(new URL("/", baseUrl));
-  // Clear state cookie
+  // If opened as a Teams popup, redirect to the teams-end page so the SDK can notifySuccess.
+  const isTeamsPopup = request.cookies.get("ms_oauth_teams_popup")?.value === "1";
+  const successUrl = isTeamsPopup ? new URL("/auth/teams-end", baseUrl) : new URL("/", baseUrl);
+  const response = NextResponse.redirect(successUrl);
+  // Clear state + popup cookies
   response.cookies.set("ms_oauth_state", "", { maxAge: 0, path: "/" });
+  response.cookies.set("ms_oauth_teams_popup", "", { maxAge: 0, path: "/" });
 
   const session = await getIronSession<SessionData>(request, response, sessionOptions);
   session.userId    = profile.id;

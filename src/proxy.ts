@@ -9,7 +9,7 @@ export async function proxy(request: NextRequest) {
   const session = await getIronSession<SessionData>(request, response, sessionOptions);
 
   const { pathname } = request.nextUrl;
-  const isLoginPage = pathname === "/login";
+  const isLoginPage = pathname === "/login" || pathname.startsWith("/auth/teams");
   const userId = getSessionProfileId(session);
   const hasCookie = !!request.cookies.get("teampulse-session");
 

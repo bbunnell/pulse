@@ -109,6 +109,24 @@ function LoginForm() {
     setView("ready");
   }
 
+  async function handleMicrosoftSignIn() {
+    try {
+      // Try Teams popup flow first (works inside Teams iframe)
+      const { app, authentication } = await import("@microsoft/teams-js");
+      await app.initialize();
+      await authentication.authenticate({
+        url: `${window.location.origin}/auth/teams-start`,
+        width: 600,
+        height: 640,
+      });
+      // Popup succeeded — session cookie is now set; navigate normally
+      setView("ready");
+    } catch {
+      // Not in Teams or popup blocked — fall back to direct redirect
+      window.location.href = "/api/auth/microsoft";
+    }
+  }
+
   async function handleForgot(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -229,7 +247,7 @@ function LoginForm() {
             {ssoAvailable && (
               <>
                 <div className="login-divider">or</div>
-                <a href="/api/auth/microsoft" className="login-ms-btn">
+                <button type="button" className="login-ms-btn" onClick={handleMicrosoftSignIn}>
                   <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
                     <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
@@ -237,7 +255,7 @@ function LoginForm() {
                     <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
                   </svg>
                   Sign in with Microsoft
-                </a>
+                </button>
               </>
             )}
           </form>

@@ -23,13 +23,24 @@ export async function GET(request: NextRequest) {
 
   const authUrl = `https://login.microsoftonline.com/${sso.tenantId}/oauth2/v2.0/authorize?${params}`;
 
+  const isTeamsPopup = request.nextUrl.searchParams.get("teams") === "1";
+
   const response = NextResponse.redirect(authUrl);
   response.cookies.set("ms_oauth_state", state, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "none",
     maxAge:   300,
     path:     "/",
   });
+  if (isTeamsPopup) {
+    response.cookies.set("ms_oauth_teams_popup", "1", {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === "production",
+      sameSite: "none",
+      maxAge:   300,
+      path:     "/",
+    });
+  }
   return response;
 }
