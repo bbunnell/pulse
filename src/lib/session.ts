@@ -27,9 +27,9 @@ export const sessionOptions = {
   cookieName: "teampulse-session",
   cookieOptions: {
     path: "/",
-    sameSite: "lax" as const,
     httpOnly: true,
-    /** Chrome will not store Secure cookies on http:// — keep false outside production. */
+    /** SameSite=None + Secure required for Teams iframe (cross-site top frame). Dev uses Lax over HTTP. */
+    sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
     secure: process.env.NODE_ENV === "production",
   },
 };
