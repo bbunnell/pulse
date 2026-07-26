@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, RefreshCw, Trash2, X } from "lucide-react";
 import type { Profile, ScheduleRule } from "@/lib/types";
 import { profileName } from "@/lib/status";
+import { tzAbbr } from "@/lib/timezone";
 
 const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
@@ -12,9 +13,10 @@ interface Props {
   rules: ScheduleRule[];
   onRulesChange(rules: ScheduleRule[]): void;
   onClose(): void;
+  scheduleTz: string;
 }
 
-export function RecurringRulePanel({ profiles, rules, onRulesChange, onClose }: Props) {
+export function RecurringRulePanel({ profiles, rules, onRulesChange, onClose, scheduleTz }: Props) {
   const [showForm, setShowForm]     = useState(false);
   const [profileId, setProfileId]   = useState(profiles[0]?.id ?? "");
   const [startTime, setStartTime]   = useState("09:00");
@@ -92,7 +94,7 @@ export function RecurringRulePanel({ profiles, rules, onRulesChange, onClose }: 
               <div className="rule-card-header">
                 <div className="rule-card-times">
                   <strong>{profile ? profileName(profile) : "Unknown"}</strong>
-                  <span style={{color:"var(--ink-2)",fontWeight:400}}>{rule.startTime}–{rule.endTime}</span>
+                  <span style={{color:"var(--ink-2)",fontWeight:400}}>{rule.startTime}–{rule.endTime} <span className="shift-tz-label">{tzAbbr(scheduleTz)}</span></span>
                   {rule.label && <span className="rule-label-badge">{rule.label}</span>}
                 </div>
                 <div style={{display:"flex",gap:2,flexShrink:0}}>
