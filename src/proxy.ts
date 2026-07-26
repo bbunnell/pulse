@@ -13,8 +13,6 @@ export async function proxy(request: NextRequest) {
   const userId = getSessionProfileId(session);
   const hasCookie = !!request.cookies.get("teampulse-session");
 
-  console.log(`[MW] ${request.method} ${pathname} cookie=${hasCookie} userId=${userId ?? "none"}`);
-
   if (!userId && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

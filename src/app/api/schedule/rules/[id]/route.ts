@@ -9,7 +9,7 @@ import {
 } from "@/lib/db-store";
 import { generateShiftsForRule, isoDateStr } from "@/lib/schedule-engine";
 
-const GENERATE_WEEKS = 12;
+const GENERATE_WEEKS = 104; // ~24 months
 
 // PATCH — update a rule and regenerate all future shifts
 export async function PATCH(

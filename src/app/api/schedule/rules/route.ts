@@ -11,7 +11,7 @@ import { sendTransactionalEmail } from "@/lib/email";
 import { sendTeamsMessage } from "@/lib/teams";
 import { getNotificationSettings, getProfileById } from "@/lib/db-store";
 
-const GENERATE_WEEKS = 12;
+const GENERATE_WEEKS = 104; // ~24 months
 
 export async function GET() {
   const session = await getSession();
