@@ -94,7 +94,9 @@ async function main() {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rule = mapScheduleRule(res.rows[0] as any);
+    console.log(`    daysOfWeek type: ${typeof rule.daysOfWeek}, value: ${JSON.stringify(rule.daysOfWeek)}`);
     const shifts = generateShiftsForRule(rule, from, to, null);
+    console.log(`    Generated ${shifts.length} shifts before insert`);
     const inserted = await insertGeneratedShifts(shifts);
 
     console.log(`  ✓ ${r.label} [${r.daysOfWeek.join(",")}] ${r.startTime}–${r.endTime} → ${inserted} shifts inserted`);
