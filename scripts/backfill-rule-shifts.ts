@@ -21,7 +21,8 @@ async function main() {
   const rulesResult = await query(
     "SELECT * FROM schedule_rules ORDER BY effective_from, profile_id",
   );
-  const rules = rulesResult.rows.map((r) => mapScheduleRule(r as Record<string, unknown>));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rules = rulesResult.rows.map((r) => mapScheduleRule(r as any));
 
   console.log(`Found ${rules.length} rule(s). Backfilling from ${today} for ${GENERATE_WEEKS} weeks...`);
 
