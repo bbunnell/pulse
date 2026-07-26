@@ -90,22 +90,21 @@ export function RecurringRulePanel({ profiles, rules, onRulesChange, onClose }: 
           return (
             <div key={rule.id} className="rule-card">
               <div className="rule-card-header">
-                <strong>{profile ? profileName(profile) : "Unknown"}</strong>
-                <div style={{display:"flex",gap:4}}>
-                  <button className="icon-btn" title="Regenerate next 12 weeks" type="button" onClick={() => handleRegenerate(rule)}>
-                    <RefreshCw size={13}/>
+                <div className="rule-card-times">
+                  <strong>{profile ? profileName(profile) : "Unknown"}</strong>
+                  <span style={{color:"var(--ink-2)",fontWeight:400}}>{rule.startTime}–{rule.endTime}</span>
+                  {rule.label && <span className="rule-label-badge">{rule.label}</span>}
+                </div>
+                <div style={{display:"flex",gap:2,flexShrink:0}}>
+                  <button className="icon-btn" title="Regenerate shifts" type="button" onClick={() => handleRegenerate(rule)}>
+                    <RefreshCw size={12}/>
                   </button>
                   <button className="icon-btn danger" title="Delete rule" type="button" onClick={() => handleDelete(rule)}>
-                    <Trash2 size={13}/>
+                    <Trash2 size={12}/>
                   </button>
                 </div>
               </div>
-              <div className="rule-card-detail">
-                <span>{rule.startTime}–{rule.endTime}</span>
-                {rule.label && <span className="rule-label-badge">{rule.label}</span>}
-              </div>
-              <div className="rule-card-detail">{dayStr}</div>
-              <div className="rule-card-detail subtle">{repeatLabel[rule.repeatWeeks]} · from {rule.effectiveFrom}{rule.effectiveUntil ? ` to ${rule.effectiveUntil}` : ""}</div>
+              <div className="rule-card-detail subtle">{dayStr} · {repeatLabel[rule.repeatWeeks]} · from {rule.effectiveFrom}{rule.effectiveUntil ? ` to ${rule.effectiveUntil}` : ""}</div>
             </div>
           );
         })}
