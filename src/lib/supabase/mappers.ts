@@ -155,10 +155,8 @@ export function mapScheduleRule(row: DbRow): ScheduleRule {
     notes:          (row.notes as string | null) ?? undefined,
     daysOfWeek:     row.days_of_week as unknown as number[],
     repeatWeeks:    row.repeat_weeks as 1 | 2 | 4,
-    effectiveFrom:  String(row.effective_from).slice(0, 10),
-    effectiveUntil: (row.effective_until as string | null)
-      ? String(row.effective_until).slice(0, 10)
-      : undefined,
+    effectiveFrom:  toIsoDateStr(row.effective_from) ?? String(row.effective_from).slice(0, 10),
+    effectiveUntil: toIsoDateStr(row.effective_until),
     createdBy:  (row.created_by as string | null) ?? undefined,
     createdAt:   row.created_at as string,
     updatedAt:   row.updated_at as string,
