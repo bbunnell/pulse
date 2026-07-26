@@ -858,6 +858,7 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz }: Props) 
             profiles={profiles} rules={rules}
             onRulesChange={setRules}
             onClose={()=>setShowRules(false)}
+            scheduleTz={scheduleTz}
           />
         )}
 
