@@ -3029,6 +3029,55 @@ body.monitor-mode              { background: #0f172a; }
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
+.entra-setup-guide {
+  margin: 0 18px 18px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.entra-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entra-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: decimal;
+}
+
+.entra-steps li {
+  padding-left: 4px;
+}
+
+.entra-steps li strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.entra-steps li span {
+  color: var(--ink-2);
+}
+
+.entra-steps code {
+  font-family: monospace;
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
 .smtp-password-wrap {
   display: flex;
   align-items: center;

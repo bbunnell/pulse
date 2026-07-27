@@ -1319,11 +1319,34 @@ export function AdminSettings({ data, currentUserId }: Props) {
               <Mail size={17} style={{ color: "var(--muted)" }} />
             </div>
 
-            <p className="subtle" style={{ padding: "0 18px 14px", fontSize: 13, lineHeight: 1.6 }}>
-              Reminders send through Microsoft 365 via Microsoft Graph. In Entra, register an app
-              with the <strong>application</strong> permission <code>Mail.Send</code> (grant admin
-              consent) and create a client secret, then paste the values here.
-            </p>
+            <div className="entra-setup-guide">
+              <p style={{ marginBottom: 10 }}>
+                Reminders send through Microsoft 365 via the Microsoft Graph API. Follow these steps
+                in the{" "}
+                <a href="https://entra.microsoft.com" target="_blank" rel="noreferrer" className="entra-link">
+                  Microsoft Entra admin center
+                </a>{" "}
+                to create the app registration, then paste the values into the form below.
+              </p>
+              <ol className="entra-steps">
+                <li>
+                  <strong>Register an application</strong>
+                  <span>Entra → App registrations → New registration. Give it a name (e.g. "Team Pulse Mail") and leave the redirect URI blank. Copy the <em>Application (client) ID</em> and <em>Directory (tenant) ID</em> shown on the overview page.</span>
+                </li>
+                <li>
+                  <strong>Add the Mail.Send permission</strong>
+                  <span>In the app → API permissions → Add a permission → Microsoft Graph → Application permissions → search <code>Mail.Send</code> → Add. Then click <strong>Grant admin consent</strong> and confirm. The status column must show a green checkmark.</span>
+                </li>
+                <li>
+                  <strong>Create a client secret</strong>
+                  <span>Certificates &amp; secrets → Client secrets → New client secret. Set an expiry (24 months is typical). Copy the <em>Value</em> immediately — it is only shown once.</span>
+                </li>
+                <li>
+                  <strong>Set the From mailbox</strong>
+                  <span>Enter the full email address of the shared mailbox or licensed user that will appear as the sender (e.g. <code>alignment@nbit.com</code>). The Entra app must have <code>Mail.Send</code> permission — no password or login for that mailbox is needed.</span>
+                </li>
+              </ol>
+            </div>
 
             <form onSubmit={saveGraphSettings}>
               <div className="form-grid" style={{ padding: "0 18px" }}>
