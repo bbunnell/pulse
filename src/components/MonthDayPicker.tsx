@@ -28,9 +28,10 @@ export function MonthDayPicker({ id, value, onChange, disabled }: Props) {
   }
 
   function handleDay(e: React.ChangeEvent<HTMLSelectElement>) {
-    if (!mm) return;
     const newDd = Number(e.target.value);
-    onChange(`${String(mm).padStart(2,"0")}-${String(newDd).padStart(2,"0")}`);
+    if (!newDd) { onChange(""); return; }
+    const activeMm = mm || 1;
+    onChange(`${String(activeMm).padStart(2,"0")}-${String(newDd).padStart(2,"0")}`);
   }
 
   const days = mm ? daysInMonth(mm) : 31;
@@ -43,7 +44,7 @@ export function MonthDayPicker({ id, value, onChange, disabled }: Props) {
           <option key={i+1} value={i+1}>{name}</option>
         ))}
       </select>
-      <select className="select" value={dd || ""} onChange={handleDay} disabled={disabled || !mm} style={{ flex:1 }}>
+      <select className="select" value={dd || ""} onChange={handleDay} disabled={disabled} style={{ flex:1 }}>
         <option value="">Day</option>
         {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
           <option key={d} value={d}>{d}</option>
