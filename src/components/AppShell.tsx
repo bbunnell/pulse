@@ -21,7 +21,6 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <header className="topnav">
         <Link className="brand" href="/">
           <img src="/mark-dark-bg.png" alt="Team Pulse" className="brand-logo" />
-          <strong>Team Pulse</strong>
         </Link>
         <div className="topnav-divider" />
         <TopNav role={currentUser.role} currentUser={navUser} />
