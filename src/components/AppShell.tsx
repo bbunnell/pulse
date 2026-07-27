@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCurrentUserProfile } from "@/lib/data";
-import { SidebarNav } from "@/components/SidebarNav";
+import { TopNav } from "@/components/TopNav";
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const currentUser = await getCurrentUserProfile();
@@ -9,7 +9,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  const sidebarUser = {
+  const navUser = {
     id: currentUser.id,
     firstName: currentUser.firstName,
     lastName: currentUser.lastName,
@@ -18,13 +18,14 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-frame">
-      <aside className="sidebar">
+      <header className="topnav">
         <Link className="brand" href="/">
-          <img src="/mark-dark-bg.png" alt="Team Pulse" className="brand-logo" style={{ width: 40, height: 40, objectFit: "contain", flexShrink: 0 }} />
-          <strong style={{ fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: "0.01em" }}>Team Pulse</strong>
+          <img src="/mark-dark-bg.png" alt="Team Pulse" className="brand-logo" />
+          <strong>Team Pulse</strong>
         </Link>
-        <SidebarNav role={currentUser.role} currentUser={sidebarUser} />
-      </aside>
+        <div className="topnav-divider" />
+        <TopNav role={currentUser.role} currentUser={navUser} />
+      </header>
       <main className="main-panel">{children}</main>
     </div>
   );
