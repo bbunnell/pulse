@@ -286,8 +286,8 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       {/* Summary stat bar + pop-out button */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 0 }}>
         <div className="dash-summary-bar" style={{ flex: 1, marginBottom: 0 }}>
-        <SummaryStat label="On now" value={summary.scheduledNow} tone="blue" />
-        <SummaryStat label="Working" value={summary.working} tone="green" />
+        <SummaryStat label="Scheduled" value={summary.scheduledNow} tone="blue" />
+        <SummaryStat label="Clocked In" value={summary.working} tone="green" />
         <SummaryStat label="On break" value={summary.onBreakOrLunch} tone="amber" />
         <SummaryStat label="Out" value={summary.out} tone="red" />
           {canManage && <SummaryStat label="Late" value={summary.late} tone={summary.late > 0 ? "red" : "gray"} />}
@@ -333,7 +333,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           <div className="status-group">
             <div className="status-group-heading">
               <span className="status-dot-lg blue" />
-              <h2>On Now <InfoTooltip text="Scheduled to be working right now based on their assigned shift. Cross-reference with 'Working' to spot coverage gaps." /></h2>
+              <h2>Scheduled Now <InfoTooltip text="Has a shift scheduled for this moment. Cross-reference with 'Clocked In' to spot coverage gaps." /></h2>
               <span className="status-count blue">{coverage.scheduledNow.length}</span>
             </div>
             {coverage.scheduledNow.length > 0 ? (
@@ -353,7 +353,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           <div className="status-group">
             <div className="status-group-heading">
               <span className="status-dot-lg green" />
-              <h2>Working <InfoTooltip text="Has clocked in and is actively on the clock. Doesn't require a scheduled shift — anyone punched in appears here." /></h2>
+              <h2>Clocked In <InfoTooltip text="Has punched in and is actively on the clock. Anyone punched in appears here, with or without a scheduled shift." /></h2>
               <span className="status-count green">{groups.working.length}</span>
             </div>
             {groups.working.length > 0 ? (
@@ -546,8 +546,8 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 // ── Sub-components ───────────────────────────────────────────
 
 const STAT_TIPS: Record<string, string> = {
-  "On now":        "Scheduled to be working right now",
-  "Working":       "Currently clocked in",
+  "Scheduled":     "Has a shift scheduled for this moment",
+  "Clocked In":    "Has punched in and is actively on the clock",
   "On break":      "Clocked in, currently on break or lunch",
   "Out":           "On vacation or sick leave today",
   "Late":          "Scheduled now but not yet clocked in",
