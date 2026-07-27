@@ -97,14 +97,16 @@ export function DashboardSchedule({ data }: { data: OrgData }) {
 
     for (const p of data.profiles) {
       if (!p.birthday || !p.showOnDashboard) continue;
-      const d = projectDate(p.birthday, year);
+      let d = projectDate(p.birthday, year);
+      if (d < today) d = projectDate(p.birthday, year + 1);
       all.push({ id: `bday-${p.id}`, kind: "birthday", label: `🎂 ${p.firstName}'s Birthday`, start: sod(d), end: eod(d) });
     }
 
     for (const p of data.profiles) {
       if (!p.workAnniversary || !p.showOnDashboard) continue;
-      const d = projectDate(p.workAnniversary, year);
-      const yrs = yearsAgo(p.workAnniversary, year);
+      let d = projectDate(p.workAnniversary, year);
+      if (d < today) d = projectDate(p.workAnniversary, year + 1);
+      const yrs = yearsAgo(p.workAnniversary, d.getFullYear());
       if (yrs < 1) continue;
       all.push({ id: `anniv-${p.id}`, kind: "anniversary", label: `🎉 ${p.firstName} — ${yrs}yr`, start: sod(d), end: eod(d) });
     }
