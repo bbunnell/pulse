@@ -158,6 +158,24 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                   <input className="input" id="eu-end" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{flex:1}} />
                 </div>
               </div>
+
+              {workScheduleType === "standard" && (
+                <div className="control wide">
+                  <label>Work days</label>
+                  <div className="day-picker">
+                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i) => (
+                      <button key={i} type="button"
+                        className={`day-chip${standardWorkDays.includes(i)?" selected":""}`}
+                        onClick={() => setStandardWorkDays(prev =>
+                          prev.includes(i) ? prev.filter(x=>x!==i) : [...prev,i].sort()
+                        )}>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="control wide">
                 <label htmlFor="eu-tz">Timezone</label>
                 <select className="select" id="eu-tz" value={timezone} onChange={e => setTimezone(e.target.value)}>
@@ -220,23 +238,6 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                     : "Only active when explicitly scheduled (e.g. NOC/after-hours team). Shown as 'Off Today' when no shift is scheduled."}
                 </small>
               </div>
-
-              {workScheduleType === "standard" && (
-                <div className="control wide">
-                  <label>Work days</label>
-                  <div className="day-picker">
-                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i) => (
-                      <button key={i} type="button"
-                        className={`day-chip${standardWorkDays.includes(i)?" selected":""}`}
-                        onClick={() => setStandardWorkDays(prev =>
-                          prev.includes(i) ? prev.filter(x=>x!==i) : [...prev,i].sort()
-                        )}>
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <div className="schedule-modal-row">
                 <div className="control" style={{flex:1}}>
