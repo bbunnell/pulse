@@ -392,62 +392,59 @@ export function AdminSettings({ data, currentUserId }: Props) {
     }
   }
 
-  // ── SMTP settings ─────────────────────────────────────────────────────────
-  const [smtpProvider, setSmtpProvider] = useState("smtp");
-  const [smtpHost, setSmtpHost]         = useState("smtp.office365.com");
-  const [smtpPort, setSmtpPort]         = useState("587");
-  const [smtpUser, setSmtpUser]         = useState("");
-  const [smtpPassword, setSmtpPassword] = useState("");        // blank = keep existing
-  const [hasPassword, setHasPassword]   = useState(false);     // server already has one
-  const [showPassword, setShowPassword] = useState(false);
-  const [emailFrom, setEmailFrom]       = useState("");
-  const [smtpLoaded, setSmtpLoaded]     = useState(false);
-  const [smtpSaving, setSmtpSaving]     = useState(false);
-  const [smtpSaveResult, setSmtpSaveResult] = useState<{ ok?: boolean; error?: string } | null>(null);
+  // ── Email / Graph settings ────────────────────────────────────────────────
+  const [graphTenantId,    setGraphTenantId]    = useState("");
+  const [graphClientId,    setGraphClientId]    = useState("");
+  const [graphSecret,      setGraphSecret]      = useState("");   // blank = keep existing
+  const [graphHasSecret,   setGraphHasSecret]   = useState(false);
+  const [graphMailbox,     setGraphMailbox]      = useState("");
+  const [graphConfigured,  setGraphConfigured]   = useState(false);
+  const [graphLoaded,      setGraphLoaded]       = useState(false);
+  const [graphSaving,      setGraphSaving]       = useState(false);
+  const [graphSaveResult,  setGraphSaveResult]   = useState<{ ok?: boolean; error?: string } | null>(null);
+  const [showGraphSecret,  setShowGraphSecret]   = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/settings/email")
       .then((r) => r.json())
       .then((json: {
-        provider?: string; smtpHost?: string; smtpPort?: number;
-        smtpUser?: string; hasPassword?: boolean; emailFrom?: string;
+        tenantId?: string; clientId?: string; hasSecret?: boolean;
+        fromMailbox?: string; isConfigured?: boolean;
       }) => {
-        if (json.provider)  setSmtpProvider(json.provider);
-        if (json.smtpHost)  setSmtpHost(json.smtpHost);
-        if (json.smtpPort)  setSmtpPort(String(json.smtpPort));
-        if (json.smtpUser)  setSmtpUser(json.smtpUser);
-        if (json.emailFrom) setEmailFrom(json.emailFrom);
-        setHasPassword(!!json.hasPassword);
-        setSmtpLoaded(true);
+        if (json.tenantId)    setGraphTenantId(json.tenantId);
+        if (json.clientId)    setGraphClientId(json.clientId);
+        if (json.fromMailbox) setGraphMailbox(json.fromMailbox);
+        setGraphHasSecret(!!json.hasSecret);
+        setGraphConfigured(!!json.isConfigured);
+        setGraphLoaded(true);
       })
-      .catch(() => setSmtpLoaded(true));
+      .catch(() => setGraphLoaded(true));
   }, []);
 
-  async function saveSmtpSettings(e: React.FormEvent<HTMLFormElement>) {
+  async function saveGraphSettings(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSmtpSaving(true);
-    setSmtpSaveResult(null);
+    setGraphSaving(true);
+    setGraphSaveResult(null);
     const res = await fetch("/api/admin/settings/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        provider:     smtpProvider,
-        smtpHost:     smtpHost.trim(),
-        smtpPort:     Number(smtpPort),
-        smtpUser:     smtpUser.trim(),
-        smtpPassword: smtpPassword,   // empty string = keep existing
-        emailFrom:    emailFrom.trim(),
+        tenantId:     graphTenantId.trim(),
+        clientId:     graphClientId.trim(),
+        clientSecret: graphSecret,        // empty = keep existing
+        fromMailbox:  graphMailbox.trim(),
       }),
     });
-    const json = (await res.json()) as { ok?: boolean; hasPassword?: boolean; error?: string };
+    const json = (await res.json()) as { ok?: boolean; hasSecret?: boolean; isConfigured?: boolean; error?: string };
     if (json.ok) {
-      setHasPassword(!!json.hasPassword);
-      setSmtpPassword("");            // clear the field; server has it now
-      setSmtpSaveResult({ ok: true });
+      setGraphHasSecret(!!json.hasSecret);
+      setGraphConfigured(!!json.isConfigured);
+      setGraphSecret("");
+      setGraphSaveResult({ ok: true });
     } else {
-      setSmtpSaveResult({ error: json.error ?? "Save failed." });
+      setGraphSaveResult({ error: json.error ?? "Save failed." });
     }
-    setSmtpSaving(false);
+    setGraphSaving(false);
   }
 
   // ── SSO settings ──────────────────────────────────────────────────────────
@@ -1312,114 +1309,107 @@ export function AdminSettings({ data, currentUserId }: Props) {
           <div className="panel">
             <div className="panel-header">
               <div>
-                <h2>Email Configuration</h2>
-                <p className="subtle">SMTP settings and delivery test.</p>
+                <h2>Email reminders — Microsoft 365</h2>
+                <p className="subtle">
+                  Status: <span className={graphConfigured ? "email-status-chip configured" : "email-status-chip"}>
+                    {graphConfigured ? "Configured" : "Not set up"}
+                  </span>
+                </p>
               </div>
               <Mail size={17} style={{ color: "var(--muted)" }} />
             </div>
 
-            {/* ── SMTP settings form ── */}
-            <form className="smtp-settings-form" onSubmit={saveSmtpSettings}>
+            <p className="subtle" style={{ padding: "0 18px 14px", fontSize: 13, lineHeight: 1.6 }}>
+              Reminders send through Microsoft 365 via Microsoft Graph. In Entra, register an app
+              with the <strong>application</strong> permission <code>Mail.Send</code> (grant admin
+              consent) and create a client secret, then paste the values here.
+            </p>
+
+            <form onSubmit={saveGraphSettings}>
               <div className="form-grid" style={{ padding: "0 18px" }}>
                 <div className="control">
-                  <label htmlFor="smtpProvider">Provider</label>
-                  <select className="select" id="smtpProvider" value={smtpProvider} onChange={(e) => setSmtpProvider(e.target.value)}>
-                    <option value="smtp">SMTP (Microsoft 365 / custom)</option>
-                    <option value="resend">Resend</option>
-                    <option value="postmark">Postmark</option>
-                    <option value="sendgrid">SendGrid</option>
-                  </select>
+                  <label htmlFor="graphTenantId">Directory (tenant) ID</label>
+                  <input className="input" id="graphTenantId" value={graphTenantId}
+                    onChange={(e) => setGraphTenantId(e.target.value)}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
                 </div>
                 <div className="control">
-                  <label htmlFor="smtpPort">Port</label>
-                  <select className="select" id="smtpPort" value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)}>
-                    <option value="587">587 — STARTTLS (recommended)</option>
-                    <option value="465">465 — Implicit TLS</option>
-                    <option value="25">25 — Unencrypted</option>
-                  </select>
+                  <label htmlFor="graphClientId">Application (client) ID</label>
+                  <input className="input" id="graphClientId" value={graphClientId}
+                    onChange={(e) => setGraphClientId(e.target.value)}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
                 </div>
-                <div className="control wide">
-                  <label htmlFor="smtpHost">SMTP host</label>
-                  <input className="input" id="smtpHost" value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)}
-                    placeholder="smtp.office365.com" />
-                </div>
-                <div className="control wide">
-                  <label htmlFor="smtpUser">Username / mailbox</label>
-                  <input className="input" id="smtpUser" type="email" value={smtpUser} onChange={(e) => setSmtpUser(e.target.value)}
-                    placeholder="teampulse@yourdomain.com" />
-                </div>
-                <div className="control wide">
-                  <label htmlFor="smtpPassword">
-                    Password
-                    {hasPassword && smtpPassword === "" && (
-                      <span className="smtp-password-set"> — password is set</span>
+                <div className="control">
+                  <label htmlFor="graphSecret">
+                    Client secret
+                    {graphHasSecret && graphSecret === "" && (
+                      <span className="smtp-password-set"> — secret is set</span>
                     )}
                   </label>
                   <div className="smtp-password-wrap">
-                    <input
-                      className="input"
-                      id="smtpPassword"
-                      type={showPassword ? "text" : "password"}
-                      value={smtpPassword}
-                      onChange={(e) => setSmtpPassword(e.target.value)}
-                      placeholder={hasPassword ? "Leave blank to keep current password" : "Enter SMTP password"}
-                      style={{ flex: 1 }}
-                    />
-                    <button type="button" className="smtp-eye-btn" onClick={() => setShowPassword((v) => !v)}
-                      title={showPassword ? "Hide" : "Show"}>
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    <input className="input" id="graphSecret"
+                      type={showGraphSecret ? "text" : "password"}
+                      value={graphSecret}
+                      onChange={(e) => setGraphSecret(e.target.value)}
+                      placeholder={graphHasSecret ? "Leave blank to keep current secret" : "secret value"}
+                      style={{ flex: 1 }} />
+                    <button type="button" className="smtp-eye-btn"
+                      onClick={() => setShowGraphSecret((v) => !v)}
+                      title={showGraphSecret ? "Hide" : "Show"}>
+                      {showGraphSecret ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
                 </div>
-                <div className="control wide">
-                  <label htmlFor="emailFrom">From address</label>
-                  <input className="input" id="emailFrom" value={emailFrom} onChange={(e) => setEmailFrom(e.target.value)}
-                    placeholder='Team Pulse <teampulse@yourdomain.com>' />
+                <div className="control">
+                  <label htmlFor="graphMailbox">From mailbox</label>
+                  <input className="input" id="graphMailbox" type="email" value={graphMailbox}
+                    onChange={(e) => setGraphMailbox(e.target.value)}
+                    placeholder="alignment@nbit.com" />
                 </div>
               </div>
 
-              <div style={{ padding: "12px 18px 0" }}>
-                <button className="button primary" type="submit" disabled={smtpSaving || !smtpLoaded}>
+              <div style={{ padding: "14px 18px 0", display: "flex", alignItems: "center", gap: 12 }}>
+                <button className="button primary" type="submit" disabled={graphSaving || !graphLoaded}
+                  style={{ flex: "0 0 auto" }}>
                   <Save size={14} />
-                  {smtpSaving ? "Saving…" : "Save Settings"}
+                  {graphSaving ? "Saving…" : "Save email settings"}
                 </button>
-                {smtpSaveResult && (
-                  <span className={smtpSaveResult.ok ? "smtp-inline-ok" : "smtp-inline-error"}>
-                    {smtpSaveResult.ok ? "✓ Saved" : smtpSaveResult.error}
+                {graphSaveResult && (
+                  <span className={graphSaveResult.ok ? "smtp-inline-ok" : "smtp-inline-error"}>
+                    {graphSaveResult.ok ? "✓ Saved" : graphSaveResult.error}
                   </span>
                 )}
               </div>
+
+              <p className="subtle" style={{ padding: "10px 18px 0", fontSize: 12 }}>
+                Fill in all four fields and save — the status flips to "Configured" and a{" "}
+                <strong>Send test email</strong> button appears here. The secret is stored encrypted.
+              </p>
             </form>
 
-            {/* ── Test email form ── */}
-            <form className="smtp-test-form" onSubmit={sendTestEmail}>
-              <p className="smtp-test-heading">Send a test message</p>
-              <div className="smtp-test-row">
-                <input
-                  className="input"
-                  type="email"
-                  placeholder="Recipient email address"
-                  value={testTo}
-                  onChange={(e) => setTestTo(e.target.value)}
-                  required
-                  style={{ flex: 1 }}
-                />
-                <button className="button primary" type="submit" disabled={testSending} style={{ whiteSpace: "nowrap" }}>
-                  <Mail size={14} />
-                  {testSending ? "Sending…" : "Send Test"}
-                </button>
-              </div>
-              {testResult && (
-                <div className={`smtp-test-result ${testResult.error ? "smtp-result-error" : testResult.warning ? "smtp-result-warning" : "smtp-result-ok"}`}>
-                  {testResult.error && <><strong>Error:</strong> {testResult.error}</>}
-                  {testResult.warning && <><strong>Warning:</strong> {testResult.warning}</>}
-                  {testResult.ok && <>
-                    <strong>✓ Sent successfully</strong>
-                    {testResult.messageId && <span className="smtp-message-id"> · ID: {testResult.messageId}</span>}
-                  </>}
+            {/* ── Test email — only shown when configured ── */}
+            {graphConfigured && (
+              <form className="smtp-test-form" onSubmit={sendTestEmail}>
+                <p className="smtp-test-heading">Send a test message</p>
+                <div className="smtp-test-row">
+                  <input className="input" type="email" placeholder="Recipient email address"
+                    value={testTo} onChange={(e) => setTestTo(e.target.value)}
+                    required style={{ flex: 1 }} />
+                  <button className="button primary" type="submit" disabled={testSending}
+                    style={{ whiteSpace: "nowrap" }}>
+                    <Mail size={14} />
+                    {testSending ? "Sending…" : "Send test email"}
+                  </button>
                 </div>
-              )}
-            </form>
+                {testResult && (
+                  <div className={`smtp-test-result ${testResult.error ? "smtp-result-error" : testResult.warning ? "smtp-result-warning" : "smtp-result-ok"}`}>
+                    {testResult.error && <><strong>Error:</strong> {testResult.error}</>}
+                    {testResult.warning && <><strong>Warning:</strong> {testResult.warning}</>}
+                    {testResult.ok && <strong>✓ Sent successfully</strong>}
+                  </div>
+                )}
+              </form>
+            )}
           </div>
         </div>
 

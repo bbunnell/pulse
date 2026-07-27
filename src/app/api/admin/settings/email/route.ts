@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSession, getSessionProfileId } from "@/lib/session";
 import { getEmailSettings, saveEmailSettings } from "@/lib/db-store";
 
-// GET — returns current settings; password is never sent to the client
 export async function GET() {
   const session = await getSession();
   if (!getSessionProfileId(session) || session.role !== "admin") {
@@ -11,16 +10,14 @@ export async function GET() {
 
   const s = await getEmailSettings();
   return NextResponse.json({
-    provider:    s.provider,
-    smtpHost:    s.smtpHost,
-    smtpPort:    s.smtpPort,
-    smtpUser:    s.smtpUser,
-    hasPassword: s.smtpPassword.length > 0,
-    emailFrom:   s.emailFrom,
+    tenantId:      s.tenantId,
+    clientId:      s.clientId,
+    hasSecret:     s.clientSecret.length > 0,
+    fromMailbox:   s.fromMailbox,
+    isConfigured:  !!(s.tenantId && s.clientId && s.clientSecret && s.fromMailbox),
   });
 }
 
-// POST — saves updated settings; empty smtpPassword keeps the existing value
 export async function POST(request: Request) {
   const session = await getSession();
   if (!getSessionProfileId(session) || session.role !== "admin") {
@@ -28,30 +25,25 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as {
-    provider?: string;
-    smtpHost?: string;
-    smtpPort?: number;
-    smtpUser?: string;
-    smtpPassword?: string;
-    emailFrom?: string;
+    tenantId?:     string;
+    clientId?:     string;
+    clientSecret?: string;
+    fromMailbox?:  string;
   };
 
   const saved = await saveEmailSettings({
-    provider:     body.provider,
-    smtpHost:     body.smtpHost,
-    smtpPort:     body.smtpPort !== undefined ? Number(body.smtpPort) : undefined,
-    smtpUser:     body.smtpUser,
-    smtpPassword: body.smtpPassword,  // empty = keep existing (handled in store)
-    emailFrom:    body.emailFrom,
+    tenantId:     body.tenantId,
+    clientId:     body.clientId,
+    clientSecret: body.clientSecret, // empty = keep existing (handled in store)
+    fromMailbox:  body.fromMailbox,
   });
 
   return NextResponse.json({
-    ok:          true,
-    provider:    saved.provider,
-    smtpHost:    saved.smtpHost,
-    smtpPort:    saved.smtpPort,
-    smtpUser:    saved.smtpUser,
-    hasPassword: saved.smtpPassword.length > 0,
-    emailFrom:   saved.emailFrom,
+    ok:           true,
+    tenantId:     saved.tenantId,
+    clientId:     saved.clientId,
+    hasSecret:    saved.clientSecret.length > 0,
+    fromMailbox:  saved.fromMailbox,
+    isConfigured: !!(saved.tenantId && saved.clientId && saved.clientSecret && saved.fromMailbox),
   });
 }

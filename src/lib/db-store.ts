@@ -9,12 +9,10 @@ import type { OrgData, Profile, Role, ScheduleRule, ScheduleTemplate, ScheduledS
 import type { GeneratedShift, AppliedTemplateShift } from "@/lib/schedule-engine";
 
 export type EmailSettings = {
-  provider: string;
-  smtpHost: string;
-  smtpPort: number;
-  smtpUser: string;
-  smtpPassword: string;
-  emailFrom: string;
+  tenantId: string;
+  clientId: string;
+  clientSecret: string;
+  fromMailbox: string;
 };
 
 type UserAuthRow = {
@@ -260,38 +258,34 @@ export async function getTimeOffEntryById(id: string) {
 }
 
 export async function getEmailSettings(): Promise<EmailSettings> {
-  const defaults = envEmailDefaults();
   const result = await query<{ key: string; value: string }>(
     "select key, value from app_settings where key = any($1::text[])",
-    [["email.provider", "email.smtp_host", "email.smtp_port", "email.smtp_user", "email.smtp_password", "email.from"]],
+    [["email.tenant_id", "email.client_id", "email.client_secret", "email.from_mailbox"]],
   );
   const values = new Map(result.rows.map((row) => [row.key, row.value]));
 
   return {
-    provider: values.get("email.provider") ?? defaults.provider,
-    smtpHost: values.get("email.smtp_host") ?? defaults.smtpHost,
-    smtpPort: Number(values.get("email.smtp_port") ?? defaults.smtpPort),
-    smtpUser: values.get("email.smtp_user") ?? defaults.smtpUser,
-    smtpPassword: values.get("email.smtp_password") ?? defaults.smtpPassword,
-    emailFrom: values.get("email.from") ?? defaults.emailFrom,
+    tenantId:     values.get("email.tenant_id")     ?? "",
+    clientId:     values.get("email.client_id")     ?? "",
+    clientSecret: values.get("email.client_secret") ?? "",
+    fromMailbox:  values.get("email.from_mailbox")  ?? "",
   };
 }
 
 export async function saveEmailSettings(updates: Partial<EmailSettings>) {
   const current = await getEmailSettings();
-  const next = {
-    ...current,
-    ...updates,
-    smtpPassword: updates.smtpPassword ? updates.smtpPassword : current.smtpPassword,
+  const next: EmailSettings = {
+    tenantId:     updates.tenantId     ?? current.tenantId,
+    clientId:     updates.clientId     ?? current.clientId,
+    clientSecret: updates.clientSecret ? updates.clientSecret : current.clientSecret,
+    fromMailbox:  updates.fromMailbox  ?? current.fromMailbox,
   };
 
   await withTransaction(async (client) => {
-    await upsertSetting(client, "email.provider", next.provider);
-    await upsertSetting(client, "email.smtp_host", next.smtpHost);
-    await upsertSetting(client, "email.smtp_port", String(next.smtpPort));
-    await upsertSetting(client, "email.smtp_user", next.smtpUser);
-    await upsertSetting(client, "email.smtp_password", next.smtpPassword);
-    await upsertSetting(client, "email.from", next.emailFrom);
+    await upsertSetting(client, "email.tenant_id",     next.tenantId);
+    await upsertSetting(client, "email.client_id",     next.clientId);
+    await upsertSetting(client, "email.client_secret", next.clientSecret);
+    await upsertSetting(client, "email.from_mailbox",  next.fromMailbox);
   });
 
   return next;
@@ -955,16 +949,6 @@ export async function deleteCompanyEvent(id: string): Promise<boolean> {
   return (r.rowCount ?? 0) > 0;
 }
 
-function envEmailDefaults(): EmailSettings {
-  return {
-    provider: process.env.EMAIL_PROVIDER ?? "smtp",
-    smtpHost: process.env.SMTP_HOST ?? "smtp.office365.com",
-    smtpPort: Number(process.env.SMTP_PORT ?? "587"),
-    smtpUser: process.env.SMTP_USER ?? "",
-    smtpPassword: process.env.SMTP_PASSWORD ?? "",
-    emailFrom: process.env.EMAIL_FROM ?? "",
-  };
-}
 
 // ── Audit log ───────────────────────────────────────────────────────────────
 

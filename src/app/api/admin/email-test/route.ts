@@ -16,6 +16,14 @@ export async function POST(request: Request) {
   }
 
   const cfg = await getEmailSettings();
+  const isConfigured = !!(cfg.tenantId && cfg.clientId && cfg.clientSecret && cfg.fromMailbox);
+
+  if (!isConfigured) {
+    return NextResponse.json({
+      warning: "Microsoft 365 is not configured. Save your Entra app credentials and try again.",
+    });
+  }
+
   const sent = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
 
   const result = await sendTransactionalEmail({
@@ -23,11 +31,9 @@ export async function POST(request: Request) {
     subject: "Team Pulse — email test",
     text: [
       "This is a test message from Team Pulse.",
-      "If you received this, your Microsoft 365 SMTP configuration is working correctly.",
+      "If you received this, your Microsoft 365 Graph API configuration is working correctly.",
       `Sent: ${sent} CT`,
-      `Provider: ${cfg.provider}`,
-      `Host: ${cfg.smtpHost}:${cfg.smtpPort}`,
-      `From: ${cfg.emailFrom}`,
+      `From mailbox: ${cfg.fromMailbox}`,
     ].join("\n"),
     html: `
       <table style="font-family:sans-serif;font-size:14px;color:#111;max-width:480px">
@@ -36,13 +42,11 @@ export async function POST(request: Request) {
         </td></tr>
         <tr><td style="padding-bottom:12px">
           This is a test message from Team Pulse. If you received this, your
-          Microsoft 365 SMTP configuration is working correctly.
+          Microsoft 365 Graph API configuration is working correctly.
         </td></tr>
         <tr><td style="background:#f4f4f5;border-radius:6px;padding:12px;font-size:12px;font-family:monospace">
           Sent: ${sent} CT<br>
-          Provider: ${cfg.provider}<br>
-          Host: ${cfg.smtpHost}:${cfg.smtpPort}<br>
-          From: ${cfg.emailFrom}
+          From mailbox: ${cfg.fromMailbox}
         </td></tr>
       </table>
     `,
@@ -50,13 +54,6 @@ export async function POST(request: Request) {
 
   if (result.status === "failed") {
     return NextResponse.json({ error: result.errorMessage ?? "Send failed." }, { status: 502 });
-  }
-
-  if (result.status === "queued") {
-    return NextResponse.json({
-      warning: "No email provider is configured. Save your SMTP settings and try again.",
-      result,
-    });
   }
 
   return NextResponse.json({ ok: true, result });

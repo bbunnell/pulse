@@ -1,5 +1,4 @@
-import nodemailer from "nodemailer";
-import { getEmailSettings, type EmailSettings } from "@/lib/db-store";
+import { getEmailSettings } from "@/lib/db-store";
 
 export interface EmailAttachment {
   filename: string;
@@ -24,28 +23,82 @@ export interface EmailResult {
 
 export async function sendTransactionalEmail(email: OutboundEmail): Promise<EmailResult> {
   const cfg = await getEmailSettings();
-  const provider = cfg.provider.toLowerCase();
 
-  if (provider === "resend" && process.env.RESEND_API_KEY) {
-    return sendResend(email, cfg.emailFrom);
+  if (!cfg.tenantId || !cfg.clientId || !cfg.clientSecret || !cfg.fromMailbox) {
+    return { status: "queued", provider: "graph" };
   }
 
-  if (provider === "postmark" && process.env.POSTMARK_SERVER_TOKEN) {
-    return sendPostmark(email, cfg.emailFrom);
+  return sendGraph(email, cfg.tenantId, cfg.clientId, cfg.clientSecret, cfg.fromMailbox);
+}
+
+async function sendGraph(
+  email: OutboundEmail,
+  tenantId: string,
+  clientId: string,
+  clientSecret: string,
+  fromMailbox: string,
+): Promise<EmailResult> {
+  // 1. Acquire access token via client credentials flow
+  const tokenRes = await fetch(
+    `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id:     clientId,
+        client_secret: clientSecret,
+        scope:         "https://graph.microsoft.com/.default",
+        grant_type:    "client_credentials",
+      }),
+    },
+  );
+
+  const tokenJson = (await tokenRes.json()) as { access_token?: string; error_description?: string };
+  if (!tokenRes.ok || !tokenJson.access_token) {
+    const msg = tokenJson.error_description ?? `Token request failed (${tokenRes.status})`;
+    console.error("[Graph]", msg);
+    return { status: "failed", provider: "graph", errorMessage: msg };
   }
 
-  if (provider === "sendgrid" && process.env.SENDGRID_API_KEY) {
-    return sendSendGrid(email, cfg.emailFrom);
-  }
-
-  if (provider === "smtp" && cfg.smtpHost) {
-    return sendSmtp(email, cfg);
-  }
-
-  return {
-    status: "queued",
-    provider: provider || "none",
+  // 2. Send the message
+  const body: Record<string, unknown> = {
+    message: {
+      subject: email.subject,
+      body: {
+        contentType: email.html ? "HTML" : "Text",
+        content:     email.html ?? email.text,
+      },
+      toRecipients: [{ emailAddress: { address: email.to } }],
+      attachments: email.attachments?.map((a) => ({
+        "@odata.type":  "#microsoft.graph.fileAttachment",
+        name:           a.filename,
+        contentType:    a.contentType,
+        contentBytes:   a.content,
+      })) ?? [],
+    },
+    saveToSentItems: false,
   };
+
+  const sendRes = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${fromMailbox}/sendMail`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tokenJson.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (sendRes.status === 202) {
+    return { status: "sent", provider: "graph" };
+  }
+
+  const errJson = (await sendRes.json().catch(() => ({}))) as { error?: { message?: string } };
+  const errMsg = errJson.error?.message ?? `Send failed (${sendRes.status})`;
+  console.error("[Graph]", errMsg);
+  return { status: "failed", provider: "graph", errorMessage: errMsg };
 }
 
 export function timeOffConfirmationEmail(args: {
@@ -62,9 +115,7 @@ export function timeOffConfirmationEmail(args: {
   return {
     subject,
     text,
-    html: `<p>${escapeHtml(args.employeeName)}, your ${escapeHtml(args.timeOffType)} entry has been recorded for ${escapeHtml(
-      args.dateRange,
-    )}.</p><p>Please update your Outlook out-of-office status for the same date range.</p>`,
+    html: `<p>${escapeHtml(args.employeeName)}, your ${escapeHtml(args.timeOffType)} entry has been recorded for ${escapeHtml(args.dateRange)}.</p><p>Please update your Outlook out-of-office status for the same date range.</p>`,
   };
 }
 
@@ -77,135 +128,6 @@ export function reminderEmail(args: { employeeName: string; reminderType: string
     text,
     html: `<p>${escapeHtml(args.employeeName)}, reminder: ${escapeHtml(args.reminderType.replaceAll("_", " "))}.</p>`,
   };
-}
-
-async function sendResend(email: OutboundEmail, fromAddress: string): Promise<EmailResult> {
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: fromAddress,
-      to: [email.to],
-      subject: email.subject,
-      text: email.text,
-      html: email.html,
-      attachments: email.attachments?.map((attachment) => ({
-        filename: attachment.filename,
-        content: attachment.content,
-      })),
-    }),
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as { id?: string; message?: string };
-  return response.ok
-    ? { status: "sent", provider: "resend", providerMessageId: payload.id }
-    : { status: "failed", provider: "resend", errorMessage: payload.message ?? response.statusText };
-}
-
-async function sendPostmark(email: OutboundEmail, fromAddress: string): Promise<EmailResult> {
-  const response = await fetch("https://api.postmarkapp.com/email", {
-    method: "POST",
-    headers: {
-      "X-Postmark-Server-Token": process.env.POSTMARK_SERVER_TOKEN as string,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      From: extractEmail(fromAddress),
-      To: email.to,
-      Subject: email.subject,
-      TextBody: email.text,
-      HtmlBody: email.html,
-      Attachments: email.attachments?.map((attachment) => ({
-        Name: attachment.filename,
-        Content: attachment.content,
-        ContentType: attachment.contentType,
-      })),
-    }),
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as { MessageID?: string; Message?: string };
-  return response.ok
-    ? { status: "sent", provider: "postmark", providerMessageId: payload.MessageID }
-    : { status: "failed", provider: "postmark", errorMessage: payload.Message ?? response.statusText };
-}
-
-async function sendSendGrid(email: OutboundEmail, fromAddress: string): Promise<EmailResult> {
-  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: email.to }] }],
-      from: { email: extractEmail(fromAddress) },
-      subject: email.subject,
-      content: [
-        { type: "text/plain", value: email.text },
-        ...(email.html ? [{ type: "text/html", value: email.html }] : []),
-      ],
-      attachments: email.attachments?.map((attachment) => ({
-        filename: attachment.filename,
-        content: attachment.content,
-        type: attachment.contentType,
-        disposition: "attachment",
-      })),
-    }),
-  });
-
-  return response.ok
-    ? { status: "sent", provider: "sendgrid" }
-    : { status: "failed", provider: "sendgrid", errorMessage: response.statusText };
-}
-
-async function sendSmtp(email: OutboundEmail, cfg: EmailSettings): Promise<EmailResult> {
-  const port = cfg.smtpPort;
-  const isTls = port === 465;
-
-  const transporter = nodemailer.createTransport({
-    host: cfg.smtpHost,
-    port,
-    // port 465 = implicit TLS; port 587 = STARTTLS (required for Microsoft 365)
-    secure: isTls,
-    requireTLS: !isTls,          // enforce STARTTLS on port 587
-    auth: cfg.smtpUser && cfg.smtpPassword
-      ? { user: cfg.smtpUser, pass: cfg.smtpPassword }
-      : undefined,
-    tls: {
-      // Microsoft 365 requires these — do not reject on self-signed certs in dev
-      minVersion: "TLSv1.2",
-      rejectUnauthorized: process.env.NODE_ENV === "production",
-    },
-  });
-
-  try {
-    const result = await transporter.sendMail({
-      from: cfg.emailFrom,
-      to: email.to,
-      subject: email.subject,
-      text: email.text,
-      html: email.html,
-      attachments: email.attachments?.map((a) => ({
-        filename: a.filename,
-        content: a.content,
-        encoding: "base64",
-        contentType: a.contentType,
-      })),
-    });
-
-    return { status: "sent", provider: "smtp", providerMessageId: result.messageId };
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : "SMTP send failed";
-    console.error("[SMTP]", msg);
-    return { status: "failed", provider: "smtp", errorMessage: msg };
-  }
-}
-
-function extractEmail(value: string) {
-  return value.match(/<(.+)>/)?.[1] ?? value;
 }
 
 function titleCase(value: string) {
