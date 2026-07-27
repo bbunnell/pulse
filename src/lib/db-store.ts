@@ -125,21 +125,23 @@ export async function deleteTeam(id: string): Promise<boolean> {
   return (result.rowCount ?? 0) > 0;
 }
 
-export async function updateTeamHours(id: string, hours: {
-  defaultWorkDays: number[];
-  defaultStartTime: string;
-  defaultEndTime: string;
-  defaultTimezone: string;
+export async function updateTeamHours(id: string, patch: {
+  name?: string;
+  defaultWorkDays?: number[];
+  defaultStartTime?: string;
+  defaultEndTime?: string;
+  defaultTimezone?: string;
 }): Promise<Team> {
   const result = await query(
     `UPDATE teams SET
-       default_work_days  = $2,
-       default_start_time = $3,
-       default_end_time   = $4,
-       default_timezone   = $5,
+       name               = COALESCE($2, name),
+       default_work_days  = COALESCE($3, default_work_days),
+       default_start_time = COALESCE($4::time, default_start_time),
+       default_end_time   = COALESCE($5::time, default_end_time),
+       default_timezone   = COALESCE($6, default_timezone),
        updated_at = now()
      WHERE id = $1 RETURNING *`,
-    [id, hours.defaultWorkDays, hours.defaultStartTime, hours.defaultEndTime, hours.defaultTimezone],
+    [id, patch.name ?? null, patch.defaultWorkDays ?? null, patch.defaultStartTime ?? null, patch.defaultEndTime ?? null, patch.defaultTimezone ?? null],
   );
   return mapTeam(result.rows[0]);
 }

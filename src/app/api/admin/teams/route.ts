@@ -34,6 +34,7 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json()) as {
     id?: string;
+    name?: string;
     defaultWorkDays?: number[];
     defaultStartTime?: string;
     defaultEndTime?: string;
@@ -42,10 +43,11 @@ export async function PATCH(request: Request) {
   if (!body.id) return NextResponse.json({ error: "Team ID required." }, { status: 400 });
 
   const team = await updateTeamHours(body.id, {
-    defaultWorkDays:  body.defaultWorkDays  ?? [1,2,3,4,5],
-    defaultStartTime: body.defaultStartTime ?? "09:00",
-    defaultEndTime:   body.defaultEndTime   ?? "17:00",
-    defaultTimezone:  body.defaultTimezone  ?? "America/Chicago",
+    name:             body.name,
+    defaultWorkDays:  body.defaultWorkDays,
+    defaultStartTime: body.defaultStartTime,
+    defaultEndTime:   body.defaultEndTime,
+    defaultTimezone:  body.defaultTimezone,
   });
 
   await recordAudit({

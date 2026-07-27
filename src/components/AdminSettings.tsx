@@ -325,8 +325,9 @@ export function AdminSettings({ data, currentUserId }: Props) {
   const [teamAdding, setTeamAdding] = useState(false);
   const [teamError, setTeamError] = useState("");
 
-  // Edit team hours
+  // Edit team
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [teamEditName, setTeamEditName] = useState("");
   const [teamHoursDays, setTeamHoursDays] = useState<number[]>([1,2,3,4,5]);
   const [teamHoursStart, setTeamHoursStart] = useState("09:00");
   const [teamHoursEnd, setTeamHoursEnd] = useState("17:00");
@@ -335,6 +336,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
 
   function openTeamHours(team: Team) {
     setEditingTeamId(team.id);
+    setTeamEditName(team.name);
     setTeamHoursDays(team.defaultWorkDays);
     setTeamHoursStart(team.defaultStartTime);
     setTeamHoursEnd(team.defaultEndTime);
@@ -342,11 +344,12 @@ export function AdminSettings({ data, currentUserId }: Props) {
   }
 
   async function saveTeamHours(teamId: string) {
+    if (!teamEditName.trim()) return;
     setTeamHoursSaving(true);
     const res = await fetch("/api/admin/teams", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: teamId, defaultWorkDays: teamHoursDays, defaultStartTime: teamHoursStart, defaultEndTime: teamHoursEnd, defaultTimezone: teamHoursTz }),
+      body: JSON.stringify({ id: teamId, name: teamEditName.trim(), defaultWorkDays: teamHoursDays, defaultStartTime: teamHoursStart, defaultEndTime: teamHoursEnd, defaultTimezone: teamHoursTz }),
     });
     const json = (await res.json()) as { ok?: boolean; team?: Team };
     if (json.ok && json.team) {
@@ -1057,9 +1060,13 @@ export function AdminSettings({ data, currentUserId }: Props) {
 
                   {editingTeamId === team.id && (
                     <div className="team-hours-editor">
-                      <p className="eyebrow" style={{marginBottom:10}}>Default work hours — {team.name}</p>
+                      <p className="eyebrow" style={{marginBottom:10}}>Edit team</p>
                       <div className="control" style={{marginBottom:10}}>
-                        <label>Work days</label>
+                        <label>Team name</label>
+                        <input className="input" value={teamEditName} onChange={e => setTeamEditName(e.target.value)} required />
+                      </div>
+                      <div className="control" style={{marginBottom:10}}>
+                        <label>Default work days <span className="subtle">(optional — used by "Fill from team")</span></label>
                         <div className="day-picker">
                           {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i) => (
                             <button key={i} type="button"
@@ -1096,7 +1103,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                         <button className="button secondary" type="button" onClick={() => setEditingTeamId(null)}>Cancel</button>
                       </div>
                       <p className="subtle" style={{fontSize:11,marginTop:8}}>
-                        These are this team&apos;s default hours. Use <strong>Fill from team</strong> on an employee to apply them automatically.
+                        Default hours are optional — they&apos;re only used when you click <strong>Fill from team</strong> on an employee. Each employee&apos;s own hours always take precedence.
                       </p>
                     </div>
                   )}
