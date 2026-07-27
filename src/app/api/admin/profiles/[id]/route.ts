@@ -28,6 +28,7 @@ export async function PATCH(
     role?: Role;
     teamId?: string | null;
     expectedStartTime?: string;
+    expectedEndTime?: string;
     status?: "active" | "inactive";
     timezone?: string;
     showOnDashboard?: boolean;

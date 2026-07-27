@@ -26,6 +26,7 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
   const [role,            setRole]             = useState<Role>(profile.role);
   const [teamId,          setTeamId]           = useState(profile.teamId ?? "");
   const [startTime,       setStartTime]        = useState(profile.expectedStartTime ?? "08:30");
+  const [endTime,         setEndTime]          = useState(profile.expectedEndTime ?? "17:00");
   const [timezone,        setTimezone]         = useState(profile.timezone ?? "America/Chicago");
   const [status,          setStatus]           = useState<"active"|"inactive">(profile.status);
   const [showOnDashboard,   setShowOnDashboard]   = useState(profile.showOnDashboard ?? true);
@@ -54,12 +55,12 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
     const res = await fetch(`/api/admin/profiles/${profile.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null, workScheduleType, standardWorkDays, hideWhenNotActive }),
+      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, expectedEndTime: endTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null, workScheduleType, standardWorkDays, hideWhenNotActive }),
     });
     const json = (await res.json()) as { ok?: boolean; profile?: Profile; error?: string };
     if (json.ok) {
       // Build updated profile for local state (API returns it)
-      onSave(json.profile ?? { ...profile, firstName, lastName, email, role, teamId, status, expectedStartTime: startTime, updatedAt: new Date().toISOString() });
+      onSave(json.profile ?? { ...profile, firstName, lastName, email, role, teamId, status, expectedStartTime: startTime, expectedEndTime: endTime, updatedAt: new Date().toISOString() });
       onClose();
     } else {
       setSaveError(json.error ?? "Save failed.");
@@ -126,14 +127,36 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
               </div>
               <div className="control">
                 <label htmlFor="eu-team">Team</label>
-                <select className="select" id="eu-team" value={teamId} onChange={e => setTeamId(e.target.value)}>
-                  <option value="">— No team —</option>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <select className="select" id="eu-team" value={teamId} onChange={e => setTeamId(e.target.value)} style={{flex:1}}>
+                    <option value="">— No team —</option>
+                    {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                  {teamId && (() => {
+                    const t = teams.find(t => t.id === teamId);
+                    if (!t) return null;
+                    return (
+                      <button type="button" className="button secondary" style={{fontSize:11,padding:"4px 10px",whiteSpace:"nowrap"}}
+                        title="Fill work hours, timezone, and work days from this team's defaults"
+                        onClick={() => {
+                          setStartTime(t.defaultStartTime);
+                          setEndTime(t.defaultEndTime);
+                          setTimezone(t.defaultTimezone);
+                          setStandardWorkDays(t.defaultWorkDays);
+                        }}>
+                        Fill from team
+                      </button>
+                    );
+                  })()}
+                </div>
               </div>
               <div className="control">
-                <label htmlFor="eu-start">Expected start time</label>
-                <input className="input" id="eu-start" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                <label htmlFor="eu-start">Work hours</label>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <input className="input" id="eu-start" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{flex:1}} />
+                  <span style={{color:"var(--muted)",fontSize:12}}>to</span>
+                  <input className="input" id="eu-end" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{flex:1}} />
+                </div>
               </div>
               <div className="control wide">
                 <label htmlFor="eu-tz">Timezone</label>
@@ -301,6 +324,37 @@ export function AdminSettings({ data, currentUserId }: Props) {
   const [newTeamManager, setNewTeamManager] = useState("");
   const [teamAdding, setTeamAdding] = useState(false);
   const [teamError, setTeamError] = useState("");
+
+  // Edit team hours
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [teamHoursDays, setTeamHoursDays] = useState<number[]>([1,2,3,4,5]);
+  const [teamHoursStart, setTeamHoursStart] = useState("09:00");
+  const [teamHoursEnd, setTeamHoursEnd] = useState("17:00");
+  const [teamHoursTz, setTeamHoursTz] = useState("America/Chicago");
+  const [teamHoursSaving, setTeamHoursSaving] = useState(false);
+
+  function openTeamHours(team: Team) {
+    setEditingTeamId(team.id);
+    setTeamHoursDays(team.defaultWorkDays);
+    setTeamHoursStart(team.defaultStartTime);
+    setTeamHoursEnd(team.defaultEndTime);
+    setTeamHoursTz(team.defaultTimezone);
+  }
+
+  async function saveTeamHours(teamId: string) {
+    setTeamHoursSaving(true);
+    const res = await fetch("/api/admin/teams", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: teamId, defaultWorkDays: teamHoursDays, defaultStartTime: teamHoursStart, defaultEndTime: teamHoursEnd, defaultTimezone: teamHoursTz }),
+    });
+    const json = (await res.json()) as { ok?: boolean; team?: Team };
+    if (json.ok && json.team) {
+      setTeams(prev => prev.map(t => t.id === teamId ? json.team! : t));
+      setEditingTeamId(null);
+    }
+    setTeamHoursSaving(false);
+  }
 
   async function addTeam(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -594,6 +648,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
         teamId,
         status: "active",
         expectedStartTime: "08:30",
+        expectedEndTime: "17:00",
         timezone: newUserTz,
         showOnDashboard: true,
         workScheduleType: "shift_based",
@@ -966,31 +1021,87 @@ export function AdminSettings({ data, currentUserId }: Props) {
               <Building2 size={17} style={{ color: "var(--muted)" }} />
             </div>
             <div className="settings-list">
-              {teams.map((team) => {
-                const isDeletable = true;
-                return (
-                  <div className="setting-row" key={team.id}>
+              {teams.map((team) => (
+                <div key={team.id}>
+                  <div className="setting-row">
                     <span style={{ flex: 1 }}>
                       <strong>{team.name}</strong>
                       <small className="subtle">
                         Manager: {profiles.find((p) => p.id === team.managerId)?.firstName ?? "Open"}
+                        {" · "}
+                        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].filter((_,i) => team.defaultWorkDays.includes(i)).join(", ")}
+                        {" · "}
+                        {team.defaultStartTime}–{team.defaultEndTime}
+                        {" · "}
+                        {team.defaultTimezone.split("/").pop()?.replace("_"," ")}
                       </small>
                     </span>
                     <span className="status-badge gray" style={{ marginRight: 6 }}>
                       {profiles.filter((p) => p.teamId === team.id).length} people
                     </span>
-                    {isDeletable && (
-                      <button
-                        className="icon-btn danger"
-                        title="Delete team"
-                        onClick={() => deleteTeam(team.id)}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
+                    <button
+                      className="icon-btn"
+                      title="Edit work hours"
+                      onClick={() => editingTeamId === team.id ? setEditingTeamId(null) : openTeamHours(team)}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      className="icon-btn danger"
+                      title="Delete team"
+                      onClick={() => deleteTeam(team.id)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
-                );
-              })}
+
+                  {editingTeamId === team.id && (
+                    <div className="team-hours-editor">
+                      <p className="eyebrow" style={{marginBottom:10}}>Default work hours — {team.name}</p>
+                      <div className="control" style={{marginBottom:10}}>
+                        <label>Work days</label>
+                        <div className="day-picker">
+                          {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i) => (
+                            <button key={i} type="button"
+                              className={`day-chip${teamHoursDays.includes(i)?" selected":""}`}
+                              onClick={() => setTeamHoursDays(prev =>
+                                prev.includes(i) ? prev.filter(x=>x!==i) : [...prev,i].sort()
+                              )}>
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:10}}>
+                        <div className="control" style={{flex:1,minWidth:200}}>
+                          <label>Work hours</label>
+                          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                            <input className="input" type="time" value={teamHoursStart} onChange={e => setTeamHoursStart(e.target.value)} style={{flex:1}} />
+                            <span style={{color:"var(--muted)",fontSize:12}}>to</span>
+                            <input className="input" type="time" value={teamHoursEnd} onChange={e => setTeamHoursEnd(e.target.value)} style={{flex:1}} />
+                          </div>
+                        </div>
+                        <div className="control" style={{flex:1,minWidth:200}}>
+                          <label>Timezone</label>
+                          <select className="select" value={teamHoursTz} onChange={e => setTeamHoursTz(e.target.value)}>
+                            {TIMEZONE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button className="button primary" type="button" disabled={teamHoursSaving}
+                          onClick={() => saveTeamHours(team.id)}>
+                          {teamHoursSaving ? "Saving…" : "Save hours"}
+                        </button>
+                        <button className="button secondary" type="button" onClick={() => setEditingTeamId(null)}>Cancel</button>
+                      </div>
+                      <p className="subtle" style={{fontSize:11,marginTop:8}}>
+                        These are this team&apos;s default hours. Use <strong>Fill from team</strong> on an employee to apply them automatically.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Add team form */}

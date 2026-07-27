@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession, getSessionProfileId } from "@/lib/session";
-import { createTeam, deleteTeam, recordAudit } from "@/lib/db-store";
+import { createTeam, deleteTeam, updateTeamHours, recordAudit } from "@/lib/db-store";
 
 // POST — create a new team
 export async function POST(request: Request) {
@@ -20,6 +20,37 @@ export async function POST(request: Request) {
   await recordAudit({
     actorUserId: actorId, entityType: "team", entityId: team.id,
     action: "create", summary: `Created team "${name}"`,
+  });
+  return NextResponse.json({ ok: true, team });
+}
+
+// PATCH — update team work hours
+export async function PATCH(request: Request) {
+  const session = await getSession();
+  const actorId = getSessionProfileId(session);
+  if (!actorId || session.role !== "admin") {
+    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  }
+
+  const body = (await request.json()) as {
+    id?: string;
+    defaultWorkDays?: number[];
+    defaultStartTime?: string;
+    defaultEndTime?: string;
+    defaultTimezone?: string;
+  };
+  if (!body.id) return NextResponse.json({ error: "Team ID required." }, { status: 400 });
+
+  const team = await updateTeamHours(body.id, {
+    defaultWorkDays:  body.defaultWorkDays  ?? [1,2,3,4,5],
+    defaultStartTime: body.defaultStartTime ?? "09:00",
+    defaultEndTime:   body.defaultEndTime   ?? "17:00",
+    defaultTimezone:  body.defaultTimezone  ?? "America/Chicago",
+  });
+
+  await recordAudit({
+    actorUserId: actorId, entityType: "team", entityId: team.id,
+    action: "update", summary: `Updated work hours for team "${team.name}"`,
   });
   return NextResponse.json({ ok: true, team });
 }

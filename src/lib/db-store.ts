@@ -125,6 +125,25 @@ export async function deleteTeam(id: string): Promise<boolean> {
   return (result.rowCount ?? 0) > 0;
 }
 
+export async function updateTeamHours(id: string, hours: {
+  defaultWorkDays: number[];
+  defaultStartTime: string;
+  defaultEndTime: string;
+  defaultTimezone: string;
+}): Promise<Team> {
+  const result = await query(
+    `UPDATE teams SET
+       default_work_days  = $2,
+       default_start_time = $3,
+       default_end_time   = $4,
+       default_timezone   = $5,
+       updated_at = now()
+     WHERE id = $1 RETURNING *`,
+    [id, hours.defaultWorkDays, hours.defaultStartTime, hours.defaultEndTime, hours.defaultTimezone],
+  );
+  return mapTeam(result.rows[0]);
+}
+
 export async function createInvitedUser(input: {
   firstName: string;
   lastName: string;
@@ -420,6 +439,7 @@ export async function updateProfile(
     role: Role;
     teamId: string | null;
     expectedStartTime: string;
+    expectedEndTime: string;
     status: "active" | "inactive";
     timezone: string;
     showOnDashboard: boolean;
@@ -445,7 +465,8 @@ export async function updateProfile(
        work_anniversary     = CASE WHEN $12::text IS NOT NULL THEN $12::date ELSE work_anniversary END,
        work_schedule_type   = COALESCE($13::text, work_schedule_type),
        standard_work_days   = COALESCE($14, standard_work_days),
-       hide_when_not_active = COALESCE($15, hide_when_not_active)
+       hide_when_not_active = COALESCE($15, hide_when_not_active),
+       expected_end_time    = COALESCE($16::time, expected_end_time)
      WHERE id = $1
      RETURNING *`,
     [
@@ -464,6 +485,7 @@ export async function updateProfile(
       patch.workScheduleType ?? null,
       patch.standardWorkDays ?? null,
       patch.hideWhenNotActive ?? null,
+      patch.expectedEndTime ?? null,
     ],
   );
   return mapProfile(result.rows[0]);

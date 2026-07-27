@@ -25,6 +25,10 @@ export interface Team {
   id: string;
   name: string;
   managerId?: string;
+  defaultWorkDays: number[];   // 0=Sun … 6=Sat
+  defaultStartTime: string;   // "HH:MM"
+  defaultEndTime: string;     // "HH:MM"
+  defaultTimezone: string;    // IANA tz
   createdAt: string;
   updatedAt: string;
 }
@@ -38,8 +42,9 @@ export interface Profile {
   role: Role;
   teamId: string;
   status: ProfileStatus;
-  expectedStartTime: string;
-  timezone: string;          // IANA tz, e.g. "Asia/Manila"
+  expectedStartTime: string;  // "HH:MM"
+  expectedEndTime: string;    // "HH:MM"
+  timezone: string;           // IANA tz, e.g. "Asia/Manila"
   showOnDashboard: boolean;  // false for placeholders that never clock in
   workScheduleType: "standard" | "shift_based";
   standardWorkDays: number[];  // 0=Sun … 6=Sat, in employee's own timezone
