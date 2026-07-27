@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+      <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');})();` }} />
       <body>
         <Suspense fallback={<>{children}</>}>
           <AppShell>{children}</AppShell>

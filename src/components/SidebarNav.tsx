@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { CalendarCheck, CalendarDays, CalendarRange, ClipboardList, LayoutDashboard, LogIn, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { UserAvatar } from "@/components/UserAvatar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Ordered by expected frequency of use
 const navItems = [
@@ -79,6 +80,7 @@ export function SidebarNav({ role, currentUser }: Props) {
                 {currentUser.firstName} {currentUser.lastName}
               </span>
             </Link>
+            <ThemeToggle />
             <button type="button" className="sidebar-action-btn" title="Sign out" onClick={handleSignOut} suppressHydrationWarning>
               <LogOut size={14} />
             </button>
