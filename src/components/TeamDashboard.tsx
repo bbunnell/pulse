@@ -442,6 +442,9 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
               </div>
             </div>
           )}
+
+          {/* Team Events — tucked under Off Today */}
+          <DashboardSchedule data={data} />
         </div>
 
         {/* Sidebar */}
@@ -536,8 +539,6 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           </div>
         </aside>
       </div>
-
-      <DashboardSchedule data={data} />
     </section>
   );
 }
