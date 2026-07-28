@@ -86,21 +86,22 @@ export function attendanceStatusFromState(
   timeOff: TimeOffEntry[],
   now = new Date(),
 ): AttendanceStatus {
+  // Active shift takes priority — a clocked-in person is always shown as working
+  const activeShift = openShiftForUser(shifts, profile.id);
+  if (activeShift) {
+    const activeSegment = activeSegmentForShift(segments, activeShift.id);
+    if (activeSegment?.segmentType === "break") return "on_break";
+    if (activeSegment?.segmentType === "lunch") return "at_lunch";
+    return "available";
+  }
+
   const timeOffToday = activeTimeOffForDate(timeOff, profile.id, now);
   if (timeOffToday?.timeOffType === "sick") return "out_sick";
   if (timeOffToday?.timeOffType === "vacation") return "on_vacation";
 
-  const activeShift = openShiftForUser(shifts, profile.id);
-  if (!activeShift) {
-    // Did they work earlier in their local day and punch out?
-    const todayShift = shiftForLocalToday(shifts, profile.id, profile.timezone, now);
-    return todayShift?.punchOutAt ? "punched_out" : "not_punched_in";
-  }
-
-  const activeSegment = activeSegmentForShift(segments, activeShift.id);
-  if (activeSegment?.segmentType === "break") return "on_break";
-  if (activeSegment?.segmentType === "lunch") return "at_lunch";
-  return "available";
+  // Did they work earlier in their local day and punch out?
+  const todayShift = shiftForLocalToday(shifts, profile.id, profile.timezone, now);
+  return todayShift?.punchOutAt ? "punched_out" : "not_punched_in";
 }
 
 /** Shift that started during the employee's local "today" (timezone-aware). */

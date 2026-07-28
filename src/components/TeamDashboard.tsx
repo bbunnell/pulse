@@ -98,6 +98,8 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const [search, setSearch] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [editingTimeOff, setEditingTimeOff] = useState<TimeOffEntry | null>(null);
+  const [timeOffSaving, setTimeOffSaving] = useState(false);
 
   // Live data — seeded from server props, refreshed by polling without a full reload.
   const [live, setLive] = useState<{
@@ -269,6 +271,32 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const handleForcePunchOut = (profileId: string) => clockAction("/api/time-clock/admin-punch", { profileId, action: "punch_out" });
   const handleForcePunchIn  = (profileId: string) => clockAction("/api/time-clock/admin-punch", { profileId, action: "punch_in" });
 
+  async function handleDeleteTimeOff(id: string) {
+    if (!confirm("Delete this time-off entry?")) return;
+    await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
+    await refreshLive();
+  }
+
+  async function handleSaveTimeOff(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editingTimeOff) return;
+    setTimeOffSaving(true);
+    const fd = new FormData(e.currentTarget);
+    await fetch(`/api/admin/time-off/${editingTimeOff.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timeOffType: fd.get("timeOffType"),
+        startAt: `${fd.get("startDate")}T00:00:00.000Z`,
+        endAt: `${fd.get("endDate")}T23:59:59.000Z`,
+        notes: fd.get("notes") || undefined,
+      }),
+    });
+    setTimeOffSaving(false);
+    setEditingTimeOff(null);
+    await refreshLive();
+  }
+
   // ── All roles see the full team board ────────────────────────
   // Employees can see who is working / out across the team.
   // Personal punch-in/out is handled by the My Clock widget in the sidebar.
@@ -400,7 +428,8 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                 <span className="status-count red">{groups.out.length}</span>
               </div>
               <div className="attend-grid list-view">
-                {groups.out.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} />)}
+                {groups.out.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe}
+                  onDeleteTimeOff={handleDeleteTimeOff} onEditTimeOff={setEditingTimeOff} />)}
               </div>
             </div>
           )}
@@ -539,6 +568,48 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           </div>
         </aside>
       </div>
+
+      {/* Time-off edit modal */}
+      {editingTimeOff && (
+        <div className="modal-overlay" onClick={() => setEditingTimeOff(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Time Off</h2>
+              <button className="modal-close" type="button" onClick={() => setEditingTimeOff(null)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveTimeOff}>
+              <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <label className="field-label">Type
+                  <select name="timeOffType" defaultValue={editingTimeOff.timeOffType} className="field-input" style={{ marginTop: 4 }}>
+                    <option value="vacation">Vacation</option>
+                    <option value="sick">Sick</option>
+                  </select>
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <label className="field-label">Start date
+                    <input name="startDate" type="date" className="field-input" style={{ marginTop: 4 }}
+                      defaultValue={editingTimeOff.startAt.slice(0, 10)} required />
+                  </label>
+                  <label className="field-label">End date
+                    <input name="endDate" type="date" className="field-input" style={{ marginTop: 4 }}
+                      defaultValue={editingTimeOff.endAt.slice(0, 10)} required />
+                  </label>
+                </div>
+                <label className="field-label">Notes
+                  <input name="notes" type="text" className="field-input" style={{ marginTop: 4 }}
+                    defaultValue={editingTimeOff.notes ?? ""} placeholder="Optional" />
+                </label>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="button" onClick={() => setEditingTimeOff(null)}>Cancel</button>
+                <button type="submit" className="button primary" disabled={timeOffSaving}>
+                  {timeOffSaving ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -641,10 +712,11 @@ function CoverageCard({ snapshot, orgTimezone, canManage, actionLoading, onForce
   );
 }
 
-function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onForcePunchIn, onForcePunchOut }: {
+function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onForcePunchIn, onForcePunchOut, onDeleteTimeOff, onEditTimeOff }: {
   snapshot: AttendanceSnapshot; orgTimezone: string; canManage: boolean; actionLoading: boolean;
   now?: Date;
   onForcePunchIn?(id: string): void; onForcePunchOut?(id: string): void;
+  onDeleteTimeOff?(id: string): void; onEditTimeOff?(entry: TimeOffEntry): void;
 }) {
   const clockIn  = snapshot.todayShift?.punchInAt ?? snapshot.activeShift?.punchInAt;
   const isOut    = snapshot.status === "out_sick" || snapshot.status === "on_vacation";
@@ -731,6 +803,26 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
             </svg>
           </button>
+        )}
+        {canManage && isOut && snapshot.timeOffToday && (
+          <div className="timeoff-actions">
+            {onEditTimeOff && (
+              <button className="btn-punch" type="button" title="Edit time off"
+                      onClick={() => onEditTimeOff(snapshot.timeOffToday!)}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            )}
+            {onDeleteTimeOff && (
+              <button className="btn-punch danger" type="button" title="Delete time off"
+                      onClick={() => onDeleteTimeOff(snapshot.timeOffToday!.id)}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>

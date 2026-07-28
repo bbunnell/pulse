@@ -1466,6 +1466,14 @@ body.monitor-mode              { background: #0f172a; }
   padding-top: 0;
 }
 
+.attend-grid.list-view .attend-card-info small { display: none; }
+
+.timeoff-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .attend-card {
   background: var(--surface);
   border: 1px solid var(--border);

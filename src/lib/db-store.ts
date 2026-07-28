@@ -261,6 +261,20 @@ export async function getTimeOffEntryById(id: string) {
   return result.rows[0] ? mapTimeOff(result.rows[0]) : null;
 }
 
+export async function deleteTimeOffEntry(id: string): Promise<void> {
+  await query("DELETE FROM time_off_entries WHERE id = $1", [id]);
+}
+
+export async function updateTimeOffEntry(
+  id: string,
+  data: { timeOffType: string; startAt: string; endAt: string; notes?: string },
+): Promise<void> {
+  await query(
+    "UPDATE time_off_entries SET time_off_type=$1, start_at=$2, end_at=$3, notes=$4, updated_at=now() WHERE id=$5",
+    [data.timeOffType, data.startAt, data.endAt, data.notes ?? null, id],
+  );
+}
+
 export async function getEmailSettings(): Promise<EmailSettings> {
   const result = await query<{ key: string; value: string }>(
     "select key, value from app_settings where key = any($1::text[])",
