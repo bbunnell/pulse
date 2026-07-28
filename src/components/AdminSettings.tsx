@@ -447,6 +447,46 @@ export function AdminSettings({ data, currentUserId }: Props) {
     setGraphSaving(false);
   }
 
+  // ── OOF sync ──────────────────────────────────────────────────────────────
+  const [oofLastAt,    setOofLastAt]    = useState<string | null>(null);
+  const [oofStats,     setOofStats]     = useState<{ checkedProfiles: number; synced: number; removed: number; errorCount: number } | null>(null);
+  const [oofSyncing,   setOofSyncing]   = useState(false);
+  const [oofResult,    setOofResult]    = useState<{ ok?: boolean; error?: string; detail?: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/oof-sync")
+      .then((r) => r.json())
+      .then((json: { lastSyncAt?: string | null; lastSyncStats?: typeof oofStats }) => {
+        if (json.lastSyncAt)    setOofLastAt(json.lastSyncAt);
+        if (json.lastSyncStats) setOofStats(json.lastSyncStats);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function runOofSync() {
+    setOofSyncing(true);
+    setOofResult(null);
+    try {
+      const res  = await fetch("/api/admin/oof-sync", { method: "POST" });
+      const json = (await res.json()) as { ok?: boolean; result?: { checkedProfiles: number; synced: number; removed: number; errors: string[]; at: string }; error?: string };
+      if (json.ok && json.result) {
+        setOofLastAt(json.result.at);
+        setOofStats({ checkedProfiles: json.result.checkedProfiles, synced: json.result.synced, removed: json.result.removed, errorCount: json.result.errors.length });
+        const errs = json.result.errors;
+        setOofResult({
+          ok:     errs.length === 0,
+          error:  errs.length > 0 ? `${errs.length} error(s)` : undefined,
+          detail: errs.length > 0 ? errs.join("; ") : undefined,
+        });
+      } else {
+        setOofResult({ error: json.error ?? "Sync failed." });
+      }
+    } catch {
+      setOofResult({ error: "Network error." });
+    }
+    setOofSyncing(false);
+  }
+
   // ── SSO settings ──────────────────────────────────────────────────────────
   const [ssoEnabled,         setSsoEnabled]         = useState(false);
   const [ssoClientId,        setSsoClientId]        = useState("");
@@ -1433,6 +1473,66 @@ export function AdminSettings({ data, currentUserId }: Props) {
                 )}
               </form>
             )}
+          </div>
+        </div>
+
+        {/* OOF Sync panel */}
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2>Calendar Out-of-Office Sync</h2>
+              <p className="subtle">Automatically imports OOF periods from Microsoft 365 calendars into time-off entries.</p>
+            </div>
+            <RefreshCw size={17} style={{ color: "var(--muted)" }} />
+          </div>
+
+          <div className="entra-setup-guide" style={{ margin: "0 18px 18px" }}>
+            <p style={{ marginBottom: 10 }}>
+              This sync reads each employee's Outlook calendar and auto-reply settings via the same
+              Entra app used for email. Two additional <strong>application</strong> permissions are
+              required — add them in your app registration, then grant admin consent:
+            </p>
+            <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li><code>Calendars.Read</code> — reads calendar events marked as Out of Office</li>
+              <li><code>MailboxSettings.Read</code> — reads the automatic-reply (OOF) on/off setting and scheduled dates</li>
+            </ul>
+            <p style={{ marginTop: 10, marginBottom: 0 }}>
+              Synced entries appear as approved vacation entries tagged "Out of office" and are
+              automatically removed if the OOF period is cancelled in Outlook.
+              The sync runs every 15 minutes automatically.
+            </p>
+          </div>
+
+          <div style={{ padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+            {oofLastAt && (
+              <div className="oof-last-run">
+                <span className="subtle" style={{ fontSize: 12 }}>
+                  Last sync: <strong>{new Date(oofLastAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</strong>
+                  {oofStats && (
+                    <> · {oofStats.checkedProfiles} profiles · {oofStats.synced} added · {oofStats.removed} removed
+                    {oofStats.errorCount > 0 && <span style={{ color: "var(--red)" }}> · {oofStats.errorCount} error(s)</span>}
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
+            {!oofLastAt && (
+              <p className="subtle" style={{ fontSize: 12 }}>No sync has run yet.</p>
+            )}
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button className="button" type="button" onClick={runOofSync} disabled={oofSyncing}
+                style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <RefreshCw size={13} style={{ animation: oofSyncing ? "spin 1s linear infinite" : "none" }} />
+                {oofSyncing ? "Syncing…" : "Sync now"}
+              </button>
+              {oofResult && (
+                <span className={oofResult.ok ? "smtp-inline-ok" : "smtp-inline-error"}
+                  title={oofResult.detail}>
+                  {oofResult.ok ? "✓ Sync complete" : `✗ ${oofResult.error}`}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
