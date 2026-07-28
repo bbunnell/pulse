@@ -972,13 +972,13 @@ export function AdminSettings({ data, currentUserId }: Props) {
                       <span className="avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
                         {(profile.firstName[0] ?? "").toUpperCase()}{(profile.lastName[0] ?? "").toUpperCase()}
                       </span>
-                      <span>
+                      <span style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "2px 8px" }}>
                         <strong>{profileName(profile)}</strong>
                         <small className="subtle">{profile.email}</small>
                         {profile.status === "inactive" && (
-                          <span className="status-badge" style={{ background:"var(--red-soft)", color:"var(--red-text)", marginLeft:6, fontSize:10 }}>Inactive</span>
+                          <span className="status-badge" style={{ background:"var(--red-soft)", color:"var(--red-text)", fontSize:10 }}>Inactive</span>
                         )}
-                        <small className="subtle" style={{ display:"block", fontSize:10, marginTop:1 }}>
+                        <small className="subtle" style={{ fontSize:10 }}>
                           {profile.lastLoginAt
                             ? `Last login: ${new Date(profile.lastLoginAt).toLocaleString("en-US", { dateStyle:"medium", timeStyle:"short" })}`
                             : "Never signed in"}

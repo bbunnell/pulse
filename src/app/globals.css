@@ -2577,10 +2577,10 @@ body.monitor-mode              { background: #0f172a; }
 }
 
 .user-meta-chips {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 5px;
+  align-items: center;
 }
 
 .user-meta-chip {
