@@ -710,7 +710,7 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
         )}
 
         {/* Manager-only override actions (↩ symbol indicates manager action, not self-service) */}
-        {canManage && snapshot.likelyForgotPunchOut && onForcePunchOut && (
+        {canManage && (isWorking || isOnBreak) && onForcePunchOut && (
           <button className="button btn-xs danger" type="button" disabled={actionLoading}
                   title="Manager action: close this person's open shift"
                   onClick={() => onForcePunchOut(snapshot.profile.id)}>Clock out ↩</button>
