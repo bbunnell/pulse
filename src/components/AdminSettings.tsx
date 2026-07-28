@@ -671,14 +671,15 @@ export function AdminSettings({ data, currentUserId }: Props) {
   }
 
   // ── Email / Graph settings ────────────────────────────────────────────────
-  const [graphTenantId,    setGraphTenantId]    = useState("");
-  const [graphClientId,    setGraphClientId]    = useState("");
-  const [graphSecret,      setGraphSecret]      = useState("");   // blank = keep existing
-  const [graphHasSecret,   setGraphHasSecret]   = useState(false);
-  const [graphMailbox,     setGraphMailbox]      = useState("");
-  const [graphConfigured,  setGraphConfigured]   = useState(false);
-  const [graphLoaded,      setGraphLoaded]       = useState(false);
-  const [graphSaving,      setGraphSaving]       = useState(false);
+  const [graphTenantId,         setGraphTenantId]         = useState("");
+  const [graphClientId,         setGraphClientId]         = useState("");
+  const [graphSecret,           setGraphSecret]           = useState("");   // blank = keep existing
+  const [graphHasSecret,        setGraphHasSecret]        = useState(false);
+  const [graphMailbox,          setGraphMailbox]          = useState("");
+  const [graphConfigured,       setGraphConfigured]       = useState(false);
+  const [graphLoaded,           setGraphLoaded]           = useState(false);
+  const [graphSaving,           setGraphSaving]           = useState(false);
+  const [showEmailInstructions, setShowEmailInstructions] = useState(false);
   const [graphSaveResult,  setGraphSaveResult]   = useState<{ ok?: boolean; error?: string } | null>(null);
   const [showGraphSecret,  setShowGraphSecret]   = useState(false);
 
@@ -1474,32 +1475,44 @@ export function AdminSettings({ data, currentUserId }: Props) {
             </div>
 
             <div className="entra-setup-guide">
-              <p style={{ marginBottom: 10 }}>
-                Reminders send through Microsoft 365 via the Microsoft Graph API. Follow these steps
-                in the{" "}
-                <a href="https://entra.microsoft.com" target="_blank" rel="noreferrer" className="entra-link">
-                  Microsoft Entra admin center
-                </a>{" "}
-                to create the app registration, then paste the values into the form below.
-              </p>
-              <ol className="entra-steps">
-                <li>
-                  <strong>Register an application</strong>
-                  <span>Entra → App registrations → New registration. Give it a name (e.g. "Team Pulse Mail") and leave the redirect URI blank. Copy the <em>Application (client) ID</em> and <em>Directory (tenant) ID</em> shown on the overview page.</span>
-                </li>
-                <li>
-                  <strong>Add the Mail.Send permission</strong>
-                  <span>In the app → API permissions → Add a permission → Microsoft Graph → Application permissions → search <code>Mail.Send</code> → Add. Then click <strong>Grant admin consent</strong> and confirm. The status column must show a green checkmark.</span>
-                </li>
-                <li>
-                  <strong>Create a client secret</strong>
-                  <span>Certificates &amp; secrets → Client secrets → New client secret. Set an expiry (24 months is typical). Copy the <em>Value</em> immediately — it is only shown once.</span>
-                </li>
-                <li>
-                  <strong>Set the From mailbox</strong>
-                  <span>Enter the full email address of the shared mailbox or licensed user that will appear as the sender (e.g. <code>alignment@nbit.com</code>). The Entra app must have <code>Mail.Send</code> permission — no password or login for that mailbox is needed.</span>
-                </li>
-              </ol>
+              <button
+                type="button"
+                className="teams-instructions-toggle"
+                onClick={() => setShowEmailInstructions(v => !v)}
+              >
+                Setup instructions
+                {showEmailInstructions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {showEmailInstructions && (
+                <>
+                  <p style={{ marginBottom: 10, marginTop: 10 }}>
+                    Reminders send through Microsoft 365 via the Microsoft Graph API. Follow these steps
+                    in the{" "}
+                    <a href="https://entra.microsoft.com" target="_blank" rel="noreferrer" className="entra-link">
+                      Microsoft Entra admin center
+                    </a>{" "}
+                    to create the app registration, then paste the values into the form below.
+                  </p>
+                  <ol className="entra-steps">
+                    <li>
+                      <strong>Register an application</strong>
+                      <span>Entra → App registrations → New registration. Give it a name (e.g. "Team Pulse Mail") and leave the redirect URI blank. Copy the <em>Application (client) ID</em> and <em>Directory (tenant) ID</em> shown on the overview page.</span>
+                    </li>
+                    <li>
+                      <strong>Add the Mail.Send permission</strong>
+                      <span>In the app → API permissions → Add a permission → Microsoft Graph → Application permissions → search <code>Mail.Send</code> → Add. Then click <strong>Grant admin consent</strong> and confirm. The status column must show a green checkmark.</span>
+                    </li>
+                    <li>
+                      <strong>Create a client secret</strong>
+                      <span>Certificates &amp; secrets → Client secrets → New client secret. Set an expiry (24 months is typical). Copy the <em>Value</em> immediately — it is only shown once.</span>
+                    </li>
+                    <li>
+                      <strong>Set the From mailbox</strong>
+                      <span>Enter the full email address of the shared mailbox or licensed user that will appear as the sender (e.g. <code>alignment@nbit.com</code>). The Entra app must have <code>Mail.Send</code> permission — no password or login for that mailbox is needed.</span>
+                    </li>
+                  </ol>
+                </>
+              )}
             </div>
 
             <form onSubmit={saveGraphSettings}>
