@@ -625,17 +625,21 @@ function CoverageCard({ snapshot, orgTimezone, canManage, actionLoading, onForce
           </span>
         )}
         {canManage && !online && (
-          <button className="button btn-xs" type="button" disabled={actionLoading}
-                  title="Manager action: clock this person in"
+          <button className="btn-punch" type="button" disabled={actionLoading}
+                  title="Clock in (manager action)"
                   onClick={() => onForcePunchIn(snapshot.profile.id)}>
-            Clock in ↩
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
           </button>
         )}
         {canManage && online && snapshot.likelyForgotPunchOut && (
-          <button className="button btn-xs danger" type="button" disabled={actionLoading}
-                  title="Manager action: close this person's forgotten shift"
+          <button className="btn-punch danger" type="button" disabled={actionLoading}
+                  title="Clock out (manager action)"
                   onClick={() => onForcePunchOut(snapshot.profile.id)}>
-            Clock out ↩
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
           </button>
         )}
       </div>
@@ -715,16 +719,24 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
           </div>
         )}
 
-        {/* Manager-only override actions (↩ symbol indicates manager action, not self-service) */}
+        {/* Manager-only override actions */}
         {canManage && (isWorking || isOnBreak) && onForcePunchOut && (
-          <button className="button btn-xs danger" type="button" disabled={actionLoading}
-                  title="Manager action: close this person's open shift"
-                  onClick={() => onForcePunchOut(snapshot.profile.id)}>Clock out ↩</button>
+          <button className="btn-punch danger" type="button" disabled={actionLoading}
+                  title="Clock out (manager action)"
+                  onClick={() => onForcePunchOut(snapshot.profile.id)}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
         )}
         {canManage && snapshot.isLate && onForcePunchIn && (
-          <button className="button btn-xs" type="button" disabled={actionLoading}
-                  title="Manager action: clock this person in"
-                  onClick={() => onForcePunchIn(snapshot.profile.id)}>Clock in ↩</button>
+          <button className="btn-punch" type="button" disabled={actionLoading}
+                  title="Clock in (manager action)"
+                  onClick={() => onForcePunchIn(snapshot.profile.id)}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+          </button>
         )}
       </div>
     </article>

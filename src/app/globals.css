@@ -1504,7 +1504,30 @@ body.monitor-mode              { background: #0f172a; }
 .attend-card-footer {
   padding-top: 6px;
   border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
+
+.btn-punch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-punch:hover:not(:disabled) { background: var(--gray-soft); }
+.btn-punch.danger { background: var(--red); border-color: var(--red); color: #fff; }
+.btn-punch.danger:hover:not(:disabled) { background: #b91c1c; }
+.btn-punch:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .attend-card-meta {
   display: flex;
