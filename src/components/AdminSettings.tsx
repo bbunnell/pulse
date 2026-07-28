@@ -10,6 +10,43 @@ import { TIMEZONE_OPTIONS } from "@/lib/timezone";
 import { StaffingRulesPanel } from "@/components/StaffingRulesPanel";
 import { MonthDayPicker } from "@/components/MonthDayPicker";
 
+// ── User metadata formatting helpers ──────────────────────────────────────────
+
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function fmt12h(t: string | null | undefined): string | null {
+  if (!t) return null;
+  const [hStr, mStr] = t.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr ?? "0", 10);
+  const ampm = h < 12 ? "am" : "pm";
+  const h12 = h % 12 || 12;
+  return m === 0 ? `${h12}${ampm}` : `${h12}:${mStr}${ampm}`;
+}
+
+function fmtWorkDays(days: number[] | null | undefined): string | null {
+  if (!days || days.length === 0) return null;
+  const sorted = [...days].sort((a, b) => a - b);
+  const isConsec = sorted.length >= 2 && sorted.every((d, i) => i === 0 || d === sorted[i - 1] + 1);
+  if (isConsec) return `${DAY_ABBR[sorted[0]]}–${DAY_ABBR[sorted[sorted.length - 1]]}`;
+  return sorted.map((d) => DAY_ABBR[d]).join(", ");
+}
+
+function fmtMonthDay(s: string | null | undefined): string | null {
+  if (!s) return null;
+  const [m, d] = s.split("-").map(Number);
+  if (!m || !d) return null;
+  return `${MONTH_ABBR[m - 1]} ${d}`;
+}
+
+function fmtAnniversary(s: string | null | undefined): string | null {
+  if (!s) return null;
+  const parts = s.split("-");
+  if (parts.length < 2) return null;
+  return `${MONTH_ABBR[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+}
+
 // ── Edit user modal ────────────────────────────────────────────────────────────
 interface EditModalProps {
   profile: Profile;
@@ -946,6 +983,34 @@ export function AdminSettings({ data, currentUserId }: Props) {
                             ? `Last login: ${new Date(profile.lastLoginAt).toLocaleString("en-US", { dateStyle:"medium", timeStyle:"short" })}`
                             : "Never signed in"}
                         </small>
+                        {(() => {
+                          const hours = (profile.expectedStartTime && profile.expectedEndTime)
+                            ? `${fmt12h(profile.expectedStartTime)}–${fmt12h(profile.expectedEndTime)}`
+                            : null;
+                          const workDays = fmtWorkDays(profile.standardWorkDays);
+                          const schedType = profile.workScheduleType === "standard" ? "Standard"
+                            : profile.workScheduleType === "shift_based" ? "Shift-based" : null;
+                          const bday = fmtMonthDay(profile.birthday);
+                          const anniv = fmtAnniversary(profile.workAnniversary);
+                          const chips = [
+                            hours     && { label: "Hours",       value: hours },
+                            workDays  && { label: "Days",        value: workDays },
+                            schedType && { label: "Schedule",    value: schedType },
+                            bday      && { label: "Birthday",    value: bday },
+                            anniv     && { label: "Anniversary", value: anniv },
+                          ].filter(Boolean) as { label: string; value: string }[];
+                          if (!chips.length) return null;
+                          return (
+                            <div className="user-meta-chips">
+                              {chips.map((chip) => (
+                                <span key={chip.label} className="user-meta-chip">
+                                  <span className="user-meta-chip-label">{chip.label}</span>
+                                  {chip.value}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </span>
                     </div>
                     <select

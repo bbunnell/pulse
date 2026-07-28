@@ -2576,6 +2576,31 @@ body.monitor-mode              { background: #0f172a; }
   color: var(--muted);
 }
 
+.user-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.user-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface-alt, color-mix(in srgb, var(--surface) 100%, transparent));
+  border: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.user-meta-chip-label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
 /* ─── Form grid ──────────────────────────────────────────────── */
 .form-grid {
   display: grid;

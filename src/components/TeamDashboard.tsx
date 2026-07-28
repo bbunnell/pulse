@@ -361,7 +361,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           <div className="status-group">
             <div className="status-group-heading">
               <span className="status-dot-lg blue" />
-              <h2>Scheduled Now <InfoTooltip text="Everyone whose work hours cover this moment — whether or not they've clocked in. Cross-reference with 'Clocked In' to spot gaps." /></h2>
+              <h2>Scheduled Now <InfoTooltip text="Everyone whose work hours cover this moment. Green border = clocked in, red = late or not yet on the clock." /></h2>
               <span className="status-count blue">{coverage.scheduledNow.length}</span>
             </div>
             {coverage.scheduledNow.length > 0 ? (
@@ -375,20 +375,6 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             ) : (
               <p className="dash-empty">No one is scheduled to be working right now.</p>
             )}
-          </div>
-
-          {/* Working (not necessarily scheduled) */}
-          <div className="status-group">
-            <div className="status-group-heading">
-              <span className="status-dot-lg green" />
-              <h2>Clocked In <InfoTooltip text="Has punched in and is actively on the clock. Anyone punched in appears here, with or without a scheduled shift." /></h2>
-              <span className="status-count green">{groups.working.length}</span>
-            </div>
-            {groups.working.length > 0 ? (
-              <div className="attend-grid list-view">
-                {groups.working.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />)}
-              </div>
-            ) : <p className="dash-empty">No one is currently working.</p>}
           </div>
 
           {/* On Break / At Lunch */}
