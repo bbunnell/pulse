@@ -155,6 +155,12 @@ export async function createInvitedUser(input: {
   role: Role;
   teamId?: string;
   timezone?: string;
+  workScheduleType?: "standard" | "shift_based";
+  standardWorkDays?: number[];
+  expectedStartTime?: string;
+  expectedEndTime?: string;
+  birthday?: string | null;
+  workAnniversary?: string | null;
   /** If set (≥8 chars), used as the one-time password; otherwise a random temp password is generated. */
   initialPassword?: string;
 }) {
@@ -164,10 +170,23 @@ export async function createInvitedUser(input: {
 
   const result = await withTransaction(async (client) => {
     const profile = await client.query(
-      `insert into profiles (first_name, last_name, email, role, team_id, status, expected_start_time, timezone)
-       values ($1, $2, $3, $4, $5, 'active', '08:30', $6)
+      `insert into profiles
+         (first_name, last_name, email, role, team_id, status, timezone,
+          work_schedule_type, standard_work_days, expected_start_time, expected_end_time,
+          birthday, work_anniversary)
+       values ($1, $2, $3, $4, $5, 'active', $6, $7, $8, $9, $10, $11, $12)
        returning *`,
-      [input.firstName, input.lastName, input.email.toLowerCase().trim(), input.role, input.teamId ?? null, input.timezone ?? "America/Chicago"],
+      [
+        input.firstName, input.lastName, input.email.toLowerCase().trim(), input.role,
+        input.teamId ?? null,
+        input.timezone ?? "America/Chicago",
+        input.workScheduleType ?? "shift_based",
+        input.standardWorkDays ?? [1,2,3,4,5],
+        input.expectedStartTime ?? "08:30",
+        input.expectedEndTime ?? "17:00",
+        input.birthday ?? null,
+        input.workAnniversary ?? null,
+      ],
     );
 
     await client.query("insert into app_users (profile_id, password_hash, must_set_password) values ($1, $2, true)", [

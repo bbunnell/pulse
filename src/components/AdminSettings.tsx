@@ -345,6 +345,247 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
   );
 }
 
+// ── New user modal ─────────────────────────────────────────────────────────────
+interface NewUserModalProps {
+  teams: Team[];
+  onClose(): void;
+  onCreated(profile: Profile, tempPassword: string): void;
+}
+
+function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
+  const [firstName,        setFirstName]        = useState("");
+  const [lastName,         setLastName]         = useState("");
+  const [email,            setEmail]            = useState("");
+  const [role,             setRole]             = useState<Role>("employee");
+  const [teamId,           setTeamId]           = useState(teams[0]?.id ?? "");
+  const [timezone,         setTimezone]         = useState("America/Chicago");
+  const [oneTimePassword,  setOneTimePassword]  = useState("");
+  const [workScheduleType, setWorkScheduleType] = useState<"standard"|"shift_based">("shift_based");
+  const [standardWorkDays, setStandardWorkDays] = useState<number[]>([1,2,3,4,5]);
+  const [startTime,        setStartTime]        = useState("08:30");
+  const [endTime,          setEndTime]          = useState("17:00");
+  const [birthday,         setBirthday]         = useState("");
+  const [workAnniversary,  setWorkAnniversary]  = useState("");
+  const [creating,         setCreating]         = useState(false);
+  const [createError,      setCreateError]      = useState("");
+  const [tempPassword,     setTempPassword]     = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!firstName || !lastName || !email) return;
+    setCreating(true);
+    setCreateError("");
+
+    const otp = oneTimePassword.trim();
+    const payload: Record<string, unknown> = {
+      firstName, lastName, email, role,
+      teamId: teamId || null,
+      timezone,
+      workScheduleType,
+      standardWorkDays,
+      expectedStartTime: startTime,
+      expectedEndTime: endTime,
+      birthday: birthday || null,
+      workAnniversary: workAnniversary || null,
+    };
+    if (otp) payload.initialPassword = otp;
+
+    const res = await fetch("/api/users/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const json = (await res.json()) as { ok?: boolean; tempPassword?: string; error?: string };
+
+    if (res.ok) {
+      const ts = new Date().toISOString();
+      const profile: Profile = {
+        id: crypto.randomUUID(),
+        firstName, lastName, email, role,
+        teamId: teamId || "",
+        status: "active",
+        expectedStartTime: startTime,
+        expectedEndTime: endTime,
+        timezone,
+        showOnDashboard: true,
+        workScheduleType,
+        standardWorkDays,
+        hideWhenNotActive: false,
+        birthday: birthday || undefined,
+        workAnniversary: workAnniversary || undefined,
+        createdAt: ts,
+        updatedAt: ts,
+      };
+      setTempPassword(json.tempPassword ?? "");
+      onCreated(profile, json.tempPassword ?? "");
+    } else {
+      setCreateError(json.error ?? "Failed to create user.");
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div className="edit-user-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="edit-user-modal">
+        <div className="edit-user-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--muted)", marginBottom: 2 }}>Admin</p>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>New user</h3>
+          </div>
+          <button className="icon-btn" type="button" onClick={onClose}><X size={16}/></button>
+        </div>
+
+        <div className="edit-user-body">
+          {tempPassword ? (
+            <div>
+              <p className="success-line" style={{ marginBottom: 12 }}>Account created successfully.</p>
+              <div className="temp-password-box">
+                <p className="temp-password-label">Temporary password — share this with the user:</p>
+                <div className="temp-password-value">{tempPassword}</div>
+                <p className="temp-password-note">They will be prompted to set a permanent password on first sign-in.</p>
+              </div>
+              <button className="button secondary" type="button" style={{ marginTop: 16 }} onClick={onClose}>Done</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <div className="form-grid">
+                <div className="control">
+                  <label htmlFor="nu-first">First name</label>
+                  <input className="input" id="nu-first" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                </div>
+                <div className="control">
+                  <label htmlFor="nu-last">Last name</label>
+                  <input className="input" id="nu-last" value={lastName} onChange={e => setLastName(e.target.value)} required />
+                </div>
+                <div className="control wide">
+                  <label htmlFor="nu-email">Email address</label>
+                  <input className="input" id="nu-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                </div>
+                <div className="control">
+                  <label htmlFor="nu-role">Role</label>
+                  <select className="select" id="nu-role" value={role} onChange={e => setRole(e.target.value as Role)}>
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="control">
+                  <label htmlFor="nu-team">Team</label>
+                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                    <select className="select" id="nu-team" value={teamId} onChange={e => setTeamId(e.target.value)} style={{ flex:1 }}>
+                      <option value="">— No team —</option>
+                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                    {teamId && (() => {
+                      const t = teams.find(tm => tm.id === teamId);
+                      if (!t) return null;
+                      return (
+                        <button type="button" className="button secondary" style={{ fontSize:11, padding:"4px 10px", whiteSpace:"nowrap" }}
+                          title="Fill work hours, timezone, and work days from team defaults"
+                          onClick={() => { setStartTime(t.defaultStartTime); setEndTime(t.defaultEndTime); setTimezone(t.defaultTimezone); setStandardWorkDays(t.defaultWorkDays); }}>
+                          Fill from team
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div className="control wide">
+                  <label htmlFor="nu-tz">Timezone</label>
+                  <select className="select" id="nu-tz" value={timezone} onChange={e => setTimezone(e.target.value)}>
+                    {TIMEZONE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+
+                <div className="control wide">
+                  <label>Work schedule type</label>
+                  <div style={{ display:"flex", gap:8 }}>
+                    {(["standard","shift_based"] as const).map(t => (
+                      <button key={t} type="button"
+                        className={`status-toggle-btn${workScheduleType===t?" active":""}`}
+                        onClick={() => setWorkScheduleType(t)}>
+                        {t === "standard" ? "Standard (M-F)" : "Shift-based"}
+                      </button>
+                    ))}
+                  </div>
+                  <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>
+                    {workScheduleType === "standard"
+                      ? "Works regular hours — appears late based on their expected start time."
+                      : "Only active when explicitly scheduled. Shown as 'Off Today' when no shift is scheduled."}
+                  </small>
+                </div>
+
+                <div className="control">
+                  <label htmlFor="nu-start">Work hours</label>
+                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                    <input className="input" id="nu-start" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ flex:1 }} />
+                    <span style={{ color:"var(--muted)", fontSize:12 }}>to</span>
+                    <input className="input" id="nu-end" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ flex:1 }} />
+                  </div>
+                </div>
+
+                {workScheduleType === "standard" && (
+                  <div className="control wide">
+                    <label>Work days</label>
+                    <div className="day-picker">
+                      {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i) => (
+                        <button key={i} type="button"
+                          className={`day-chip${standardWorkDays.includes(i)?" selected":""}`}
+                          onClick={() => setStandardWorkDays(prev =>
+                            prev.includes(i) ? prev.filter(x=>x!==i) : [...prev,i].sort()
+                          )}>
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="schedule-modal-row">
+                  <div className="control" style={{ flex:1 }}>
+                    <label htmlFor="nu-bday">Birthday</label>
+                    <MonthDayPicker id="nu-bday" value={birthday} onChange={setBirthday} />
+                    <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>Month and day only — year not stored.</small>
+                  </div>
+                  <div className="control" style={{ flex:1 }}>
+                    <label htmlFor="nu-anniv">Work anniversary</label>
+                    <input className="input" id="nu-anniv" type="date" value={workAnniversary} onChange={e => setWorkAnniversary(e.target.value)} />
+                    <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>Hire / start date.</small>
+                  </div>
+                </div>
+
+                <div className="control wide">
+                  <label htmlFor="nu-otp">One-time password (first sign-in)</label>
+                  <input
+                    className="input"
+                    id="nu-otp"
+                    type="password"
+                    autoComplete="new-password"
+                    value={oneTimePassword}
+                    onChange={e => setOneTimePassword(e.target.value)}
+                    placeholder="Leave blank to auto-generate"
+                  />
+                  <p className="subtle" style={{ marginTop:6, fontSize:12, lineHeight:1.4 }}>
+                    Optional. Minimum 8 characters. A random temporary password is shown if left blank.
+                  </p>
+                </div>
+              </div>
+
+              {createError && <p className="error-line" style={{ marginTop:8 }}>{createError}</p>}
+
+              <div className="edit-user-save-row">
+                <button className="button primary" type="submit" disabled={creating}>
+                  <UserPlus size={13}/>{creating ? "Creating…" : "Create Account"}
+                </button>
+                <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   data: OrgData;
   currentUserId: string;
@@ -680,75 +921,12 @@ export function AdminSettings({ data, currentUserId }: Props) {
     setTestSending(false);
   }
 
-  // Teams instructions panel open/close
-  const [showTeamsInstructions, setShowTeamsInstructions] = useState(false);
+  // New user modal
+  const [showNewUserModal, setShowNewUserModal] = useState(false);
 
-  // Add user form
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>("employee");
-  const [teamId, setTeamId] = useState(data.teams[0]?.id ?? "");
-  const [newUserTz, setNewUserTz] = useState("America/Chicago");
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
-  const [createSuccess, setCreateSuccess] = useState("");
-  const [tempPassword, setTempPassword] = useState("");
-  const [oneTimePassword, setOneTimePassword] = useState("");
-
-  async function addUser(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!firstName || !lastName || !email) return;
-    setCreating(true);
-    setCreateError("");
-    setCreateSuccess("");
-    setTempPassword("");
-
-    const payload: Record<string, unknown> = { firstName, lastName, email, role, teamId, timezone: newUserTz };
-    const otp = oneTimePassword.trim();
-    if (otp) payload.initialPassword = otp;
-
-    const res = await fetch("/api/users/invite", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = (await res.json()) as { ok?: boolean; tempPassword?: string; error?: string };
-
-    if (res.ok) {
-      const ts = new Date().toISOString();
-      const profile: Profile = {
-        id: crypto.randomUUID(),
-        firstName,
-        lastName,
-        email,
-        role,
-        teamId,
-        status: "active",
-        expectedStartTime: "08:30",
-        expectedEndTime: "17:00",
-        timezone: newUserTz,
-        showOnDashboard: true,
-        workScheduleType: "shift_based",
-        standardWorkDays: [1,2,3,4,5],
-        hideWhenNotActive: false,
-        createdAt: ts,
-        updatedAt: ts,
-      };
-      setProfiles((prev) => [...prev, profile]);
-      setCreateSuccess(`Account created for ${firstName} ${lastName}.`);
-      if (json.tempPassword) setTempPassword(json.tempPassword);
-      setNewUserTz("America/Chicago");
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setOneTimePassword("");
-      router.refresh();
-    } else {
-      setCreateError(json.error ?? "Failed to create user.");
-    }
-
-    setCreating(false);
+  function handleUserCreated(profile: Profile) {
+    setProfiles((prev) => [...prev, profile]);
+    router.refresh();
   }
 
   function updateReminder(ruleId: string, patch: Partial<ReminderRule>) {
@@ -815,145 +993,8 @@ export function AdminSettings({ data, currentUserId }: Props) {
       </header>
 
       <div className="page-content">
-        {/* Top row: User form, Roles, Teams */}
+        {/* Settings panels */}
         <div className="settings-grid">
-          {/* Add user */}
-          <form className="panel" onSubmit={addUser}>
-            <div className="panel-header">
-              <div>
-                <h2>Invite User</h2>
-                <p className="subtle">Send a setup email to a new team member.</p>
-              </div>
-              <UserPlus size={17} style={{ color: "var(--muted)" }} />
-            </div>
-            <div className="form-grid">
-              <div className="control">
-                <label htmlFor="firstName">First name</label>
-                <input className="input" id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-              </div>
-              <div className="control">
-                <label htmlFor="lastName">Last name</label>
-                <input className="input" id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-              </div>
-              <div className="control wide">
-                <label htmlFor="email">Email address</label>
-                <input className="input" id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div className="control">
-                <label htmlFor="role">Role</label>
-                <select className="select" id="role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div className="control">
-                <label htmlFor="team">Team</label>
-                <select className="select" id="team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
-                  {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-              <div className="control wide">
-                <label htmlFor="newUserTz">Timezone</label>
-                <select className="select" id="newUserTz" value={newUserTz} onChange={(e) => setNewUserTz(e.target.value)}>
-                  {TIMEZONE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div className="control wide">
-                <label htmlFor="oneTimePassword">One-time password (first sign-in)</label>
-                <input
-                  className="input"
-                  id="oneTimePassword"
-                  type="password"
-                  autoComplete="new-password"
-                  value={oneTimePassword}
-                  onChange={(e) => setOneTimePassword(e.target.value)}
-                  placeholder="Leave blank to auto-generate"
-                />
-                <p className="subtle" style={{ marginTop: 6, fontSize: 12, lineHeight: 1.4 }}>
-                  Optional. Minimum 8 characters. The user sets a new password after first login. If you leave this blank, a random temporary password is created and shown below.
-                </p>
-              </div>
-            </div>
-            <div style={{ padding: "0 18px 16px" }}>
-              <button className="button primary" type="submit" disabled={creating}>
-                <UserPlus size={14} />
-                {creating ? "Creating…" : "Create Account"}
-              </button>
-              {createError && <p className="error-line" style={{ marginTop: 10 }}>{createError}</p>}
-              {createSuccess && <p className="success-line" style={{ marginTop: 10 }}>{createSuccess}</p>}
-              {tempPassword && (
-                <div className="temp-password-box">
-                  <p className="temp-password-label">Temporary password — share this with the user:</p>
-                  <div className="temp-password-value">{tempPassword}</div>
-                  <p className="temp-password-note">The user will be prompted to set a new password on first sign-in.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Teams DM setup instructions */}
-            <div className="teams-instructions-wrap">
-              <button
-                type="button"
-                className="teams-instructions-toggle"
-                onClick={() => setShowTeamsInstructions((v) => !v)}
-              >
-                <MessageSquare size={14} />
-                Teams direct message setup instructions
-                {showTeamsInstructions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-
-              {showTeamsInstructions && (
-                <div className="teams-instructions-body">
-                  <p className="teams-instructions-intro">
-                    These steps are emailed to each new user automatically. Share them manually if needed.
-                    Once complete, the user&apos;s webhook URL should be added to their profile in the <strong>Users</strong> panel.
-                  </p>
-
-                  <ol className="teams-instructions-list">
-                    <li>
-                      Go to{" "}
-                      <a href="https://make.powerautomate.com" target="_blank" rel="noreferrer">
-                        make.powerautomate.com
-                      </a>{" "}
-                      and sign in with your NBIT Microsoft account.
-                    </li>
-                    <li>
-                      Click <strong>New flow</strong> → <strong>Instant cloud flow</strong>. Name it{" "}
-                      <em>"Team Pulse Reminder"</em>.
-                    </li>
-                    <li>
-                      Choose the trigger: <strong>"When a HTTP request is received"</strong>. Click Create.
-                    </li>
-                    <li>
-                      Click <strong>+ New step</strong> → search for <strong>Microsoft Teams</strong> →
-                      select <strong>"Post a message in a chat or channel"</strong>.
-                    </li>
-                    <li>
-                      Configure the action:
-                      <table className="teams-instructions-table">
-                        <tbody>
-                          <tr><td>Post as</td><td>Flow bot</td></tr>
-                          <tr><td>Post in</td><td>Chat with Flow bot</td></tr>
-                          <tr><td>Recipient</td><td><em>user&apos;s email address</em></td></tr>
-                          <tr><td>Message</td><td>Click ⚡ and select <strong>Body</strong> from the trigger step</td></tr>
-                        </tbody>
-                      </table>
-                    </li>
-                    <li>
-                      <strong>Save</strong> the flow. Click the trigger step and copy the{" "}
-                      <strong>HTTP POST URL</strong>.
-                    </li>
-                    <li>
-                      Send the URL to the admin. In the <strong>Users</strong> panel below, click the{" "}
-                      <MessageSquare size={12} style={{ display: "inline", verticalAlign: "middle" }} />{" "}
-                      icon next to the user&apos;s name, paste the URL, and click Save.
-                    </li>
-                  </ol>
-                </div>
-              )}
-            </div>
-          </form>
 
           {/* Users */}
           <div className="panel">
@@ -962,7 +1003,10 @@ export function AdminSettings({ data, currentUserId }: Props) {
                 <h2>Users</h2>
                 <p className="subtle">{profiles.length} people</p>
               </div>
-              <Shield size={17} style={{ color: "var(--muted)" }} />
+              <button type="button" className="button primary" style={{ fontSize: 12, padding: "5px 12px" }}
+                onClick={() => setShowNewUserModal(true)}>
+                <UserPlus size={13} /> Add User
+              </button>
             </div>
             <div className="settings-list">
               {profiles.map((profile) => (
@@ -1755,6 +1799,15 @@ export function AdminSettings({ data, currentUserId }: Props) {
           setEditProfile(null);
         }}
         onClose={() => setEditProfile(null)}
+      />
+    )}
+    {showNewUserModal && (
+      <NewUserModal
+        teams={teams}
+        onClose={() => setShowNewUserModal(false)}
+        onCreated={(profile) => {
+          handleUserCreated(profile);
+        }}
       />
     )}
   </>

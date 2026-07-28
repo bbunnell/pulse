@@ -17,6 +17,12 @@ export async function POST(request: Request) {
     role?: "employee" | "manager" | "admin";
     teamId?: string;
     timezone?: string;
+    workScheduleType?: "standard" | "shift_based";
+    standardWorkDays?: number[];
+    expectedStartTime?: string;
+    expectedEndTime?: string;
+    birthday?: string | null;
+    workAnniversary?: string | null;
     initialPassword?: string;
   };
 
@@ -46,6 +52,12 @@ export async function POST(request: Request) {
     role: body.role,
     teamId: body.teamId,
     timezone: body.timezone,
+    workScheduleType: body.workScheduleType,
+    standardWorkDays: body.standardWorkDays,
+    expectedStartTime: body.expectedStartTime,
+    expectedEndTime: body.expectedEndTime,
+    birthday: body.birthday,
+    workAnniversary: body.workAnniversary,
     initialPassword: initialPw || undefined,
   });
 
