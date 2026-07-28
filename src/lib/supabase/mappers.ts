@@ -45,6 +45,7 @@ export function mapProfile(row: DbRow): Profile {
     hideWhenNotActive: (row.hide_when_not_active as boolean) ?? false,
     birthday:        toMonthDay(row.birthday),
     workAnniversary: toIsoDateStr(row.work_anniversary),
+    lastLoginAt:     (row.last_login_at as string | null) ?? undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };

@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSessionForApiRoute } from "@/lib/session";
-import { createPasswordResetToken, findUserAuthByEmail } from "@/lib/db-store";
+import { createPasswordResetToken, findUserAuthByEmail, stampLastLogin } from "@/lib/db-store";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     session.firstName = user.first_name;
     session.lastName = user.last_name;
     await session.save();
+    await stampLastLogin(user.profile_id);
 
     return NextResponse.json({ ok: true, role: user.role }, { headers: jar.headers });
   } catch (err) {

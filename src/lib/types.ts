@@ -51,6 +51,7 @@ export interface Profile {
   hideWhenNotActive: boolean;  // only show on board when clocked in or on PTO
   birthday?: string;         // "MM-DD" — month and day only, no year
   workAnniversary?: string;  // "YYYY-MM-DD" — hire / start date
+  lastLoginAt?: string;      // ISO timestamp of most recent sign-in
   createdAt: string;
   updatedAt: string;
 }

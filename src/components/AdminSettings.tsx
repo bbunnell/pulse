@@ -870,7 +870,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                 <div className="teams-instructions-body">
                   <p className="teams-instructions-intro">
                     These steps are emailed to each new user automatically. Share them manually if needed.
-                    Once complete, the user&apos;s webhook URL should be added to their profile in the <strong>Roles</strong> panel.
+                    Once complete, the user&apos;s webhook URL should be added to their profile in the <strong>Users</strong> panel.
                   </p>
 
                   <ol className="teams-instructions-list">
@@ -908,7 +908,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                       <strong>HTTP POST URL</strong>.
                     </li>
                     <li>
-                      Send the URL to the admin. In the <strong>Roles</strong> panel below, click the{" "}
+                      Send the URL to the admin. In the <strong>Users</strong> panel below, click the{" "}
                       <MessageSquare size={12} style={{ display: "inline", verticalAlign: "middle" }} />{" "}
                       icon next to the user&apos;s name, paste the URL, and click Save.
                     </li>
@@ -918,11 +918,11 @@ export function AdminSettings({ data, currentUserId }: Props) {
             </div>
           </form>
 
-          {/* Roles */}
+          {/* Users */}
           <div className="panel">
             <div className="panel-header">
               <div>
-                <h2>Roles</h2>
+                <h2>Users</h2>
                 <p className="subtle">{profiles.length} people</p>
               </div>
               <Shield size={17} style={{ color: "var(--muted)" }} />
@@ -941,6 +941,11 @@ export function AdminSettings({ data, currentUserId }: Props) {
                         {profile.status === "inactive" && (
                           <span className="status-badge" style={{ background:"var(--red-soft)", color:"var(--red-text)", marginLeft:6, fontSize:10 }}>Inactive</span>
                         )}
+                        <small className="subtle" style={{ display:"block", fontSize:10, marginTop:1 }}>
+                          {profile.lastLoginAt
+                            ? `Last login: ${new Date(profile.lastLoginAt).toLocaleString("en-US", { dateStyle:"medium", timeStyle:"short" })}`
+                            : "Never signed in"}
+                        </small>
                       </span>
                     </div>
                     <select

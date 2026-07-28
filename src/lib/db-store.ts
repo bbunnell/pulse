@@ -27,7 +27,7 @@ type UserAuthRow = {
 
 export async function loadOrgDataFromDb(): Promise<OrgData> {
   const [profilesRes, teamsRes, shiftsRes, segmentsRes, timeOffRes, reminderRes] = await Promise.all([
-    query("select * from profiles order by first_name, last_name"),
+    query("select p.*, u.last_login_at from profiles p left join app_users u on u.profile_id = p.id order by p.first_name, p.last_name"),
     query("select * from teams order by name"),
     query("select * from shifts order by punch_in_at desc"),
     query("select * from shift_segments order by start_at desc"),
@@ -68,6 +68,10 @@ export async function findUserAuthByEmail(email: string) {
     [email],
   );
   return result.rows[0] ?? null;
+}
+
+export async function stampLastLogin(profileId: string) {
+  await query("UPDATE app_users SET last_login_at = now() WHERE profile_id = $1", [profileId]);
 }
 
 export async function updateUserPassword(profileId: string, plainPassword: string) {
