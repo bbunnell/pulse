@@ -329,122 +329,128 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
 <div className="dash-body">
         <div className="dash-main">
-          {/* On Now — coverage */}
-          <div className="status-group">
-            <div className="status-group-heading">
-              <span className="status-dot-lg blue" />
-              <h2>Scheduled Now <InfoTooltip text="Has a shift scheduled for this moment. Cross-reference with 'Clocked In' to spot coverage gaps." /></h2>
-              <span className="status-count blue">{coverage.scheduledNow.length}</span>
-            </div>
-            {coverage.scheduledNow.length > 0 ? (
-              <div className="attend-grid">
-                {coverage.scheduledNow.map((s) => (
-                  <CoverageCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone}
-                    canManage={canManage} actionLoading={actionLoading}
-                    onForcePunchIn={handleForcePunchIn} onForcePunchOut={handleForcePunchOut} />
-                ))}
+          {/* Left column: active/attention groups */}
+          <div className="dash-groups-col">
+            {/* On Now — coverage */}
+            <div className="status-group">
+              <div className="status-group-heading">
+                <span className="status-dot-lg blue" />
+                <h2>Scheduled Now <InfoTooltip text="Has a shift scheduled for this moment. Cross-reference with 'Clocked In' to spot coverage gaps." /></h2>
+                <span className="status-count blue">{coverage.scheduledNow.length}</span>
               </div>
-            ) : (
-              <p className="dash-empty">No one is scheduled to be working right now.</p>
+              {coverage.scheduledNow.length > 0 ? (
+                <div className="attend-grid">
+                  {coverage.scheduledNow.map((s) => (
+                    <CoverageCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone}
+                      canManage={canManage} actionLoading={actionLoading}
+                      onForcePunchIn={handleForcePunchIn} onForcePunchOut={handleForcePunchOut} />
+                  ))}
+                </div>
+              ) : (
+                <p className="dash-empty">No one is scheduled to be working right now.</p>
+              )}
+            </div>
+
+            {/* Working (not necessarily scheduled) */}
+            <div className="status-group">
+              <div className="status-group-heading">
+                <span className="status-dot-lg green" />
+                <h2>Clocked In <InfoTooltip text="Has punched in and is actively on the clock. Anyone punched in appears here, with or without a scheduled shift." /></h2>
+                <span className="status-count green">{groups.working.length}</span>
+              </div>
+              {groups.working.length > 0 ? (
+                <div className="attend-grid">
+                  {groups.working.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />)}
+                </div>
+              ) : <p className="dash-empty">No one is currently working.</p>}
+            </div>
+
+            {/* On Break / At Lunch */}
+            {groups.onBreak.length > 0 && (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg amber" />
+                  <h2>On Break <InfoTooltip text="Clocked in but currently on a break or at lunch. The timer shows how long the break has been running." /></h2>
+                  <span className="status-count amber">{groups.onBreak.length}</span>
+                </div>
+                <div className="attend-grid">
+                  {groups.onBreak.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} />)}
+                </div>
+              </div>
+            )}
+
+            {/* Late / absent — managers and admins only */}
+            {canManage && groups.late.length > 0 && (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg red" />
+                  <h2>Late / Not Clocked In <InfoTooltip text="Scheduled to work right now but hasn't clocked in. The timer shows how late they are. Use 'Clock in ↩' to log them in manually." /></h2>
+                  <span className="status-count red">{groups.late.length}</span>
+                </div>
+                <div className="attend-grid">
+                  {groups.late.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Working (not necessarily scheduled) */}
-          <div className="status-group">
-            <div className="status-group-heading">
-              <span className="status-dot-lg green" />
-              <h2>Clocked In <InfoTooltip text="Has punched in and is actively on the clock. Anyone punched in appears here, with or without a scheduled shift." /></h2>
-              <span className="status-count green">{groups.working.length}</span>
-            </div>
-            {groups.working.length > 0 ? (
-              <div className="attend-grid">
-                {groups.working.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />)}
+          {/* Right column: out/off/events */}
+          <div className="dash-groups-col">
+            {/* Out today */}
+            {groups.out.length > 0 && (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg red" />
+                  <h2>Out Today <InfoTooltip text="On approved vacation or sick leave today. Their time off is recorded in the system." /></h2>
+                  <span className="status-count red">{groups.out.length}</span>
+                </div>
+                <div className="attend-grid">
+                  {groups.out.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} />)}
+                </div>
               </div>
-            ) : <p className="dash-empty">No one is currently working.</p>}
+            )}
+
+            {/* Not in (scheduled today, not yet on) */}
+            {groups.notIn.length > 0 && (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg gray" />
+                  <h2>Not In Yet <InfoTooltip text="Has a scheduled shift today but hasn't clocked in yet. They may not have started their shift window or are about to arrive." /></h2>
+                  <span className="status-count gray">{groups.notIn.length}</span>
+                </div>
+                <div className="attend-grid">
+                  {groups.notIn.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
+                </div>
+              </div>
+            )}
+
+            {/* Off today — compact inline chips */}
+            {groups.offToday.length > 0 && (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg gray" />
+                  <h2>Off Today <InfoTooltip text="Not scheduled to work today. No action needed — shown for full team visibility." /></h2>
+                  <span className="status-count gray">{groups.offToday.length}</span>
+                </div>
+                <div className="off-today-chips">
+                  {groups.offToday.map((s) => (
+                    <div key={s.profile.id} className="off-today-chip">
+                      <UserAvatar
+                        userId={s.profile.id}
+                        firstName={s.profile.firstName}
+                        lastName={s.profile.lastName}
+                        className="avatar off-today-avatar"
+                      />
+                      <span>{profileName(s.profile)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Team Events */}
+            <DashboardSchedule data={data} />
           </div>
-
-          {/* On Break / At Lunch */}
-          {groups.onBreak.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg amber" />
-                <h2>On Break <InfoTooltip text="Clocked in but currently on a break or at lunch. The timer shows how long the break has been running." /></h2>
-                <span className="status-count amber">{groups.onBreak.length}</span>
-              </div>
-              <div className="attend-grid">
-                {groups.onBreak.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Late / absent — managers and admins only */}
-          {canManage && groups.late.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg red" />
-                <h2>Late / Not Clocked In <InfoTooltip text="Scheduled to work right now but hasn't clocked in. The timer shows how late they are. Use 'Clock in ↩' to log them in manually." /></h2>
-                <span className="status-count red">{groups.late.length}</span>
-              </div>
-              <div className="attend-grid">
-                {groups.late.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Out today */}
-          {groups.out.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg red" />
-                <h2>Out Today <InfoTooltip text="On approved vacation or sick leave today. Their time off is recorded in the system." /></h2>
-                <span className="status-count red">{groups.out.length}</span>
-              </div>
-              <div className="attend-grid">
-                {groups.out.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Not in (scheduled today, not yet on) */}
-          {groups.notIn.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg gray" />
-                <h2>Not In Yet <InfoTooltip text="Has a scheduled shift today but hasn't clocked in yet. They may not have started their shift window or are about to arrive." /></h2>
-                <span className="status-count gray">{groups.notIn.length}</span>
-              </div>
-              <div className="attend-grid">
-                {groups.notIn.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Off today — compact inline chips */}
-          {groups.offToday.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg gray" />
-                <h2>Off Today <InfoTooltip text="Not scheduled to work today. No action needed — shown for full team visibility." /></h2>
-                <span className="status-count gray">{groups.offToday.length}</span>
-              </div>
-              <div className="off-today-chips">
-                {groups.offToday.map((s) => (
-                  <div key={s.profile.id} className="off-today-chip">
-                    <UserAvatar
-                      userId={s.profile.id}
-                      firstName={s.profile.firstName}
-                      lastName={s.profile.lastName}
-                      className="avatar off-today-avatar"
-                    />
-                    <span>{profileName(s.profile)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Team Events — tucked under Off Today */}
-          <DashboardSchedule data={data} />
         </div>
 
         {/* Sidebar */}

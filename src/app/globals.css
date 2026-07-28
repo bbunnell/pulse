@@ -889,10 +889,19 @@ h2 {
 @media (max-width: 1000px) { .dash-body { grid-template-columns: 1fr; } }
 
 .dash-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.dash-groups-col {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 20px;
 }
+
+@media (max-width: 1200px) { .dash-main { grid-template-columns: 1fr; } }
 
 .dash-sidebar {
   display: flex;
