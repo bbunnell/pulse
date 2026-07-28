@@ -361,7 +361,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           <div className="status-group">
             <div className="status-group-heading">
               <span className="status-dot-lg blue" />
-              <h2>Scheduled Now <InfoTooltip text="Has a shift scheduled for this moment. Cross-reference with 'Clocked In' to spot coverage gaps." /></h2>
+              <h2>Scheduled Now <InfoTooltip text="Everyone whose work hours cover this moment — whether or not they've clocked in. Cross-reference with 'Clocked In' to spot gaps." /></h2>
               <span className="status-count blue">{coverage.scheduledNow.length}</span>
             </div>
             {coverage.scheduledNow.length > 0 ? (

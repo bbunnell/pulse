@@ -149,7 +149,24 @@ export function buildAttendanceSnapshots(args: {
       (w) => w.shift.shiftDate === todayStr || (w.start <= now && now < w.end),
     );
     const activeWindow = windows.find((w) => w.start <= now && now < w.end);
-    const isScheduledNow = Boolean(activeWindow);
+    let isScheduledNow = Boolean(activeWindow);
+
+    // Also treat employees within their configured work hours as "scheduled now",
+    // regardless of whether they have an explicit shift record.
+    if (!isScheduledNow && profile.expectedStartTime && profile.expectedEndTime) {
+      const workDays = profile.standardWorkDays ?? [1, 2, 3, 4, 5];
+      const empTodayStr = localDateInZone(tz, now);
+      // noon UTC on that date — safe proxy for day-of-week across all tz offsets
+      const empDow = new Date(empTodayStr + "T12:00:00Z").getDay();
+      if (workDays.includes(empDow)) {
+        const workStart = zonedTimeToUtc(empTodayStr, profile.expectedStartTime, tz);
+        const workEnd   = zonedTimeToUtc(empTodayStr, profile.expectedEndTime, tz);
+        if (now >= workStart && now < workEnd) {
+          isScheduledNow = true;
+          scheduledToday = true;
+        }
+      }
+    }
 
     const clockedInMinutes = activeShift
       ? minutesBetween(activeShift.punchInAt, undefined, now)
