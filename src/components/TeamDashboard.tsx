@@ -377,6 +377,25 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             )}
           </div>
 
+          {/* Clocked in but not in Scheduled Now (unscheduled workers) */}
+          {(() => {
+            const scheduledNowIds = new Set(coverage.scheduledNow.map(s => s.profile.id));
+            const unscheduledWorking = groups.working.filter(s => !scheduledNowIds.has(s.profile.id));
+            if (!unscheduledWorking.length) return null;
+            return (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg green" />
+                  <h2>Clocked In <InfoTooltip text="Actively on the clock but outside their scheduled window or without a schedule entry." /></h2>
+                  <span className="status-count green">{unscheduledWorking.length}</span>
+                </div>
+                <div className="attend-grid list-view">
+                  {unscheduledWorking.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />)}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* On Break / At Lunch */}
           {groups.onBreak.length > 0 && (
             <div className="status-group">
