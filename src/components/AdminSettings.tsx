@@ -705,9 +705,9 @@ function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
                   </small>
                 </div>
 
-                <div className="control">
+                <div className="control wide">
                   <label htmlFor="nu-start">Work hours</label>
-                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                  <div style={{ display:"flex", gap:6, alignItems:"center", maxWidth: 320 }}>
                     <input className="input" id="nu-start" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ flex:1 }} />
                     <span style={{ color:"var(--muted)", fontSize:12 }}>to</span>
                     <input className="input" id="nu-end" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ flex:1 }} />
@@ -731,17 +731,15 @@ function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
                   </div>
                 )}
 
-                <div className="schedule-modal-row">
-                  <div className="control" style={{ flex:1 }}>
-                    <label htmlFor="nu-bday">Birthday</label>
-                    <MonthDayPicker id="nu-bday" value={birthday} onChange={setBirthday} />
-                    <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>Month and day only — year not stored.</small>
-                  </div>
-                  <div className="control" style={{ flex:1 }}>
-                    <label htmlFor="nu-anniv">Work anniversary</label>
-                    <input className="input" id="nu-anniv" type="date" value={workAnniversary} onChange={e => setWorkAnniversary(e.target.value)} />
-                    <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>Hire / start date.</small>
-                  </div>
+                <div className="control">
+                  <label htmlFor="nu-bday">Birthday</label>
+                  <MonthDayPicker id="nu-bday" value={birthday} onChange={setBirthday} />
+                  <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>Month and day only — year not stored.</small>
+                </div>
+                <div className="control">
+                  <label htmlFor="nu-anniv">Work anniversary</label>
+                  <input className="input" id="nu-anniv" type="date" value={workAnniversary} onChange={e => setWorkAnniversary(e.target.value)} />
+                  <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>Hire / start date.</small>
                 </div>
 
                 <div className="control wide">
