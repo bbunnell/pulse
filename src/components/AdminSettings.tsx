@@ -1259,16 +1259,16 @@ export function AdminSettings({ data, currentUserId }: Props) {
                 <p className="subtle">{profiles.length} people</p>
                 {usersExpanded ? <ChevronUp size={15} style={{ color: "var(--muted)" }} /> : <ChevronDown size={15} style={{ color: "var(--muted)" }} />}
               </button>
-              <div style={{ display: "flex", gap: 6 }}>
-                <label className="button secondary" style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer" }} title="Import users from CSV">
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <label className="button secondary" style={{ fontSize: 12, padding: "4px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }} title="Import users from CSV">
                   <Upload size={13} /> Import
                   <input type="file" accept=".csv" style={{ display: "none" }} onChange={handleImportFile} />
                 </label>
-                <button type="button" className="button secondary" style={{ fontSize: 12, padding: "5px 12px" }}
+                <button type="button" className="button secondary" style={{ fontSize: 12, padding: "4px 10px" }}
                   onClick={exportUsers} title="Export users to CSV">
                   <Download size={13} /> Export
                 </button>
-                <button type="button" className="button primary" style={{ fontSize: 12, padding: "5px 12px" }}
+                <button type="button" className="button primary" style={{ fontSize: 12, padding: "4px 10px" }}
                   onClick={() => setShowNewUserModal(true)}>
                   <UserPlus size={13} /> Add User
                 </button>
