@@ -729,7 +729,7 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
   }
 
   return (
-    <article className="attend-card">
+    <article className={`attend-card${isOnBreak ? " on-break-row" : ""}`}>
       <div className="attend-card-top">
         <UserAvatar userId={snapshot.profile.id} firstName={snapshot.profile.firstName} lastName={snapshot.profile.lastName} />
         <div className="attend-card-info">

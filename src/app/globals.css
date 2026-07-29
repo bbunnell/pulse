@@ -1460,6 +1460,8 @@ body.monitor-mode              { background: #0f172a; }
 
 .attend-grid.list-view .attend-card:last-child { border-bottom: none; }
 .attend-grid.list-view .attend-card:hover { box-shadow: none; border-color: transparent; background: var(--gray-soft); }
+.attend-grid.list-view .attend-card.on-break-row { background: var(--amber-soft); }
+.attend-grid.list-view .attend-card.on-break-row:hover { background: var(--amber-soft); }
 
 .attend-grid.list-view .attend-card-top {
   width: 210px;
