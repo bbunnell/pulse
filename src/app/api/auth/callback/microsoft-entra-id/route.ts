@@ -4,6 +4,8 @@ import { getIronSession } from "iron-session";
 import { sessionOptions } from "@/lib/session";
 import type { SessionData } from "@/lib/session";
 import { query } from "@/lib/db";
+import { storeTeamsToken } from "@/lib/teams-tokens";
+import crypto from "crypto";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -107,9 +109,27 @@ export async function GET(request: NextRequest) {
 
   const profile = result.rows[0];
 
-  // Teams popup: redirect to teams-end so the SDK can call notifySuccess.
-  // Regular browser: redirect straight to the app.
-  const successUrl = isTeamsPopup ? new URL("/auth/teams-end", baseUrl) : new URL("/", baseUrl);
+  if (isTeamsPopup) {
+    // Teams popup: don't set the session cookie here — it would be scoped to the popup
+    // window and never reach the Teams iframe. Instead generate a short-lived one-time
+    // token, redirect to teams-end which passes it back via notifySuccess(), and let
+    // the login page exchange it for a session cookie from the iframe context.
+    const token = crypto.randomBytes(32).toString("hex");
+    storeTeamsToken(token, {
+      userId:    profile.id,
+      role:      profile.role,
+      firstName: profile.first_name,
+      lastName:  profile.last_name,
+    });
+    const teamsEndUrl = new URL("/auth/teams-end", baseUrl);
+    teamsEndUrl.searchParams.set("token", token);
+    const response = NextResponse.redirect(teamsEndUrl);
+    response.cookies.set("ms_oauth_state", "", { maxAge: 0, path: "/" });
+    return response;
+  }
+
+  // Regular browser: set session cookie and redirect to the app.
+  const successUrl = new URL("/", baseUrl);
   const response = NextResponse.redirect(successUrl);
   response.cookies.set("ms_oauth_state", "", { maxAge: 0, path: "/" });
 

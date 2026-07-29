@@ -114,15 +114,24 @@ function LoginForm() {
       // Try Teams popup flow first (works inside Teams iframe)
       const { app, authentication } = await import("@microsoft/teams-js");
       await app.initialize();
-      await authentication.authenticate({
+      const token = await authentication.authenticate({
         url: `${window.location.origin}/auth/teams-start`,
         width: 600,
         height: 640,
       });
-      // Popup succeeded — session cookie is now set; navigate normally
+      // The popup passes back a one-time token via notifySuccess().
+      // Exchange it here (from the Teams iframe context) so the session
+      // cookie is set on this origin, not the now-closed popup window.
+      if (!token || typeof token !== "string") throw new Error("no_token");
+      const res = await fetch("/api/auth/teams-token", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ token }),
+      });
+      if (!res.ok) throw new Error("exchange_failed");
       setView("ready");
     } catch {
-      // Not in Teams or popup blocked — fall back to direct redirect
+      // Not in Teams, popup was blocked, or token exchange failed — fall back to direct redirect
       window.location.href = "/api/auth/microsoft";
     }
   }

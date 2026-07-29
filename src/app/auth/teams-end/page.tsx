@@ -1,5 +1,7 @@
 "use client";
-// Microsoft redirects here after OAuth. Notifies the Teams popup opener of success/failure.
+// Microsoft redirects here after OAuth (Teams popup flow only).
+// Reads the one-time token from the URL and passes it back to the Teams
+// iframe via notifySuccess() so the iframe can exchange it for a session cookie.
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -9,15 +11,17 @@ function TeamsAuthEndInner() {
 
   useEffect(() => {
     async function finish() {
+      const token    = searchParams.get("token");
       const ssoError = searchParams.get("sso_error");
 
-      // Dynamically import Teams SDK (client only)
       const { authentication } = await import("@microsoft/teams-js");
 
-      if (ssoError) {
-        authentication.notifyFailure(ssoError);
+      if (ssoError || !token) {
+        authentication.notifyFailure(ssoError ?? "no_token");
       } else {
-        authentication.notifySuccess("ok");
+        // Pass the one-time token back — the login page will POST it to
+        // /api/auth/teams-token to set the session cookie in the iframe context.
+        authentication.notifySuccess(token);
       }
     }
     finish().catch(() => {});
