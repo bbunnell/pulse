@@ -187,6 +187,24 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                   })()}
                 </div>
               </div>
+              <div className="control wide">
+                <label>Work schedule type</label>
+                <div style={{display:"flex",gap:8}}>
+                  {(["standard","shift_based"] as const).map(t => (
+                    <button key={t} type="button"
+                      className={`status-toggle-btn${workScheduleType===t?" active":""}`}
+                      onClick={() => setWorkScheduleType(t)}>
+                      {t === "standard" ? "Standard (M-F)" : "Shift-based"}
+                    </button>
+                  ))}
+                </div>
+                <small className="subtle" style={{fontSize:11,marginTop:4,display:"block"}}>
+                  {workScheduleType === "standard"
+                    ? "Works regular hours — never shown as 'Off Today'. Appears late based on their expected start time."
+                    : "Only active when explicitly scheduled (e.g. NOC/after-hours team). Shown as 'Off Today' when no shift is scheduled."}
+                </small>
+              </div>
+
               <div className="control">
                 <label htmlFor="eu-start">Work hours</label>
                 <div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -256,24 +274,6 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                     </small>
                   </span>
                 </label>
-              </div>
-
-              <div className="control wide">
-                <label>Work schedule type</label>
-                <div style={{display:"flex",gap:8}}>
-                  {(["standard","shift_based"] as const).map(t => (
-                    <button key={t} type="button"
-                      className={`status-toggle-btn${workScheduleType===t?" active":""}`}
-                      onClick={() => setWorkScheduleType(t)}>
-                      {t === "standard" ? "Standard (M-F)" : "Shift-based"}
-                    </button>
-                  ))}
-                </div>
-                <small className="subtle" style={{fontSize:11,marginTop:4,display:"block"}}>
-                  {workScheduleType === "standard"
-                    ? "Works regular hours — never shown as 'Off Today'. Appears late based on their expected start time."
-                    : "Only active when explicitly scheduled (e.g. NOC/after-hours team). Shown as 'Off Today' when no shift is scheduled."}
-                </small>
               </div>
 
               <div className="schedule-modal-row">
