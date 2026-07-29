@@ -1259,7 +1259,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                 <p className="subtle">{profiles.length} people</p>
                 {usersExpanded ? <ChevronUp size={15} style={{ color: "var(--muted)" }} /> : <ChevronDown size={15} style={{ color: "var(--muted)" }} />}
               </button>
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              <div style={{ display: "flex", flexDirection: "row", gap: 6, flexShrink: 0, alignItems: "center" }}>
                 <label className="button secondary" style={{ fontSize: 12, padding: "4px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }} title="Import users from CSV">
                   <Upload size={13} /> Import
                   <input type="file" accept=".csv" style={{ display: "none" }} onChange={handleImportFile} />
