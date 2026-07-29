@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Building2, ChevronDown, ChevronUp, Eye, EyeOff, KeyRound, Lock, Mail, MessageSquare, Pencil, Plus, RefreshCw, Save, Shield, Trash2, UserPlus, X } from "lucide-react";
+import { Bell, Building2, ChevronDown, ChevronUp, Download, Eye, EyeOff, KeyRound, Lock, Mail, MessageSquare, Pencil, Plus, RefreshCw, Save, Shield, Trash2, Upload, UserPlus, X } from "lucide-react";
 
 import type { OrgData, Profile, Role, Team } from "@/lib/types";
 import { profileName } from "@/lib/status";
@@ -350,6 +350,192 @@ interface NewUserModalProps {
   teams: Team[];
   onClose(): void;
   onCreated(profile: Profile, tempPassword: string): void;
+}
+
+// ── Import helpers ─────────────────────────────────────────────────────────────
+
+const DAY_NAME_TO_IDX: Record<string, number> = {
+  sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tuesday: 2,
+  wed: 3, wednesday: 3, thu: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6,
+};
+
+export interface ImportRow {
+  firstName: string; lastName: string; email: string;
+  role: "employee" | "manager" | "admin";
+  teamId?: string; timezone?: string;
+  workScheduleType?: "standard" | "shift_based";
+  standardWorkDays?: number[];
+  expectedStartTime?: string; expectedEndTime?: string;
+  birthday?: string; workAnniversary?: string;
+  _rowError?: string;
+}
+
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let cur = "";
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cur += c;
+    } else if (c === '"') {
+      inQ = true;
+    } else if (c === ',') {
+      fields.push(cur.trim()); cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  fields.push(cur.trim());
+  return fields;
+}
+
+function parseImportCsv(text: string, teams: Team[]): ImportRow[] {
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/[\s_-]+/g, ""));
+  const col = (name: string) => headers.indexOf(name);
+
+  const get = (row: string[], name: string) => {
+    const i = col(name);
+    return i >= 0 ? (row[i] ?? "").trim() : "";
+  };
+
+  return lines.slice(1).map((line, idx): ImportRow => {
+    const row = parseCsvLine(line);
+    const firstName = get(row, "firstname");
+    const lastName  = get(row, "lastname");
+    const email     = get(row, "email");
+    const roleRaw   = get(row, "role").toLowerCase();
+    const role: ImportRow["role"] =
+      roleRaw === "manager" ? "manager" : roleRaw === "admin" ? "admin" : "employee";
+
+    if (!firstName || !lastName || !email) {
+      return { firstName, lastName, email, role, _rowError: `Row ${idx + 2}: missing first name, last name, or email` };
+    }
+
+    const teamName = get(row, "team").toLowerCase();
+    const team = teams.find((t) => t.name.toLowerCase() === teamName);
+
+    const daysRaw = get(row, "workdays") || get(row, "standardworkdays");
+    const standardWorkDays = daysRaw
+      ? daysRaw.split(/[;,]/).map((d) => DAY_NAME_TO_IDX[d.trim().toLowerCase()]).filter((n) => n !== undefined)
+      : undefined;
+
+    const schedRaw = get(row, "scheduletype") || get(row, "workscheduletype");
+    const workScheduleType: ImportRow["workScheduleType"] =
+      schedRaw.toLowerCase().includes("shift") ? "shift_based"
+      : schedRaw.toLowerCase().includes("standard") ? "standard"
+      : undefined;
+
+    return {
+      firstName, lastName, email, role,
+      teamId: team?.id,
+      timezone: get(row, "timezone") || undefined,
+      workScheduleType,
+      standardWorkDays: standardWorkDays?.length ? standardWorkDays : undefined,
+      expectedStartTime: get(row, "starttime") || undefined,
+      expectedEndTime:   get(row, "endtime") || undefined,
+      birthday:          get(row, "birthdaymm-dd") || get(row, "birthday") || undefined,
+      workAnniversary:   get(row, "workanniversaryyyyy-mm-dd") || get(row, "workanniversary") || undefined,
+    };
+  });
+}
+
+interface ImportModalProps {
+  rows: ImportRow[];
+  teams: Team[];
+  importing: boolean;
+  result: { created: number; skipped: number; errors: string[] } | null;
+  onImport(): void;
+  onClose(): void;
+}
+
+function ImportUsersModal({ rows, teams, importing, result, onImport, onClose }: ImportModalProps) {
+  const valid   = rows.filter((r) => !r._rowError);
+  const invalid = rows.filter((r) => r._rowError);
+
+  return (
+    <div className="edit-user-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="edit-user-modal" style={{ maxWidth: 680 }}>
+        <div className="edit-user-header">
+          <div>
+            <h2>Import Users</h2>
+            <p className="subtle">{rows.length} row{rows.length !== 1 ? "s" : ""} parsed — passwords handled by SSO</p>
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        {result ? (
+          <div style={{ padding: "16px 20px" }}>
+            <p style={{ marginBottom: 8 }}>
+              <strong style={{ color: "var(--green-text)" }}>✓ {result.created} user{result.created !== 1 ? "s" : ""} created</strong>
+              {result.skipped > 0 && <span className="subtle"> · {result.skipped} skipped (already exist)</span>}
+            </p>
+            {result.errors.length > 0 && (
+              <ul style={{ margin: "8px 0", paddingLeft: 18, color: "var(--red-text)", fontSize: 13 }}>
+                {result.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            )}
+            <button type="button" className="button secondary" style={{ marginTop: 12 }} onClick={onClose}>Close</button>
+          </div>
+        ) : (
+          <>
+            {invalid.length > 0 && (
+              <div style={{ margin: "12px 20px 0", padding: "10px 14px", background: "var(--red-soft)", borderRadius: 6, color: "var(--red-text)", fontSize: 13 }}>
+                <strong>{invalid.length} row{invalid.length !== 1 ? "s" : ""} will be skipped</strong> — missing required fields:
+                <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                  {invalid.map((r, i) => <li key={i}>{r._rowError}</li>)}
+                </ul>
+              </div>
+            )}
+            <div style={{ overflowX: "auto", maxHeight: 340, margin: "12px 0 0" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "var(--surface-alt, var(--surface))", position: "sticky", top: 0 }}>
+                    {["Name", "Email", "Role", "Team", "Schedule", "Hours"].map((h) => (
+                      <th key={h} style={{ padding: "6px 10px", textAlign: "left", borderBottom: "1px solid var(--border)", fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {valid.map((r, i) => {
+                    const teamName = teams.find((t) => t.id === r.teamId)?.name ?? "—";
+                    const sched = r.workScheduleType === "standard" ? "Standard" : r.workScheduleType === "shift_based" ? "Shift-based" : "—";
+                    const hours = r.expectedStartTime && r.expectedEndTime ? `${r.expectedStartTime}–${r.expectedEndTime}` : "—";
+                    return (
+                      <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ padding: "6px 10px" }}>{r.firstName} {r.lastName}</td>
+                        <td style={{ padding: "6px 10px", color: "var(--muted)" }}>{r.email}</td>
+                        <td style={{ padding: "6px 10px", textTransform: "capitalize" }}>{r.role}</td>
+                        <td style={{ padding: "6px 10px" }}>{teamName}</td>
+                        <td style={{ padding: "6px 10px" }}>{sched}</td>
+                        <td style={{ padding: "6px 10px" }}>{hours}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ padding: "14px 20px", display: "flex", gap: 8, borderTop: "1px solid var(--border)", marginTop: 8 }}>
+              <button
+                type="button"
+                className="button primary"
+                disabled={importing || valid.length === 0}
+                onClick={onImport}
+              >
+                <Upload size={13} />
+                {importing ? "Importing…" : `Import ${valid.length} user${valid.length !== 1 ? "s" : ""}`}
+              </button>
+              <button type="button" className="button secondary" onClick={onClose}>Cancel</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
@@ -921,12 +1107,82 @@ export function AdminSettings({ data, currentUserId }: Props) {
     setTestSending(false);
   }
 
+  // User list collapse
+  const [usersExpanded, setUsersExpanded] = useState(true);
+
   // New user modal
   const [showNewUserModal, setShowNewUserModal] = useState(false);
 
   function handleUserCreated(profile: Profile) {
     setProfiles((prev) => [...prev, profile]);
     router.refresh();
+  }
+
+  // ── Export users as CSV ───────────────────────────────────────────────────────
+  function exportUsers() {
+    const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const headers = [
+      "First Name", "Last Name", "Email", "Role", "Team", "Timezone",
+      "Schedule Type", "Work Days", "Start Time", "End Time",
+      "Birthday (MM-DD)", "Work Anniversary (YYYY-MM-DD)",
+    ];
+    const rows = profiles.map((p) => {
+      const team = data.teams.find((t) => t.id === p.teamId)?.name ?? "";
+      const workDays = (p.standardWorkDays ?? [])
+        .sort((a, b) => a - b)
+        .map((d) => DAY_NAMES[d])
+        .join(";");
+      return [
+        p.firstName, p.lastName, p.email, p.role, team,
+        p.timezone ?? "", p.workScheduleType ?? "",
+        workDays,
+        p.expectedStartTime ?? "", p.expectedEndTime ?? "",
+        p.birthday ?? "", p.workAnniversary ?? "",
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "teampulse-users.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Import users ──────────────────────────────────────────────────────────────
+  const [importRows, setImportRows]       = useState<ImportRow[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting]         = useState(false);
+  const [importResult, setImportResult]   = useState<{ created: number; skipped: number; errors: string[] } | null>(null);
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const rows = parseImportCsv(text, data.teams);
+      setImportRows(rows);
+      setImportResult(null);
+      setShowImportModal(true);
+    };
+    reader.readAsText(file);
+  }
+
+  async function runImport() {
+    setImporting(true);
+    setImportResult(null);
+    const res = await fetch("/api/users/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ users: importRows }),
+    });
+    const json = await res.json();
+    setImportResult(json);
+    setImporting(false);
+    if (json.created > 0) {
+      router.refresh();
+    }
   }
 
   const roleLabel: Record<Role, string> = { employee: "Employee", manager: "Manager", admin: "Admin" };
@@ -993,16 +1249,32 @@ export function AdminSettings({ data, currentUserId }: Props) {
           {/* Users */}
           <div className="panel">
             <div className="panel-header">
-              <div>
+              <button
+                type="button"
+                className="panel-collapse-btn"
+                onClick={() => setUsersExpanded((v) => !v)}
+                aria-expanded={usersExpanded}
+              >
                 <h2>Users</h2>
                 <p className="subtle">{profiles.length} people</p>
-              </div>
-              <button type="button" className="button primary" style={{ fontSize: 12, padding: "5px 12px" }}
-                onClick={() => setShowNewUserModal(true)}>
-                <UserPlus size={13} /> Add User
+                {usersExpanded ? <ChevronUp size={15} style={{ color: "var(--muted)" }} /> : <ChevronDown size={15} style={{ color: "var(--muted)" }} />}
               </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <label className="button secondary" style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer" }} title="Import users from CSV">
+                  <Upload size={13} /> Import
+                  <input type="file" accept=".csv" style={{ display: "none" }} onChange={handleImportFile} />
+                </label>
+                <button type="button" className="button secondary" style={{ fontSize: 12, padding: "5px 12px" }}
+                  onClick={exportUsers} title="Export users to CSV">
+                  <Download size={13} /> Export
+                </button>
+                <button type="button" className="button primary" style={{ fontSize: 12, padding: "5px 12px" }}
+                  onClick={() => setShowNewUserModal(true)}>
+                  <UserPlus size={13} /> Add User
+                </button>
+              </div>
             </div>
-            <div className="settings-list">
+            {usersExpanded && <div className="settings-list">
               {profiles.map((profile) => (
                 <div key={profile.id} style={{ display: "flex", flexDirection: "column" }}>
                   <div className="setting-row">
@@ -1157,7 +1429,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
                   )}
                 </div>
               ))}
-            </div>
+            </div>}
           </div>
 
           {/* Teams */}
@@ -1808,6 +2080,16 @@ export function AdminSettings({ data, currentUserId }: Props) {
         onCreated={(profile) => {
           handleUserCreated(profile);
         }}
+      />
+    )}
+    {showImportModal && (
+      <ImportUsersModal
+        rows={importRows}
+        teams={data.teams}
+        importing={importing}
+        result={importResult}
+        onImport={runImport}
+        onClose={() => { setShowImportModal(false); setImportResult(null); }}
       />
     )}
   </>

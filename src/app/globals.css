@@ -436,6 +436,21 @@ h2 {
   gap: 1px;
 }
 
+.panel-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  flex: 1;
+}
+.panel-collapse-btn h2 { margin: 0; }
+.panel-collapse-btn .subtle { margin: 0; }
+
 /* ─── Grids ──────────────────────────────────────────────────── */
 .grid-2 {
   display: grid;
