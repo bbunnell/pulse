@@ -562,50 +562,55 @@ function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
     setCreating(true);
     setCreateError("");
 
-    const otp = oneTimePassword.trim();
-    const payload: Record<string, unknown> = {
-      firstName, lastName, email, role,
-      teamId: teamId || null,
-      timezone,
-      workScheduleType,
-      standardWorkDays,
-      expectedStartTime: startTime,
-      expectedEndTime: endTime,
-      birthday: birthday || null,
-      workAnniversary: workAnniversary || null,
-    };
-    if (otp) payload.initialPassword = otp;
-
-    const res = await fetch("/api/users/invite", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = (await res.json()) as { ok?: boolean; tempPassword?: string; error?: string };
-
-    if (res.ok) {
-      const ts = new Date().toISOString();
-      const profile: Profile = {
-        id: crypto.randomUUID(),
+    try {
+      const otp = oneTimePassword.trim();
+      const payload: Record<string, unknown> = {
         firstName, lastName, email, role,
-        teamId: teamId || "",
-        status: "active",
-        expectedStartTime: startTime,
-        expectedEndTime: endTime,
+        teamId: teamId || null,
         timezone,
-        showOnDashboard: true,
         workScheduleType,
         standardWorkDays,
-        hideWhenNotActive: false,
-        birthday: birthday || undefined,
-        workAnniversary: workAnniversary || undefined,
-        createdAt: ts,
-        updatedAt: ts,
+        expectedStartTime: startTime,
+        expectedEndTime: endTime,
+        birthday: birthday || null,
+        workAnniversary: workAnniversary || null,
       };
-      setTempPassword(json.tempPassword ?? "");
-      onCreated(profile, json.tempPassword ?? "");
-    } else {
-      setCreateError(json.error ?? "Failed to create user.");
+      if (otp) payload.initialPassword = otp;
+
+      const res = await fetch("/api/users/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = (await res.json()) as { ok?: boolean; tempPassword?: string; error?: string };
+
+      if (res.ok) {
+        const ts = new Date().toISOString();
+        const profile: Profile = {
+          id: crypto.randomUUID(),
+          firstName, lastName, email, role,
+          teamId: teamId || "",
+          status: "active",
+          expectedStartTime: startTime,
+          expectedEndTime: endTime,
+          timezone,
+          showOnDashboard: true,
+          workScheduleType,
+          standardWorkDays,
+          hideWhenNotActive: false,
+          birthday: birthday || undefined,
+          workAnniversary: workAnniversary || undefined,
+          createdAt: ts,
+          updatedAt: ts,
+        };
+        setTempPassword(json.tempPassword ?? "");
+        onCreated(profile, json.tempPassword ?? "");
+      } else {
+        setCreateError(json.error ?? "Failed to create user.");
+      }
+    } catch {
+      setCreateError("Network error — please try again.");
+    } finally {
       setCreating(false);
     }
   }
