@@ -391,7 +391,13 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                 <span className="status-count green">{groups.working.length + groups.onBreak.length}</span>
               </div>
               <div className="attend-grid list-view">
-                {[...groups.working, ...groups.onBreak].map((s) => (
+                {[...groups.working, ...groups.onBreak]
+                  .sort((a, b) => {
+                    const na = `${a.profile.lastName} ${a.profile.firstName}`.toLowerCase();
+                    const nb = `${b.profile.lastName} ${b.profile.firstName}`.toLowerCase();
+                    return na.localeCompare(nb);
+                  })
+                  .map((s) => (
                   <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />
                 ))}
               </div>
