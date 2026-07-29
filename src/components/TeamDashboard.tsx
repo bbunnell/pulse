@@ -382,30 +382,18 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             );
           })()}
 
-          {/* Clocked In — everyone actively on the clock */}
-          {groups.working.length > 0 && (
+          {/* Clocked In — everyone actively on the clock, including on break/lunch */}
+          {(groups.working.length > 0 || groups.onBreak.length > 0) && (
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg green" />
-                <h2>Clocked In <InfoTooltip text="Everyone actively on the clock right now." /></h2>
-                <span className="status-count green">{groups.working.length}</span>
+                <h2>Clocked In <InfoTooltip text="Everyone actively on the clock right now. Break and lunch status shown inline." /></h2>
+                <span className="status-count green">{groups.working.length + groups.onBreak.length}</span>
               </div>
               <div className="attend-grid list-view">
-                {groups.working.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />)}
-              </div>
-            </div>
-          )}
-
-          {/* On Break / At Lunch */}
-          {groups.onBreak.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg amber" />
-                <h2>On Break <InfoTooltip text="Clocked in but currently on a break or at lunch. The timer shows how long the break has been running." /></h2>
-                <span className="status-count amber">{groups.onBreak.length}</span>
-              </div>
-              <div className="attend-grid list-view">
-                {groups.onBreak.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} />)}
+                {[...groups.working, ...groups.onBreak].map((s) => (
+                  <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />
+                ))}
               </div>
             </div>
           )}
