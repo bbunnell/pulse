@@ -38,13 +38,13 @@ export function MonthDayPicker({ id, value, onChange, disabled }: Props) {
 
   return (
     <div style={{ display:"flex", gap:8 }} id={id}>
-      <select className="select" value={mm || ""} onChange={handleMonth} disabled={disabled} style={{ flex:2 }}>
+      <select className="select" value={mm || ""} onChange={handleMonth} disabled={disabled} style={{ minWidth: 140, flex: 1 }}>
         <option value="">Month</option>
         {MONTHS.map((name, i) => (
           <option key={i+1} value={i+1}>{name}</option>
         ))}
       </select>
-      <select className="select" value={dd || ""} onChange={handleDay} disabled={disabled} style={{ flex:1 }}>
+      <select className="select" value={dd || ""} onChange={handleDay} disabled={disabled} style={{ width: 72, flexShrink: 0 }}>
         <option value="">Day</option>
         {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
           <option key={d} value={d}>{d}</option>
