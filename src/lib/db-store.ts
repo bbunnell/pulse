@@ -671,6 +671,146 @@ export async function recordReminderSent(
   );
 }
 
+// ── Standard-schedule reminders ───────────────────────────────────────────────
+
+export interface ProfileDueForReminder {
+  profileId:       string;
+  email:           string;
+  firstName:       string;
+  lastName:        string;
+  timezone:        string;
+  startTime:       string;
+  endTime:         string;
+  reminderDate:    string;
+  teamsWebhookUrl: string | null;
+}
+
+/**
+ * Standard-schedule employees whose expected start time was `offsetMinutes` ago
+ * (±2 min window, evaluated in each employee's own timezone).
+ * Only fires on scheduled work days. Skips anyone already clocked in.
+ */
+export async function getProfilesDueForCheckIn(
+  offsetMinutes: number,
+): Promise<ProfileDueForReminder[]> {
+  const result = await query<{
+    id: string; email: string; first_name: string; last_name: string;
+    timezone: string; expected_start_time: string; expected_end_time: string;
+    reminder_date: unknown; teams_webhook_url: string | null;
+  }>(
+    `SELECT
+       p.id, p.email, p.first_name, p.last_name, p.timezone,
+       p.expected_start_time, p.expected_end_time,
+       (now() AT TIME ZONE p.timezone)::date AS reminder_date,
+       p.teams_webhook_url
+     FROM profiles p
+     WHERE p.work_schedule_type = 'standard'
+       AND p.status = 'active'
+       AND p.show_on_dashboard = true
+       AND p.expected_start_time IS NOT NULL
+       -- today is a scheduled work day (in their timezone)
+       AND EXTRACT(DOW FROM (now() AT TIME ZONE p.timezone))::int = ANY(p.standard_work_days)
+       -- their start time in their own tz was offsetMinutes ago (±2 min)
+       AND ((now() AT TIME ZONE p.timezone)::date + p.expected_start_time) AT TIME ZONE p.timezone
+             BETWEEN now() - make_interval(mins => $1 + 2)
+                 AND now() - make_interval(mins => $1 - 2)
+       -- not already sent today
+       AND NOT EXISTS (
+         SELECT 1 FROM profile_reminders pr
+         WHERE pr.profile_id = p.id
+           AND pr.reminder_type = 'check_in'
+           AND pr.reminder_date = (now() AT TIME ZONE p.timezone)::date
+       )
+       -- not already clocked in
+       AND NOT EXISTS (
+         SELECT 1 FROM shifts sh
+         WHERE sh.user_id = p.id
+           AND sh.punch_out_at IS NULL
+       )`,
+    [offsetMinutes],
+  );
+
+  return result.rows.map((r) => ({
+    profileId:       r.id,
+    email:           r.email,
+    firstName:       r.first_name,
+    lastName:        r.last_name,
+    timezone:        r.timezone,
+    startTime:       String(r.expected_start_time).slice(0, 5),
+    endTime:         String(r.expected_end_time ?? "").slice(0, 5),
+    reminderDate:    String(r.reminder_date).slice(0, 10),
+    teamsWebhookUrl: r.teams_webhook_url ?? null,
+  }));
+}
+
+/**
+ * Standard-schedule employees whose expected end time was `offsetMinutes` ago
+ * (±2 min window, in each employee's own timezone). Only fires if they have
+ * an open shift (already clocked in).
+ */
+export async function getProfilesDueForCheckOut(
+  offsetMinutes: number,
+): Promise<ProfileDueForReminder[]> {
+  const result = await query<{
+    id: string; email: string; first_name: string; last_name: string;
+    timezone: string; expected_start_time: string; expected_end_time: string;
+    reminder_date: unknown; teams_webhook_url: string | null;
+  }>(
+    `SELECT
+       p.id, p.email, p.first_name, p.last_name, p.timezone,
+       p.expected_start_time, p.expected_end_time,
+       (now() AT TIME ZONE p.timezone)::date AS reminder_date,
+       p.teams_webhook_url
+     FROM profiles p
+     WHERE p.work_schedule_type = 'standard'
+       AND p.status = 'active'
+       AND p.show_on_dashboard = true
+       AND p.expected_end_time IS NOT NULL
+       AND EXTRACT(DOW FROM (now() AT TIME ZONE p.timezone))::int = ANY(p.standard_work_days)
+       AND ((now() AT TIME ZONE p.timezone)::date + p.expected_end_time) AT TIME ZONE p.timezone
+             BETWEEN now() - make_interval(mins => $1 + 2)
+                 AND now() - make_interval(mins => $1 - 2)
+       AND NOT EXISTS (
+         SELECT 1 FROM profile_reminders pr
+         WHERE pr.profile_id = p.id
+           AND pr.reminder_type = 'check_out'
+           AND pr.reminder_date = (now() AT TIME ZONE p.timezone)::date
+       )
+       AND EXISTS (
+         SELECT 1 FROM shifts sh
+         WHERE sh.user_id = p.id
+           AND sh.punch_out_at IS NULL
+       )`,
+    [offsetMinutes],
+  );
+
+  return result.rows.map((r) => ({
+    profileId:       r.id,
+    email:           r.email,
+    firstName:       r.first_name,
+    lastName:        r.last_name,
+    timezone:        r.timezone,
+    startTime:       String(r.expected_start_time ?? "").slice(0, 5),
+    endTime:         String(r.expected_end_time).slice(0, 5),
+    reminderDate:    String(r.reminder_date).slice(0, 10),
+    teamsWebhookUrl: r.teams_webhook_url ?? null,
+  }));
+}
+
+export async function recordProfileReminderSent(
+  profileId: string,
+  reminderDate: string,
+  reminderType: "check_in" | "check_out",
+  channelsSent: string[],
+): Promise<void> {
+  await query(
+    `INSERT INTO profile_reminders (profile_id, reminder_type, reminder_date, channels_sent)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (profile_id, reminder_type, reminder_date) DO NOTHING`,
+    [profileId, reminderType, reminderDate, channelsSent],
+  );
+}
+
 // ── Schedule rules ────────────────────────────────────────────────────────────
 
 export async function getScheduleRules(): Promise<ScheduleRule[]> {

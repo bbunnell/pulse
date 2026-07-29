@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Building2, ChevronDown, ChevronUp, Eye, EyeOff, KeyRound, Lock, Mail, MessageSquare, Pencil, Plus, RefreshCw, Save, Shield, Trash2, UserPlus, X } from "lucide-react";
 
-import type { OrgData, Profile, ReminderRule, Role, Team } from "@/lib/types";
+import type { OrgData, Profile, Role, Team } from "@/lib/types";
 import { profileName } from "@/lib/status";
 import { TIMEZONE_OPTIONS } from "@/lib/timezone";
 import { StaffingRulesPanel } from "@/components/StaffingRulesPanel";
@@ -596,7 +596,6 @@ export function AdminSettings({ data, currentUserId }: Props) {
 
   const [profiles, setProfiles] = useState(data.profiles);
   const [teams, setTeams] = useState<Team[]>(data.teams);
-  const [reminderRules, setReminderRules] = useState(data.reminderRules);
 
   // Add team form
   const [newTeamName, setNewTeamName] = useState("");
@@ -928,12 +927,6 @@ export function AdminSettings({ data, currentUserId }: Props) {
   function handleUserCreated(profile: Profile) {
     setProfiles((prev) => [...prev, profile]);
     router.refresh();
-  }
-
-  function updateReminder(ruleId: string, patch: Partial<ReminderRule>) {
-    setReminderRules((prev) =>
-      prev.map((r) => (r.id === ruleId ? { ...r, ...patch, updatedAt: new Date().toISOString() } : r)),
-    );
   }
 
   const roleLabel: Record<Role, string> = { employee: "Employee", manager: "Manager", admin: "Admin" };
@@ -1426,38 +1419,32 @@ export function AdminSettings({ data, currentUserId }: Props) {
           <div className="panel">
             <div className="panel-header">
               <div>
-                <h2>Reminder Rules</h2>
-                <p className="subtle">Configured send times per rule type.</p>
+                <h2>Reminder Timing</h2>
+                <p className="subtle">How reminders are scheduled per employee type.</p>
               </div>
               <Bell size={17} style={{ color: "var(--muted)" }} />
             </div>
             <div className="settings-list">
-              {reminderRules.length ? reminderRules.map((rule) => (
-                <div className="setting-row" key={rule.id}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flex: 1 }}>
-                    <input
-                      type="checkbox"
-                      checked={rule.enabled}
-                      onChange={(e) => updateReminder(rule.id, { enabled: e.target.checked })}
-                    />
-                    <span>
-                      <strong style={{ textTransform: "capitalize" }}>{rule.reminderType.replaceAll("_", " ")}</strong>
-                      {rule.teamId && (
-                        <small className="subtle">{data.teams.find((t) => t.id === rule.teamId)?.name ?? "Team"}</small>
-                      )}
-                    </span>
-                  </label>
-                  <input
-                    className="input"
-                    type="time"
-                    value={rule.sendTime}
-                    style={{ width: 100 }}
-                    onChange={(e) => updateReminder(rule.id, { sendTime: e.target.value })}
-                  />
+              <div className="setting-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
+                <div>
+                  <strong>Shift-based employees</strong>
+                  <p className="subtle" style={{ marginTop: 2 }}>
+                    Reminders fire relative to each scheduled shift start/end time, using the offset minutes configured above.
+                  </p>
                 </div>
-              )) : (
-                <div className="empty-state">No reminder rules configured.</div>
-              )}
+                <div>
+                  <strong>Standard-schedule employees</strong>
+                  <p className="subtle" style={{ marginTop: 2 }}>
+                    Reminders fire relative to each person&rsquo;s expected start/end time (set on their profile), using the same offset minutes. Only fires on their configured work days.
+                  </p>
+                </div>
+                <div>
+                  <strong>Deduplication</strong>
+                  <p className="subtle" style={{ marginTop: 2 }}>
+                    Each reminder fires at most once per person per day. Sending the cron more than once per minute is safe.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

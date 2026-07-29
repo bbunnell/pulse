@@ -14,6 +14,8 @@ import {
   getEscalationRecipients,
   getLateShiftsForEscalation,
   getNotificationSettings,
+  getProfilesDueForCheckIn,
+  getProfilesDueForCheckOut,
   getScheduledShifts,
   getShiftsDueForCheckIn,
   getShiftsDueForCheckOut,
@@ -21,8 +23,10 @@ import {
   loadOrgDataFromDb,
   recordCoverageAlert,
   recordEscalation,
+  recordProfileReminderSent,
   recordReminderSent,
   wasCoverageAlerted,
+  type ProfileDueForReminder,
   type ShiftDueForReminder,
 } from "@/lib/db-store";
 import { coverageCounts, requiredStaffPerHour } from "@/lib/status";
@@ -52,10 +56,12 @@ async function handler(request: Request) {
 
   const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const results = {
-    checkIn:  { sent: 0, skipped: 0, errors: [] as string[] },
-    checkOut: { sent: 0, skipped: 0, errors: [] as string[] },
-    escalation: { sent: 0, errors: [] as string[] },
-    understaffing: { sent: 0, errors: [] as string[] },
+    checkIn:         { sent: 0, skipped: 0, errors: [] as string[] },
+    checkOut:        { sent: 0, skipped: 0, errors: [] as string[] },
+    standardCheckIn: { sent: 0, skipped: 0, errors: [] as string[] },
+    standardCheckOut:{ sent: 0, skipped: 0, errors: [] as string[] },
+    escalation:      { sent: 0, errors: [] as string[] },
+    understaffing:   { sent: 0, errors: [] as string[] },
   };
 
   // ── Check-in reminders ────────────────────────────────────────────────────────
@@ -168,6 +174,110 @@ async function handler(request: Request) {
         results.checkOut.sent++;
       } else {
         results.checkOut.skipped++;
+      }
+    }
+  }
+
+  // ── Standard-schedule check-in reminders ─────────────────────────────────────
+  if (cfg.checkInEnabled) {
+    let dueProfiles: ProfileDueForReminder[] = [];
+    try {
+      dueProfiles = await getProfilesDueForCheckIn(cfg.checkInOffsetMinutes);
+    } catch (err) {
+      console.error("[reminders] standard check-in query failed:", err);
+    }
+
+    for (const p of dueProfiles) {
+      const channelsSent: string[] = [];
+      const scheduledTime = fmt12h(p.startTime);
+      const subject = "Team Pulse — Please clock in";
+      const body    = buildCheckInBody(p.firstName, scheduledTime, baseUrl);
+
+      try {
+        const emailResult = await sendTransactionalEmail({
+          to: p.email, subject, text: body.text, html: body.html,
+        });
+        if (emailResult.status === "sent") channelsSent.push("email");
+        else results.standardCheckIn.errors.push(`email to ${p.email}: ${emailResult.errorMessage ?? emailResult.status}`);
+      } catch (err) {
+        results.standardCheckIn.errors.push(`email exception: ${String(err)}`);
+      }
+
+      const teamsUrl = p.teamsWebhookUrl || cfg.teamsWebhookUrl;
+      if (teamsUrl) {
+        const teamsResult = await sendTeamsMessage(teamsUrl, {
+          title:       "⏰ Please Clock In — Team Pulse",
+          text:        `Hi **${p.firstName} ${p.lastName}** — your shift was scheduled to start at **${scheduledTime}**. Please clock in.`,
+          facts:       [
+            { name: "Person",    value: `${p.firstName} ${p.lastName}` },
+            { name: "Scheduled", value: scheduledTime },
+            { name: "Action",    value: "Please clock in" },
+          ],
+          actionLabel: "Open Team Pulse",
+          actionUrl:   baseUrl,
+        });
+        const label = p.teamsWebhookUrl ? "teams-dm" : "teams-channel";
+        if (teamsResult.ok) channelsSent.push(label);
+        else results.standardCheckIn.errors.push(`teams: ${teamsResult.error ?? "unknown"}`);
+      }
+
+      if (channelsSent.length > 0) {
+        await recordProfileReminderSent(p.profileId, p.reminderDate, "check_in", channelsSent);
+        results.standardCheckIn.sent++;
+      } else {
+        results.standardCheckIn.skipped++;
+      }
+    }
+  }
+
+  // ── Standard-schedule check-out reminders ─────────────────────────────────────
+  if (cfg.checkOutEnabled) {
+    let dueProfiles: ProfileDueForReminder[] = [];
+    try {
+      dueProfiles = await getProfilesDueForCheckOut(cfg.checkOutOffsetMinutes);
+    } catch (err) {
+      console.error("[reminders] standard check-out query failed:", err);
+    }
+
+    for (const p of dueProfiles) {
+      const channelsSent: string[] = [];
+      const scheduledTime = fmt12h(p.endTime);
+      const subject = "Team Pulse — Please clock out";
+      const body    = buildCheckOutBody(p.firstName, scheduledTime, baseUrl);
+
+      try {
+        const emailResult = await sendTransactionalEmail({
+          to: p.email, subject, text: body.text, html: body.html,
+        });
+        if (emailResult.status === "sent") channelsSent.push("email");
+        else results.standardCheckOut.errors.push(`email to ${p.email}: ${emailResult.errorMessage ?? emailResult.status}`);
+      } catch (err) {
+        results.standardCheckOut.errors.push(`email exception: ${String(err)}`);
+      }
+
+      const teamsUrl = p.teamsWebhookUrl || cfg.teamsWebhookUrl;
+      if (teamsUrl) {
+        const teamsResult = await sendTeamsMessage(teamsUrl, {
+          title:       "⏰ Please Clock Out — Team Pulse",
+          text:        `Hi **${p.firstName} ${p.lastName}** — your shift was scheduled to end at **${scheduledTime}**. Please clock out.`,
+          facts:       [
+            { name: "Person",    value: `${p.firstName} ${p.lastName}` },
+            { name: "Scheduled", value: scheduledTime },
+            { name: "Action",    value: "Please clock out" },
+          ],
+          actionLabel: "Open Team Pulse",
+          actionUrl:   baseUrl,
+        });
+        const label = p.teamsWebhookUrl ? "teams-dm" : "teams-channel";
+        if (teamsResult.ok) channelsSent.push(label);
+        else results.standardCheckOut.errors.push(`teams: ${teamsResult.error ?? "unknown"}`);
+      }
+
+      if (channelsSent.length > 0) {
+        await recordProfileReminderSent(p.profileId, p.reminderDate, "check_out", channelsSent);
+        results.standardCheckOut.sent++;
+      } else {
+        results.standardCheckOut.skipped++;
       }
     }
   }
