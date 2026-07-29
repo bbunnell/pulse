@@ -357,25 +357,37 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
 <div className="dash-body">
         <div className="dash-main">
-          {/* On Now — coverage */}
-          <div className="status-group">
-            <div className="status-group-heading">
-              <span className="status-dot-lg blue" />
-              <h2>Scheduled Now <InfoTooltip text="Everyone whose work hours cover this moment. Green border = clocked in, red = late or not yet on the clock." /></h2>
-              <span className="status-count blue">{coverage.scheduledNow.length}</span>
-            </div>
-            {coverage.scheduledNow.length > 0 ? (
-              <div className="attend-grid">
-                {coverage.scheduledNow.map((s) => (
-                  <CoverageCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone}
-                    canManage={canManage} actionLoading={actionLoading}
-                    onForcePunchIn={handleForcePunchIn} onForcePunchOut={handleForcePunchOut} />
-                ))}
+          {/* Scheduled Now — list view, clocked-in first */}
+          {(() => {
+            const scheduledOnline = coverage.scheduledNow.filter(s =>
+              s.status === "available" || s.status === "on_break" || s.status === "at_lunch"
+            );
+            const scheduledLate = coverage.scheduledNow.filter(s =>
+              s.status !== "available" && s.status !== "on_break" && s.status !== "at_lunch"
+              && s.status !== "out_sick" && s.status !== "on_vacation"
+            );
+            const sorted = [...scheduledOnline, ...scheduledLate];
+            return (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg blue" />
+                  <h2>Scheduled Now <InfoTooltip text="Everyone whose work hours cover this moment. Green = clocked in, red = not yet on the clock." /></h2>
+                  <span className="status-count blue">{coverage.scheduledNow.length}</span>
+                </div>
+                {sorted.length > 0 ? (
+                  <div className="attend-grid list-view">
+                    {sorted.map((s) => (
+                      <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone}
+                        canManage={canManage} actionLoading={actionLoading} now={nowSafe}
+                        onForcePunchIn={handleForcePunchIn} onForcePunchOut={handleForcePunchOut} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="dash-empty">No one is scheduled to be working right now.</p>
+                )}
               </div>
-            ) : (
-              <p className="dash-empty">No one is scheduled to be working right now.</p>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Clocked in but not in Scheduled Now (unscheduled workers) */}
           {(() => {
@@ -410,19 +422,24 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             </div>
           )}
 
-          {/* Late / absent — managers and admins only */}
-          {canManage && groups.late.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg red" />
-                <h2>Late / Not Clocked In <InfoTooltip text="Scheduled to work right now but hasn't clocked in. The timer shows how late they are. Use 'Clock in ↩' to log them in manually." /></h2>
-                <span className="status-count red">{groups.late.length}</span>
+          {/* Late / Not Clocked In — exclude anyone already shown in Scheduled Now */}
+          {(() => {
+            const scheduledNowIds = new Set(coverage.scheduledNow.map(s => s.profile.id));
+            const lateNotScheduled = groups.late.filter(s => !scheduledNowIds.has(s.profile.id));
+            if (!canManage || !lateNotScheduled.length) return null;
+            return (
+              <div className="status-group">
+                <div className="status-group-heading">
+                  <span className="status-dot-lg red" />
+                  <h2>Late / Not Clocked In <InfoTooltip text="Overdue to clock in but outside a scheduled shift window. Use 'Clock in ↩' to log them in manually." /></h2>
+                  <span className="status-count red">{lateNotScheduled.length}</span>
+                </div>
+                <div className="attend-grid list-view">
+                  {lateNotScheduled.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
+                </div>
               </div>
-              <div className="attend-grid list-view">
-                {groups.late.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Out today */}
           {groups.out.length > 0 && (
