@@ -32,13 +32,14 @@ function LoginForm() {
 
   const [view, setView] = useState<View>(token ? "setup" : "login");
   const [setupFirstName, setSetupFirstName] = useState("");
-  const [ssoAvailable, setSsoAvailable] = useState(false);
+  // null = loading, true = SSO on, false = SSO off
+  const [ssoAvailable, setSsoAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/sso-status")
       .then((r) => r.json())
       .then((d: { enabled?: boolean }) => setSsoAvailable(!!d.enabled))
-      .catch(() => {});
+      .catch(() => setSsoAvailable(false));
   }, []);
 
   const ssoError = searchParams.get("sso_error");
@@ -211,6 +212,34 @@ function LoginForm() {
         {/* ── Sign In ── */}
         {view === "login" && (
           <form className="login-fields" onSubmit={handleLogin}>
+            {/* Microsoft SSO — shown first, placeholder while loading */}
+            {ssoAvailable === null ? (
+              <div className="login-ms-btn" style={{ opacity: 0.4, pointerEvents: "none", justifyContent: "center" }}>
+                <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+                  <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+                  <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+                  <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Sign in with Microsoft
+              </div>
+            ) : ssoAvailable ? (
+              <button type="button" className="login-ms-btn" onClick={handleMicrosoftSignIn}>
+                <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+                  <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+                  <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+                  <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Sign in with Microsoft
+              </button>
+            ) : null}
+
+            {ssoAvailable !== false && <div className="login-divider">or</div>}
+
+            {ssoError && !error && (
+              <p className="error-line">{SSO_ERRORS[ssoError] ?? "Microsoft sign-in failed."}</p>
+            )}
             <div className="control">
               <label htmlFor="email">Email address</label>
               <input
@@ -245,28 +274,10 @@ function LoginForm() {
               />
             </div>
             {error && <p className="error-line">{error}</p>}
-            {ssoError && !error && (
-              <p className="error-line">{SSO_ERRORS[ssoError] ?? "Microsoft sign-in failed."}</p>
-            )}
             <button className="button primary" type="submit" disabled={loading} style={{ marginTop: 4 }}>
               <LogIn size={15} aria-hidden="true" />
               {loading ? "Signing in…" : "Sign In"}
             </button>
-
-            {ssoAvailable && (
-              <>
-                <div className="login-divider">or</div>
-                <button type="button" className="login-ms-btn" onClick={handleMicrosoftSignIn}>
-                  <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
-                    <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
-                    <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
-                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-                  </svg>
-                  Sign in with Microsoft
-                </button>
-              </>
-            )}
           </form>
         )}
 
