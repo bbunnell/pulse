@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { addHours } from "date-fns";
-import { CalendarPlus, CheckCircle, Paperclip } from "lucide-react";
+import { CalendarPlus, CheckCircle, Paperclip, Trash2 } from "lucide-react";
 
 import type { OrgData, TimeOffEntry, TimeOffType } from "@/lib/types";
 import { buildClientIcs, icsFileName } from "@/lib/ics";
@@ -12,9 +12,10 @@ import { buildDateTime, formatShortDate, isoDateOnly } from "@/lib/time";
 interface Props {
   data: OrgData;
   currentUserId?: string;
+  userRole?: string;
 }
 
-export function TimeOffForm({ data, currentUserId }: Props) {
+export function TimeOffForm({ data, currentUserId, userRole }: Props) {
   const defaultId = currentUserId ?? data.profiles[0]?.id ?? "";
 
   const [entries, setEntries] = useState(data.timeOff);
@@ -29,6 +30,9 @@ export function TimeOffForm({ data, currentUserId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [createdEntryId, setCreatedEntryId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const canManage = userRole === "admin" || userRole === "manager";
 
   const profile = data.profiles.find((p) => p.id === userId) ?? data.profiles[0];
   const userEntries = useMemo(
@@ -86,6 +90,13 @@ export function TimeOffForm({ data, currentUserId }: Props) {
 
     setNotes("");
     setSubmitting(false);
+  }
+
+  async function deleteEntry(id: string) {
+    setDeletingId(id);
+    await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    setDeletingId(null);
   }
 
   return (
@@ -232,9 +243,23 @@ export function TimeOffForm({ data, currentUserId }: Props) {
                         {formatShortDate(entry.startAt)} → {formatShortDate(entry.endAt)}
                       </small>
                     </span>
-                    <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
-                      {entry.hours}h
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
+                        {entry.hours}h
+                      </span>
+                      {canManage && (
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          title="Delete entry"
+                          disabled={deletingId === entry.id}
+                          onClick={() => deleteEntry(entry.id)}
+                          style={{ color: "var(--red)" }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -243,6 +268,57 @@ export function TimeOffForm({ data, currentUserId }: Props) {
             </div>
           </aside>
         </div>
+
+        {canManage && (
+          <div className="panel" style={{ marginTop: 24 }}>
+            <div className="panel-header">
+              <div>
+                <h2>All Team Time Off</h2>
+                <p className="subtle">Manage entries for all employees.</p>
+              </div>
+            </div>
+            <div className="settings-list">
+              {entries.length === 0 ? (
+                <div className="empty-state">No time off entries.</div>
+              ) : (
+                [...entries]
+                  .sort((a, b) => b.startAt.localeCompare(a.startAt))
+                  .map((entry) => {
+                    const entryProfile = data.profiles.find((p) => p.id === entry.userId);
+                    return (
+                      <div className="time-off-entry-card" key={entry.id}>
+                        <span>
+                          <strong style={{ fontSize: 13 }}>
+                            {entryProfile ? profileName(entryProfile) : "Unknown"}
+                          </strong>
+                          <small className="subtle">
+                            {entry.timeOffType === "vacation" ? "Vacation" : entry.timeOffType === "business_trip" ? "Business Trip" : "Sick time"}
+                            {" · "}
+                            {formatShortDate(entry.startAt)} → {formatShortDate(entry.endAt)}
+                          </small>
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
+                            {entry.hours}h
+                          </span>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title="Delete entry"
+                            disabled={deletingId === entry.id}
+                            onClick={() => deleteEntry(entry.id)}
+                            style={{ color: "var(--red)" }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
