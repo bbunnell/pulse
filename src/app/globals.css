@@ -996,14 +996,19 @@ h2 {
 
 @media (max-width: 1000px) { .dash-body { grid-template-columns: 1fr; } }
 
-/* On phone, surface the clock widget above the attendance list */
+/* On phone, surface the clock widget above everything */
 @media (max-width: 768px) {
-  .dash-body { padding: 12px 16px 24px; gap: 16px; }
+  .dash-body { padding: 12px 16px 24px; gap: 16px; order: 2; }
+  .dash-summary-row { order: 3; }
+  .coverage-gap-banner,
+  .coverage-understaffed-banner { order: 4; }
   .dash-sidebar { order: -1; }
   /* Hide search/filter and recent activity on mobile — clock is the primary action */
   .dash-sidebar-controls { display: none; }
   .dash-sidebar .activity-feed,
   .dash-sidebar .status-group { display: none; }
+  /* Hide Monitor button on mobile */
+  .monitor-popout-btn { display: none; }
 }
 
 .dash-main {

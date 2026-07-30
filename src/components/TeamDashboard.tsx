@@ -351,7 +351,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   return (
     <section className="page-shell">
       {/* Summary stat bar + pop-out button */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 0 }}>
+      <div className="dash-summary-row" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 0 }}>
         <div className="dash-summary-bar" style={{ flex: 1, marginBottom: 0 }}>
         <SummaryStat label="Scheduled" value={summary.scheduledNow} tone="blue" />
         <SummaryStat label="Clocked In" value={summary.working} tone="green" />
