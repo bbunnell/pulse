@@ -184,7 +184,7 @@ export async function createInvitedUser(input: {
         input.standardWorkDays ?? [1,2,3,4,5],
         input.expectedStartTime ?? "08:30",
         input.expectedEndTime ?? "17:00",
-        input.birthday ?? null,
+        input.birthday ? `2000-${input.birthday}` : null,
         input.workAnniversary ?? null,
       ],
     );
