@@ -1057,6 +1057,7 @@ export interface CompanyEvent {
   eventType: CompanyEventType;
   startDate: string;   // "YYYY-MM-DD"
   endDate?: string;    // "YYYY-MM-DD" or undefined for single-day
+  profileIds: string[];
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -1073,6 +1074,7 @@ function mapCompanyEvent(row: Record<string, unknown>): CompanyEvent {
     eventType: row.event_type as CompanyEventType,
     startDate: toDs(row.start_date)!,
     endDate: toDs(row.end_date) ?? undefined,
+    profileIds: (row.profile_ids as string[] | null) ?? [],
     createdBy: (row.created_by as string | null) ?? undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
@@ -1091,19 +1093,20 @@ export async function getCompanyEvents(from: string, to: string): Promise<Compan
 
 export async function createCompanyEvent(input: {
   title: string; description?: string; eventType: CompanyEventType;
-  startDate: string; endDate?: string; createdBy?: string;
+  startDate: string; endDate?: string; profileIds?: string[]; createdBy?: string;
 }): Promise<CompanyEvent> {
   const r = await query(
-    `INSERT INTO company_events (title, description, event_type, start_date, end_date, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [input.title, input.description ?? null, input.eventType, input.startDate, input.endDate ?? null, input.createdBy ?? null],
+    `INSERT INTO company_events (title, description, event_type, start_date, end_date, profile_ids, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [input.title, input.description ?? null, input.eventType, input.startDate,
+     input.endDate ?? null, input.profileIds ?? [], input.createdBy ?? null],
   );
   return mapCompanyEvent(r.rows[0]);
 }
 
 export async function updateCompanyEvent(id: string, patch: Partial<{
   title: string; description: string | null; eventType: CompanyEventType;
-  startDate: string; endDate: string | null;
+  startDate: string; endDate: string | null; profileIds: string[];
 }>): Promise<CompanyEvent | null> {
   const r = await query(
     `UPDATE company_events SET
@@ -1111,12 +1114,14 @@ export async function updateCompanyEvent(id: string, patch: Partial<{
        description = COALESCE($3, description),
        event_type  = COALESCE($4::text, event_type),
        start_date  = COALESCE($5::date, start_date),
-       end_date    = CASE WHEN $6::boolean THEN $7::date ELSE end_date END
+       end_date    = CASE WHEN $6::boolean THEN $7::date ELSE end_date END,
+       profile_ids = COALESCE($8, profile_ids)
      WHERE id = $1 RETURNING *`,
     [id, patch.title ?? null, patch.description ?? null, patch.eventType ?? null,
      patch.startDate ?? null,
-     patch.endDate !== undefined,   // $6 — whether to update end_date
-     patch.endDate ?? null],        // $7 — the new end_date value (may be null to clear)
+     patch.endDate !== undefined,
+     patch.endDate ?? null,
+     patch.profileIds ?? null],
   );
   return r.rows[0] ? mapCompanyEvent(r.rows[0]) : null;
 }

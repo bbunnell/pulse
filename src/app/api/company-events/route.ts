@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     title?: string; description?: string; eventType?: CompanyEventType;
-    startDate?: string; endDate?: string;
+    startDate?: string; endDate?: string; profileIds?: string[];
   };
 
   if (!body.title?.trim() || !body.startDate) {
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     eventType: body.eventType ?? "other",
     startDate: body.startDate,
     endDate: body.endDate || undefined,
+    profileIds: body.profileIds ?? [],
     createdBy: actorId,
   });
 

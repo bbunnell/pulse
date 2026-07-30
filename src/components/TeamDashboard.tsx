@@ -98,8 +98,15 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const [search, setSearch] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
-  const [editingTimeOff, setEditingTimeOff] = useState<TimeOffEntry | null>(null);
-  const [timeOffSaving, setTimeOffSaving] = useState(false);
+  const [editingTimeOff,  setEditingTimeOff]  = useState<TimeOffEntry | null>(null);
+  const [timeOffSaving,   setTimeOffSaving]   = useState(false);
+  const [markingTimeOff,  setMarkingTimeOff]  = useState<AttendanceSnapshot | null>(null);
+  const [markTimeOffType, setMarkTimeOffType] = useState<"sick" | "vacation">("sick");
+  const [markTimeOffMode, setMarkTimeOffMode] = useState<"today" | "range">("today");
+  const [markStartDate,   setMarkStartDate]   = useState("");
+  const [markEndDate,     setMarkEndDate]     = useState("");
+  const [markNotes,       setMarkNotes]       = useState("");
+  const [markSaving,      setMarkSaving]      = useState(false);
 
   // Live data — seeded from server props, refreshed by polling without a full reload.
   const [live, setLive] = useState<{
@@ -271,6 +278,38 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const handleForcePunchOut = (profileId: string) => clockAction("/api/time-clock/admin-punch", { profileId, action: "punch_out" });
   const handleForcePunchIn  = (profileId: string) => clockAction("/api/time-clock/admin-punch", { profileId, action: "punch_in" });
 
+  function openMarkTimeOff(snapshot: AttendanceSnapshot) {
+    const today = new Date().toISOString().slice(0, 10);
+    setMarkingTimeOff(snapshot);
+    setMarkTimeOffType("sick");
+    setMarkTimeOffMode("today");
+    setMarkStartDate(today);
+    setMarkEndDate(today);
+    setMarkNotes("");
+  }
+
+  async function handleMarkTimeOffSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!markingTimeOff) return;
+    setMarkSaving(true);
+    const start = markTimeOffMode === "today" ? new Date().toISOString().slice(0, 10) : markStartDate;
+    const end   = markTimeOffMode === "today" ? start : (markEndDate || start);
+    await fetch("/api/admin/time-off", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: markingTimeOff.profile.id,
+        timeOffType: markTimeOffType,
+        startDate: start,
+        endDate: end,
+        notes: markNotes || undefined,
+      }),
+    });
+    setMarkSaving(false);
+    setMarkingTimeOff(null);
+    await refreshLive();
+  }
+
   async function handleDeleteTimeOff(id: string) {
     if (!confirm("Delete this time-off entry?")) return;
     await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
@@ -375,7 +414,8 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                   {scheduledNotIn.map((s) => (
                     <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone}
                       canManage={canManage} actionLoading={actionLoading} now={nowSafe}
-                      onForcePunchIn={handleForcePunchIn} onForcePunchOut={handleForcePunchOut} />
+                      onForcePunchIn={handleForcePunchIn} onForcePunchOut={handleForcePunchOut}
+                      onMarkTimeOff={openMarkTimeOff} />
                   ))}
                 </div>
               </div>
@@ -417,7 +457,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                   <span className="status-count red">{lateNotScheduled.length}</span>
                 </div>
                 <div className="attend-grid list-view">
-                  {lateNotScheduled.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
+                  {lateNotScheduled.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} onMarkTimeOff={openMarkTimeOff} />)}
                 </div>
               </div>
             );
@@ -447,7 +487,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                 <span className="status-count gray">{groups.notIn.length}</span>
               </div>
               <div className="attend-grid list-view">
-                {groups.notIn.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} />)}
+                {groups.notIn.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} onMarkTimeOff={openMarkTimeOff} />)}
               </div>
             </div>
           )}
@@ -572,6 +612,78 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           </div>
         </aside>
       </div>
+
+      {/* Mark time off modal */}
+      {markingTimeOff && (
+        <div className="modal-overlay" onClick={() => setMarkingTimeOff(null)}>
+          <div className="modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Mark Time Off — {markingTimeOff.profile.firstName} {markingTimeOff.profile.lastName}</h2>
+              <button className="modal-close" type="button" onClick={() => setMarkingTimeOff(null)}>✕</button>
+            </div>
+            <form onSubmit={handleMarkTimeOffSubmit}>
+              <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <label className="field-label">Type
+                  <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                    {(["sick", "vacation"] as const).map(t => (
+                      <button key={t} type="button"
+                        onClick={() => setMarkTimeOffType(t)}
+                        style={{
+                          flex: 1, padding: "7px 0", borderRadius: 6, fontSize: 13, fontWeight: 500,
+                          border: "1px solid var(--border)", cursor: "pointer",
+                          background: markTimeOffType === t ? "var(--blue)" : "var(--surface)",
+                          color: markTimeOffType === t ? "#fff" : "var(--ink)",
+                        }}>
+                        {t === "sick" ? "🤒 Sick" : "🏖 Vacation"}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+                <label className="field-label">Duration
+                  <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                    {(["today", "range"] as const).map(m => (
+                      <button key={m} type="button"
+                        onClick={() => setMarkTimeOffMode(m)}
+                        style={{
+                          flex: 1, padding: "7px 0", borderRadius: 6, fontSize: 13, fontWeight: 500,
+                          border: "1px solid var(--border)", cursor: "pointer",
+                          background: markTimeOffMode === m ? "var(--blue)" : "var(--surface)",
+                          color: markTimeOffMode === m ? "#fff" : "var(--ink)",
+                        }}>
+                        {m === "today" ? "Today only" : "Date range"}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+                {markTimeOffMode === "range" && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <label className="field-label">Start date
+                      <input type="date" className="field-input" style={{ marginTop: 4 }}
+                             value={markStartDate} onChange={e => setMarkStartDate(e.target.value)} required />
+                    </label>
+                    <label className="field-label">End date
+                      <input type="date" className="field-input" style={{ marginTop: 4 }}
+                             value={markEndDate} min={markStartDate}
+                             onChange={e => setMarkEndDate(e.target.value)} required />
+                    </label>
+                  </div>
+                )}
+                <label className="field-label">Notes
+                  <input type="text" className="field-input" style={{ marginTop: 4 }}
+                         value={markNotes} onChange={e => setMarkNotes(e.target.value)}
+                         placeholder="Optional reason…" />
+                </label>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="button" onClick={() => setMarkingTimeOff(null)}>Cancel</button>
+                <button type="submit" className="button primary" disabled={markSaving}>
+                  {markSaving ? "Saving…" : "Mark Out"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Time-off edit modal */}
       {editingTimeOff && (
@@ -716,11 +828,12 @@ function CoverageCard({ snapshot, orgTimezone, canManage, actionLoading, onForce
   );
 }
 
-function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onForcePunchIn, onForcePunchOut, onDeleteTimeOff, onEditTimeOff }: {
+function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onForcePunchIn, onForcePunchOut, onDeleteTimeOff, onEditTimeOff, onMarkTimeOff }: {
   snapshot: AttendanceSnapshot; orgTimezone: string; canManage: boolean; actionLoading: boolean;
   now?: Date;
   onForcePunchIn?(id: string): void; onForcePunchOut?(id: string): void;
   onDeleteTimeOff?(id: string): void; onEditTimeOff?(entry: TimeOffEntry): void;
+  onMarkTimeOff?(snapshot: AttendanceSnapshot): void;
 }) {
   const clockIn  = snapshot.todayShift?.punchInAt ?? snapshot.activeShift?.punchInAt;
   const isOut    = snapshot.status === "out_sick" || snapshot.status === "on_vacation";
@@ -805,6 +918,15 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
                   onClick={() => onForcePunchIn(snapshot.profile.id)}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+          </button>
+        )}
+        {canManage && !isOut && onMarkTimeOff && (
+          <button className="btn-punch" type="button" disabled={actionLoading}
+                  title="Mark sick / time off"
+                  onClick={() => onMarkTimeOff(snapshot)}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/>
             </svg>
           </button>
         )}

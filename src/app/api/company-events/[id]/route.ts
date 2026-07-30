@@ -15,7 +15,7 @@ export async function PATCH(
   const { id } = await params;
   const body = (await request.json()) as Partial<{
     title: string; description: string | null; eventType: CompanyEventType;
-    startDate: string; endDate: string | null;
+    startDate: string; endDate: string | null; profileIds: string[];
   }>;
   const event = await updateCompanyEvent(id, body);
   if (!event) return NextResponse.json({ error: "Event not found." }, { status: 404 });

@@ -65,20 +65,30 @@ function yearsAgo(isoDate: string, now: Date): number {
 interface EventModalProps {
   existing?: CompanyEvent;
   defaultDate?: string;
+  profiles: OrgData["profiles"];
   onSave(event: CompanyEvent): void;
   onDelete?(id: string): void;
   onClose(): void;
 }
 
-function EventModal({ existing, defaultDate, onSave, onDelete, onClose }: EventModalProps) {
-  const [title,     setTitle]     = useState(existing?.title ?? "");
-  const [type,      setType]      = useState<CompanyEventType>(existing?.eventType ?? "other");
-  const [startDate, setStartDate] = useState(existing?.startDate ?? defaultDate ?? "");
-  const [endDate,   setEndDate]   = useState(existing?.endDate ?? "");
-  const [desc,      setDesc]      = useState(existing?.description ?? "");
-  const [saving,    setSaving]    = useState(false);
-  const [error,     setError]     = useState("");
+function EventModal({ existing, defaultDate, profiles, onSave, onDelete, onClose }: EventModalProps) {
+  const [title,      setTitle]      = useState(existing?.title ?? "");
+  const [type,       setType]       = useState<CompanyEventType>(existing?.eventType ?? "other");
+  const [startDate,  setStartDate]  = useState(existing?.startDate ?? defaultDate ?? "");
+  const [endDate,    setEndDate]    = useState(existing?.endDate ?? "");
+  const [desc,       setDesc]       = useState(existing?.description ?? "");
+  const [profileIds, setProfileIds] = useState<string[]>(existing?.profileIds ?? []);
+  const [saving,     setSaving]     = useState(false);
+  const [error,      setError]      = useState("");
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  const sortedProfiles = [...profiles].sort((a, b) =>
+    `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`)
+  );
+
+  function toggleProfile(id: string) {
+    setProfileIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -86,7 +96,11 @@ function EventModal({ existing, defaultDate, onSave, onDelete, onClose }: EventM
     if (endDate && endDate < startDate) { setError("End date must be on or after start date."); return; }
     setSaving(true); setError("");
 
-    const body = { title: title.trim(), eventType: type, startDate, endDate: endDate || undefined, description: desc || undefined };
+    const body = {
+      title: title.trim(), eventType: type, startDate,
+      endDate: endDate || undefined, description: desc || undefined,
+      profileIds,
+    };
 
     const res = existing
       ? await fetch(`/api/company-events/${existing.id}`, {
@@ -113,7 +127,7 @@ function EventModal({ existing, defaultDate, onSave, onDelete, onClose }: EventM
   return (
     <div className="schedule-modal-overlay" ref={overlayRef}
          onClick={e => { if (e.target === overlayRef.current) onClose(); }}>
-      <div className="schedule-modal">
+      <div className="schedule-modal" style={{ maxWidth: 520 }}>
         <div className="schedule-modal-header">
           <h3>{existing ? "Edit Event" : "Add Company Event"}</h3>
           <button className="icon-btn" type="button" onClick={onClose}><X size={16}/></button>
@@ -150,6 +164,38 @@ function EventModal({ existing, defaultDate, onSave, onDelete, onClose }: EventM
             <label>Description <span className="subtle">(optional)</span></label>
             <input className="input" value={desc} onChange={e => setDesc(e.target.value)}
                    placeholder="Location, details, RSVP instructions…" />
+          </div>
+
+          <div className="control">
+            <label style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>People <span className="subtle">(optional — leave blank for whole team)</span></span>
+              {profileIds.length > 0 && (
+                <button type="button" className="link-btn" style={{ fontSize: 12 }}
+                        onClick={() => setProfileIds([])}>Clear all</button>
+              )}
+            </label>
+            <div style={{
+              border: "1px solid var(--border)", borderRadius: 6,
+              maxHeight: 180, overflowY: "auto", marginTop: 4,
+            }}>
+              {sortedProfiles.map(p => (
+                <label key={p.id} style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px 10px", cursor: "pointer",
+                  background: profileIds.includes(p.id) ? "var(--surface-2)" : "transparent",
+                  borderBottom: "1px solid var(--border)",
+                }}>
+                  <input type="checkbox" checked={profileIds.includes(p.id)}
+                         onChange={() => toggleProfile(p.id)} />
+                  <span style={{ fontSize: 13 }}>{p.lastName}, {p.firstName}</span>
+                </label>
+              ))}
+            </div>
+            {profileIds.length > 0 && (
+              <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                {profileIds.length} {profileIds.length === 1 ? "person" : "people"} selected
+              </p>
+            )}
           </div>
 
           {error && <p className="error-line">{error}</p>}
@@ -362,6 +408,7 @@ export function TeamCalendar({ data, canManage }: Props) {
         <EventModal
           existing={editingEvent ?? undefined}
           defaultDate={defaultDate || undefined}
+          profiles={data.profiles}
           onSave={handleEventSaved}
           onDelete={editingEvent ? handleEventDeleted : undefined}
           onClose={() => { setShowModal(false); setEditingEvent(null); setDefaultDate(""); }}
