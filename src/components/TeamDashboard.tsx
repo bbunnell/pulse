@@ -101,7 +101,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const [editingTimeOff,  setEditingTimeOff]  = useState<TimeOffEntry | null>(null);
   const [timeOffSaving,   setTimeOffSaving]   = useState(false);
   const [markingTimeOff,  setMarkingTimeOff]  = useState<AttendanceSnapshot | null>(null);
-  const [markTimeOffType, setMarkTimeOffType] = useState<"sick" | "vacation">("sick");
+  const [markTimeOffType, setMarkTimeOffType] = useState<"sick" | "vacation" | "business_trip">("sick");
   const [markTimeOffMode, setMarkTimeOffMode] = useState<"today" | "range">("today");
   const [markStartDate,   setMarkStartDate]   = useState("");
   const [markEndDate,     setMarkEndDate]     = useState("");
@@ -625,7 +625,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
               <div className="schedule-modal-body">
                 <label className="field-label">Type
                   <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                    {(["sick", "vacation"] as const).map(t => (
+                    {(["sick", "vacation", "business_trip"] as const).map(t => (
                       <button key={t} type="button"
                         onClick={() => setMarkTimeOffType(t)}
                         style={{
@@ -634,7 +634,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                           background: markTimeOffType === t ? "var(--blue)" : "var(--surface)",
                           color: markTimeOffType === t ? "#fff" : "var(--ink)",
                         }}>
-                        {t === "sick" ? "🤒 Sick" : "🏖 Vacation"}
+                        {t === "sick" ? "🤒 Sick" : t === "vacation" ? "🏖 Vacation" : "✈️ Business Trip"}
                       </button>
                     ))}
                   </div>
@@ -699,6 +699,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                   <select name="timeOffType" defaultValue={editingTimeOff.timeOffType} className="field-input" style={{ marginTop: 4 }}>
                     <option value="vacation">Vacation</option>
                     <option value="sick">Sick</option>
+                    <option value="business_trip">Business Trip</option>
                   </select>
                 </label>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -872,8 +873,8 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
       <div className="attend-card-footer">
         {isOut && snapshot.timeOffToday ? (
           <div className="attend-card-tags">
-            <span className={`status-badge ${snapshot.timeOffToday.timeOffType === "vacation" ? "blue" : "red"}`} style={{ fontSize: 11, padding: "2px 7px" }}>
-              {snapshot.timeOffToday.timeOffType === "vacation" ? "Vacation" : "Sick"}
+            <span className={`status-badge ${snapshot.timeOffToday.timeOffType === "vacation" ? "blue" : snapshot.timeOffToday.timeOffType === "business_trip" ? "amber" : "red"}`} style={{ fontSize: 11, padding: "2px 7px" }}>
+              {snapshot.timeOffToday.timeOffType === "vacation" ? "Vacation" : snapshot.timeOffToday.timeOffType === "business_trip" ? "Business Trip" : "Sick"}
             </span>
           </div>
         ) : isWorking ? (

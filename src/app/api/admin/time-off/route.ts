@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     userId?: string;
-    timeOffType?: "vacation" | "sick";
+    timeOffType?: "vacation" | "sick" | "business_trip";
     startDate?: string;
     endDate?: string;
     notes?: string;

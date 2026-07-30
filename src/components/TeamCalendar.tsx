@@ -254,7 +254,7 @@ export function TeamCalendar({ data, canManage }: Props) {
       if (entry.status === "cancelled") continue;
       const profile = data.profiles.find((p) => p.id === entry.userId);
       all.push({
-        title: `${entry.timeOffType === "vacation" ? "🌴 Vacation" : "🤒 Sick"} – ${profile ? profileName(profile) : "Employee"}`,
+        title: `${entry.timeOffType === "vacation" ? "🌴 Vacation" : entry.timeOffType === "business_trip" ? "✈️ Business Trip" : "🤒 Sick"} – ${profile ? profileName(profile) : "Employee"}`,
         start: new Date(entry.startAt),
         end: new Date(entry.endAt),
         resource: { kind: entry.timeOffType as EventKind, userId: entry.userId, teamId: profile?.teamId ?? "" },

@@ -135,13 +135,13 @@ export function MyTimeView({ data, currentUserId }: Props) {
                   <div className="time-off-entry-card" key={entry.id}>
                     <span>
                       <strong style={{ fontSize: 13 }}>
-                        {entry.timeOffType === "vacation" ? "Vacation" : "Sick time"}
+                        {entry.timeOffType === "vacation" ? "Vacation" : entry.timeOffType === "business_trip" ? "Business Trip" : "Sick time"}
                       </strong>
                       <small className="subtle">
                         {formatShortDate(entry.startAt)} → {formatShortDate(entry.endAt)}
                       </small>
                     </span>
-                    <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : "red"}`}>
+                    <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
                       {entry.hours}h
                     </span>
                   </div>

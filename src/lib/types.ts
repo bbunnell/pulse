@@ -1,7 +1,7 @@
 export type Role = "employee" | "manager" | "admin";
 export type ProfileStatus = "active" | "inactive";
 export type SegmentType = "break" | "lunch";
-export type TimeOffType = "vacation" | "sick";
+export type TimeOffType = "vacation" | "sick" | "business_trip";
 export type TimeOffStatus = "submitted" | "approved" | "rejected" | "cancelled";
 export type AttendanceStatus =
   | "available"
