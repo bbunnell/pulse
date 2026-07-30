@@ -903,6 +903,14 @@ h2 {
 
 @media (max-width: 1000px) { .dash-body { grid-template-columns: 1fr; } }
 
+/* On phone, surface the clock widget above the attendance list */
+@media (max-width: 768px) {
+  .dash-body { padding: 12px 16px 24px; gap: 16px; }
+  .dash-sidebar { order: -1; }
+  /* Hide search/filter controls on mobile — clock is the primary action */
+  .dash-sidebar-controls { display: none; }
+}
+
 .dash-main {
   display: flex;
   flex-direction: column;
