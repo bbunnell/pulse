@@ -404,7 +404,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             );
             if (!scheduledNotIn.length) return null;
             return (
-              <div className="status-group">
+              <div className="status-group section-scheduled-now">
                 <div className="status-group-heading">
                   <span className="status-dot-lg blue" />
                   <h2>Scheduled Now <InfoTooltip text="People whose shift window covers this moment but who haven't clocked in yet." /></h2>
@@ -424,7 +424,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
           {/* Clocked In — everyone actively on the clock, including on break/lunch */}
           {(groups.working.length > 0 || groups.onBreak.length > 0) && (
-            <div className="status-group">
+            <div className="status-group section-clocked-in">
               <div className="status-group-heading">
                 <span className="status-dot-lg green" />
                 <h2>Clocked In <InfoTooltip text="Everyone actively on the clock right now. Break and lunch status shown inline." /></h2>

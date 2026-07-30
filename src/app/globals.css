@@ -1009,6 +1009,13 @@ h2 {
   .dash-sidebar .status-group { display: none; }
   /* Hide Monitor button on mobile */
   .monitor-popout-btn { display: none; }
+  /* Clocked In first, Scheduled Now second on mobile */
+  .section-clocked-in { order: 1; }
+  .section-scheduled-now { order: 2; }
+  /* Team Events: stack date label above pills instead of side-by-side */
+  .dash-events-day { flex-direction: column; gap: 5px; }
+  .dash-events-day-label { min-width: unset; }
+  .dash-events-pills { flex-wrap: wrap; }
 }
 
 .dash-main {
