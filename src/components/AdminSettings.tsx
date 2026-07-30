@@ -1881,19 +1881,38 @@ export function AdminSettings({ data, currentUserId }: Props) {
           </div>
 
           <div className="entra-setup-guide" style={{ margin: "0 18px 18px" }}>
-            <p style={{ marginBottom: 10 }}>
-              This sync reads each employee's Outlook calendar and auto-reply settings via the same
-              Entra app used for email. Two additional <strong>application</strong> permissions are
-              required — add them in your app registration, then grant admin consent:
+            <p style={{ marginBottom: 12 }}>
+              This sync reads each employee's Outlook calendar and automatic-reply settings using
+              the same Entra app registration configured under Email. Two additional{" "}
+              <strong>Application</strong> permissions must be added and admin-consented before the
+              sync will work.
             </p>
-            <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><code>Calendars.Read</code> — reads calendar events marked as Out of Office</li>
-              <li><code>MailboxSettings.Read</code> — reads the automatic-reply (OOF) on/off setting and scheduled dates</li>
-            </ul>
-            <p style={{ marginTop: 10, marginBottom: 0 }}>
-              Synced entries appear as approved vacation entries tagged "Out of office" and are
-              automatically removed if the OOF period is cancelled in Outlook.
-              The sync runs every 15 minutes automatically.
+            <p style={{ fontWeight: 600, marginBottom: 8 }}>Add permissions in Azure / Entra ID:</p>
+            <ol style={{ margin: "0 0 12px", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+              <li>
+                Open <strong>portal.azure.com</strong> → <em>Microsoft Entra ID</em> →{" "}
+                <em>App registrations</em> → select your app.
+              </li>
+              <li>
+                Go to <em>API permissions</em> → <strong>Add a permission</strong> →{" "}
+                <em>Microsoft Graph</em> → <em>Application permissions</em>.
+              </li>
+              <li>
+                Search for and add both:
+                <ul style={{ marginTop: 6, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <li><code>Calendars.Read</code> — reads calendar events marked as Out of Office</li>
+                  <li><code>MailboxSettings.Read</code> — reads the automatic-reply on/off state and scheduled dates</li>
+                </ul>
+              </li>
+              <li>
+                Click <strong>Grant admin consent for [your org]</strong> and confirm.
+                Both permissions must show a green checkmark in the Status column.
+              </li>
+            </ol>
+            <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>
+              Synced OOF periods appear as approved vacation entries and are removed automatically
+              when cancelled in Outlook. The sync runs every 15 minutes. Click <em>Sync now</em> to
+              test immediately — it will confirm permissions are correct before running.
             </p>
           </div>
 
