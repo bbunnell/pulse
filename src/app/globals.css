@@ -2340,11 +2340,12 @@ body.monitor-mode              { background: #0f172a; }
   color: #fff;
   white-space: nowrap;
 }
-.dash-events-pill.event-vacation    { background: var(--blue); }
-.dash-events-pill.event-sick        { background: var(--red); }
-.dash-events-pill.event-birthday    { background: #9333ea; }
-.dash-events-pill.event-anniversary { background: #d97706; }
-.dash-events-pill.event-company     { background: #0891b2; }
+.dash-events-pill.event-vacation      { background: var(--blue); }
+.dash-events-pill.event-sick          { background: var(--red); }
+.dash-events-pill.event-business-trip { background: #d97706; }
+.dash-events-pill.event-birthday      { background: #9333ea; }
+.dash-events-pill.event-anniversary   { background: #d97706; }
+.dash-events-pill.event-company       { background: #0891b2; }
 
 .dash-sched-header {
   display: flex;
@@ -2420,11 +2421,12 @@ body.monitor-mode              { background: #0f172a; }
   display: block;
 }
 
-.dash-sched-pill.event-vacation    { background: var(--blue); }
-.dash-sched-pill.event-sick        { background: var(--red); }
-.dash-sched-pill.event-birthday    { background: #9333ea; }
-.dash-sched-pill.event-anniversary { background: #d97706; }
-.dash-sched-pill.event-company     { background: #0891b2; }
+.dash-sched-pill.event-vacation      { background: var(--blue); }
+.dash-sched-pill.event-sick          { background: var(--red); }
+.dash-sched-pill.event-business-trip { background: #d97706; }
+.dash-sched-pill.event-birthday      { background: #9333ea; }
+.dash-sched-pill.event-anniversary   { background: #d97706; }
+.dash-sched-pill.event-company       { background: #0891b2; }
 
 .dash-sched-pill-more {
   font-size: 9px;
@@ -4495,8 +4497,9 @@ input[type="checkbox"] {
   font-size: 12px;
 }
 
-.event-vacation    { background: var(--blue) !important;    border-color: var(--blue) !important; }
-.event-sick        { background: var(--red) !important;     border-color: var(--red) !important; }
+.event-vacation      { background: var(--blue) !important;    border-color: var(--blue) !important; }
+.event-sick          { background: var(--red) !important;     border-color: var(--red) !important; }
+.event-business-trip { background: #d97706 !important;        border-color: #b45309 !important;    color: #fff !important; }
 .event-shift       { background: var(--green) !important;   border-color: var(--green) !important; }
 .event-birthday    { background: #9333ea !important;        border-color: #7e22ce !important; color: #fff !important; }
 .event-anniversary { background: #d97706 !important;        border-color: #b45309 !important; color: #fff !important; }

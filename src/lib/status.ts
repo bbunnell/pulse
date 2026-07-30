@@ -195,15 +195,21 @@ export function buildAttendanceSnapshots(args: {
       if (workDays.includes(empDow)) {
         scheduledToday = true;
 
-        if (!activeShift) {
-          // Late if past their expectedStartTime + grace
+        if (!activeShift && !todayShift) {
+          // Late if past their expectedStartTime + grace, but only within their work day
           const [h, m] = (profile.expectedStartTime ?? "08:30").split(":").map(Number);
           const expectedStart = zonedTimeToUtc(
             empTodayStr,
             `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
             tz,
           );
-          if (now > expectedStart) {
+          const [eh, em] = (profile.expectedEndTime ?? "17:30").split(":").map(Number);
+          const expectedEnd = zonedTimeToUtc(
+            empTodayStr,
+            `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`,
+            tz,
+          );
+          if (now > expectedStart && now < expectedEnd) {
             minutesLate = Math.max(0, Math.floor((now.getTime() - expectedStart.getTime()) / 60_000));
             isLate = minutesLate >= LATE_GRACE_MINUTES;
           }
