@@ -253,6 +253,98 @@ button, input, select, textarea { font: inherit; color: inherit; }
   height: 100%;
 }
 
+/* ─── Mobile nav ──────────────────────────────────────────────── */
+.mobile-nav-controls {
+  display: none;
+}
+.mobile-menu-btn {
+  background: none;
+  border: none;
+  color: var(--nav-text);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+.mobile-menu-btn:hover { background: rgba(255,255,255,0.1); }
+
+.mobile-nav-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nav-text-active);
+  flex: 1;
+}
+
+.mobile-nav-dropdown {
+  position: fixed;
+  top: var(--topnav-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--nav-bg);
+  z-index: 49;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.mobile-nav-dropdown nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+.mobile-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--nav-text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: background 0.12s, color 0.12s;
+}
+.mobile-nav-item:hover { background: rgba(255,255,255,0.07); }
+.mobile-nav-item.active {
+  color: var(--nav-text-active);
+  background: rgba(255,255,255,0.1);
+  border-left-color: var(--nav-active-border);
+}
+.mobile-nav-footer {
+  margin-top: auto;
+  padding: 16px 24px;
+  border-top: 1px solid var(--nav-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mobile-nav-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--nav-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  :root { --topnav-h: 44px; }
+  .topnav { padding: 0 14px; }
+  .topnav-divider,
+  .topnav-links,
+  .topnav-end { display: none; }
+  .mobile-nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+}
+
 .sidebar-user-avatar {
   width: 28px;
   height: 28px;
