@@ -615,14 +615,14 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
       {/* Mark time off modal */}
       {markingTimeOff && (
-        <div className="modal-overlay" onClick={() => setMarkingTimeOff(null)}>
-          <div className="modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Mark Time Off — {markingTimeOff.profile.firstName} {markingTimeOff.profile.lastName}</h2>
-              <button className="modal-close" type="button" onClick={() => setMarkingTimeOff(null)}>✕</button>
+        <div className="schedule-modal-overlay" onClick={() => setMarkingTimeOff(null)}>
+          <div className="schedule-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <div className="schedule-modal-header">
+              <h3>Mark Time Off — {markingTimeOff.profile.firstName} {markingTimeOff.profile.lastName}</h3>
+              <button className="icon-btn" type="button" onClick={() => setMarkingTimeOff(null)}>✕</button>
             </div>
             <form onSubmit={handleMarkTimeOffSubmit}>
-              <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div className="schedule-modal-body">
                 <label className="field-label">Type
                   <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                     {(["sick", "vacation"] as const).map(t => (
@@ -674,7 +674,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                          placeholder="Optional reason…" />
                 </label>
               </div>
-              <div className="modal-footer">
+              <div className="schedule-modal-footer" style={{ padding: "0 20px 20px" }}>
                 <button type="button" className="button" onClick={() => setMarkingTimeOff(null)}>Cancel</button>
                 <button type="submit" className="button primary" disabled={markSaving}>
                   {markSaving ? "Saving…" : "Mark Out"}
@@ -687,14 +687,14 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
       {/* Time-off edit modal */}
       {editingTimeOff && (
-        <div className="modal-overlay" onClick={() => setEditingTimeOff(null)}>
-          <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Edit Time Off</h2>
-              <button className="modal-close" type="button" onClick={() => setEditingTimeOff(null)}>✕</button>
+        <div className="schedule-modal-overlay" onClick={() => setEditingTimeOff(null)}>
+          <div className="schedule-modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <div className="schedule-modal-header">
+              <h3>Edit Time Off</h3>
+              <button className="icon-btn" type="button" onClick={() => setEditingTimeOff(null)}>✕</button>
             </div>
             <form onSubmit={handleSaveTimeOff}>
-              <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div className="schedule-modal-body">
                 <label className="field-label">Type
                   <select name="timeOffType" defaultValue={editingTimeOff.timeOffType} className="field-input" style={{ marginTop: 4 }}>
                     <option value="vacation">Vacation</option>
@@ -716,7 +716,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                     defaultValue={editingTimeOff.notes ?? ""} placeholder="Optional" />
                 </label>
               </div>
-              <div className="modal-footer">
+              <div className="schedule-modal-footer" style={{ padding: "0 20px 20px" }}>
                 <button type="button" className="button" onClick={() => setEditingTimeOff(null)}>Cancel</button>
                 <button type="submit" className="button primary" disabled={timeOffSaving}>
                   {timeOffSaving ? "Saving…" : "Save"}
