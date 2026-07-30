@@ -36,7 +36,10 @@ export function formatDuration(minutes: number) {
 }
 
 export function formatShortDate(date: string | Date) {
-  return format(new Date(date), "EEE, MMM d");
+  const d = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? parse(date, "yyyy-MM-dd", new Date())
+    : new Date(date);
+  return format(d, "EEE, MMM d");
 }
 
 export function formatClock(date?: string | Date) {
