@@ -26,6 +26,7 @@ export const statusLabels: Record<AttendanceStatus, string> = {
   punched_out: "Punched Out",
   out_sick: "Out Sick",
   on_vacation: "On Vacation",
+  on_business_trip: "Business Trip",
 };
 
 export const statusTone: Record<AttendanceStatus, "green" | "amber" | "red" | "blue" | "gray"> = {
@@ -36,6 +37,7 @@ export const statusTone: Record<AttendanceStatus, "green" | "amber" | "red" | "b
   punched_out: "gray",
   out_sick: "red",
   on_vacation: "blue",
+  on_business_trip: "amber",
 };
 
 /** Minutes past scheduled start before someone counts as "late". Matches the reminder offset. */
@@ -98,6 +100,7 @@ export function attendanceStatusFromState(
   const timeOffToday = activeTimeOffForDate(timeOff, profile.id, now);
   if (timeOffToday?.timeOffType === "sick") return "out_sick";
   if (timeOffToday?.timeOffType === "vacation") return "on_vacation";
+  if (timeOffToday?.timeOffType === "business_trip") return "on_business_trip";
 
   // Did they work earlier in their local day and punch out?
   const todayShift = shiftForLocalToday(shifts, profile.id, profile.timezone, now);
@@ -353,7 +356,7 @@ export function buildSummary(snapshots: AttendanceSnapshot[]) {
     working: snapshots.filter((s) => ["available", "on_break", "at_lunch"].includes(s.status)).length,
     available: snapshots.filter((s) => s.status === "available").length,
     onBreakOrLunch: snapshots.filter((s) => ["on_break", "at_lunch"].includes(s.status)).length,
-    out: snapshots.filter((s) => ["out_sick", "on_vacation"].includes(s.status)).length,
+    out: snapshots.filter((s) => ["out_sick", "on_vacation", "on_business_trip"].includes(s.status)).length,
     scheduledNow: snapshots.filter((s) => s.isScheduledNow).length,
     late: snapshots.filter((s) => s.isLate).length,
     missingPunches: snapshots.filter((s) => s.missingPunch).length,

@@ -10,7 +10,8 @@ export type AttendanceStatus =
   | "not_punched_in"
   | "punched_out"
   | "out_sick"
-  | "on_vacation";
+  | "on_vacation"
+  | "on_business_trip";
 
 export type ReminderType =
   | "punch_in"

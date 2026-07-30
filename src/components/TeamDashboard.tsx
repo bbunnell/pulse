@@ -214,7 +214,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     for (const s of boardSnapshots) {
       if (s.status === "available") working.push(s);
       else if (s.status === "on_break" || s.status === "at_lunch") onBreak.push(s);
-      else if (s.status === "out_sick" || s.status === "on_vacation") out.push(s);
+      else if (s.status === "out_sick" || s.status === "on_vacation" || s.status === "on_business_trip") out.push(s);
       else if (s.isLate) {
         // Don't flag "late" for people who should only appear when active
         if (!s.profile.hideWhenNotActive) late.push(s);
@@ -400,7 +400,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           {(() => {
             const scheduledNotIn = coverage.scheduledNow.filter(s =>
               s.status !== "available" && s.status !== "on_break" && s.status !== "at_lunch"
-              && s.status !== "out_sick" && s.status !== "on_vacation"
+              && s.status !== "out_sick" && s.status !== "on_vacation" && s.status !== "on_business_trip"
             );
             if (!scheduledNotIn.length) return null;
             return (
@@ -837,7 +837,7 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
   onMarkTimeOff?(snapshot: AttendanceSnapshot): void;
 }) {
   const clockIn  = snapshot.todayShift?.punchInAt ?? snapshot.activeShift?.punchInAt;
-  const isOut    = snapshot.status === "out_sick" || snapshot.status === "on_vacation";
+  const isOut    = snapshot.status === "out_sick" || snapshot.status === "on_vacation" || snapshot.status === "on_business_trip";
   const isWorking = snapshot.status === "available";
   const isOnBreak = snapshot.status === "on_break" || snapshot.status === "at_lunch";
 

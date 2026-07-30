@@ -1283,7 +1283,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
               </div>
             </div>
             {usersExpanded && <div className="settings-list">
-              {[...profiles].sort((a, b) => `${a.lastName} ${a.firstName}`.toLowerCase().localeCompare(`${b.lastName} ${b.firstName}`.toLowerCase())).map((profile) => (
+              {[...profiles].sort((a, b) => `${a.firstName} ${a.lastName}`.toLowerCase().localeCompare(`${b.firstName} ${b.lastName}`.toLowerCase())).map((profile) => (
                 <div key={profile.id} style={{ display: "flex", flexDirection: "column" }}>
                   <div className="setting-row">
                     <div className="person-line" style={{ flex: 1 }}>

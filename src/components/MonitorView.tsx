@@ -114,8 +114,8 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
 
   // Group for display
   const active  = snapshots.filter(s => ["available","on_break","at_lunch"].includes(s.status));
-  const out     = snapshots.filter(s => ["out_sick","on_vacation"].includes(s.status));
-  const notIn   = snapshots.filter(s => !["available","on_break","at_lunch","out_sick","on_vacation"].includes(s.status));
+  const out     = snapshots.filter(s => ["out_sick","on_vacation","on_business_trip"].includes(s.status));
+  const notIn   = snapshots.filter(s => !["available","on_break","at_lunch","out_sick","on_vacation","on_business_trip"].includes(s.status));
 
   const hasGap  = coverage.gapHours.length > 0 || coverage.understaffed.length > 0;
 
