@@ -18,8 +18,8 @@ const POLL_MS = 20_000;
 
 const STATUS_DOT: Record<string, string> = {
   available:     "🟢",
-  on_break:      "🟡",
-  at_lunch:      "🟡",
+  on_break:      "☕",
+  at_lunch:      "🍽",
   out_sick:      "🔴",
   on_vacation:   "🔵",
   not_punched_in:"⚪",

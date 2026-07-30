@@ -1339,8 +1339,8 @@ body.monitor-mode              { background: #0f172a; }
   text-align: right;
 }
 
-.monitor-row.active.on_break .monitor-meta,
-.monitor-row.active.at_lunch .monitor-meta { color: #fbbf24; font-weight: 600; }
+.monitor-row.active.on_break .monitor-meta { color: #fbbf24; font-weight: 600; }
+.monitor-row.active.at_lunch .monitor-meta { color: #60a5fa; font-weight: 600; }
 .monitor-row.late .monitor-meta            { color: #f87171; font-weight: 600; }
 
 .monitor-divider {
@@ -1522,7 +1522,9 @@ body.monitor-mode              { background: #0f172a; }
 }
 .activity-row:last-child { border-bottom: none; }
 .activity-avatar { width: 24px !important; height: 24px !important; font-size: 10px !important; flex-shrink: 0; border-radius: 50% !important; overflow: hidden !important; }
-.segment-timer { color: var(--amber-text); font-weight: 600; }
+.segment-timer { font-weight: 600; }
+.break-label, .attend-card.on-break-row .segment-timer { color: var(--amber-text); }
+.lunch-label, .attend-card.at-lunch-row .segment-timer { color: var(--blue-text); }
 .activity-text { flex: 1; font-size: 12px; color: var(--ink-2); }
 .activity-time { font-size: 11px; color: var(--muted-2); flex-shrink: 0; }
 
@@ -1581,6 +1583,8 @@ body.monitor-mode              { background: #0f172a; }
 .attend-grid.list-view .attend-card:hover { box-shadow: none; border-color: transparent; background: var(--gray-soft); }
 .attend-grid.list-view .attend-card.on-break-row { background: var(--amber-soft); }
 .attend-grid.list-view .attend-card.on-break-row:hover { background: var(--amber-soft); }
+.attend-grid.list-view .attend-card.at-lunch-row { background: var(--blue-soft); }
+.attend-grid.list-view .attend-card.at-lunch-row:hover { background: var(--blue-soft); }
 
 .attend-grid.list-view .attend-card-top {
   width: 210px;

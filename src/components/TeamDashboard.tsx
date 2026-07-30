@@ -222,8 +222,10 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       else if (!s.scheduledToday) {
         // Standard workers on non-work days are just off — don't list them
         // Neither are people set to "hide when not active"
+        // And don't list people who actually clocked in today (unscheduled work)
         const suppress = s.profile.workScheduleType === "standard"
-                      || s.profile.hideWhenNotActive;
+                      || s.profile.hideWhenNotActive
+                      || !!s.todayShift;
         if (!suppress) offToday.push(s);
       }
       else if (!s.profile.hideWhenNotActive) notIn.push(s);
@@ -849,7 +851,7 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
   }
 
   return (
-    <article className={`attend-card${isOnBreak ? " on-break-row" : ""}`}>
+    <article className={`attend-card${snapshot.status === "on_break" ? " on-break-row" : snapshot.status === "at_lunch" ? " at-lunch-row" : ""}`}>
       <div className="attend-card-top">
         <UserAvatar userId={snapshot.profile.id} firstName={snapshot.profile.firstName} lastName={snapshot.profile.lastName} />
         <div className="attend-card-info">
@@ -887,7 +889,9 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
           </div>
         ) : isOnBreak ? (
           <div className="attend-card-meta">
-            <span className="attend-label">{snapshot.status === "at_lunch" ? "Lunch" : "Break"}</span>
+            <span className={`attend-label ${snapshot.status === "at_lunch" ? "lunch-label" : "break-label"}`}>
+              {snapshot.status === "at_lunch" ? "🍽 Lunch" : "☕ Break"}
+            </span>
             <span className="segment-timer" suppressHydrationWarning>
               {segStart ? segLabel(segSecs) : "—"}
             </span>
