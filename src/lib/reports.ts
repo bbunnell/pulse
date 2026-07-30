@@ -104,7 +104,7 @@ export function buildDailyReportRow(
     grossMinutes,
     breakMinutes,
     lunchMinutes,
-    payableMinutes: Math.max(0, grossMinutes - breakMinutes - lunchMinutes),
+    payableMinutes: Math.max(0, grossMinutes - lunchMinutes),
     vacationHours: dayTimeOff
       .filter((entry) => entry.timeOffType === "vacation")
       .reduce((total, entry) => total + hoursForEntryOnDate(entry), 0),
