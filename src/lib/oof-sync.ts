@@ -7,6 +7,8 @@ export interface OofSyncResult {
   removed: number;
   errors: string[];
   at: string;
+  permissionsOk: boolean;
+  permissionErrors: string[];
 }
 
 interface OofPeriod {
@@ -36,6 +38,18 @@ async function getGraphToken(tenantId: string, clientId: string, clientSecret: s
     throw new Error(json.error_description ?? `Token request failed (${res.status})`);
   }
   return json.access_token;
+}
+
+async function checkOofPermissions(email: string, token: string): Promise<string[]> {
+  const missing: string[] = [];
+  const headers = { Authorization: `Bearer ${token}` };
+  const [mailRes, calRes] = await Promise.all([
+    fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(email)}/mailboxSettings/automaticRepliesSetting`, { headers }),
+    fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(email)}/calendarView?startDateTime=${new Date().toISOString()}&endDateTime=${new Date().toISOString()}&$top=1`, { headers }),
+  ]);
+  if (mailRes.status === 403) missing.push("MailboxSettings.Read — not granted or missing admin consent");
+  if (calRes.status === 403) missing.push("Calendars.Read — not granted or missing admin consent");
+  return missing;
 }
 
 async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]> {
@@ -144,7 +158,7 @@ export async function runOofSync(): Promise<OofSyncResult> {
     return {
       checkedProfiles: 0, synced: 0, removed: 0,
       errors: ["Microsoft 365 not configured — save Entra credentials in Email Configuration first."],
-      at: new Date().toISOString(),
+      at: new Date().toISOString(), permissionsOk: false, permissionErrors: [],
     };
   }
 
@@ -155,13 +169,29 @@ export async function runOofSync(): Promise<OofSyncResult> {
     return {
       checkedProfiles: 0, synced: 0, removed: 0,
       errors: [err instanceof Error ? err.message : "Failed to acquire Graph token"],
-      at: new Date().toISOString(),
+      at: new Date().toISOString(), permissionsOk: false, permissionErrors: [],
     };
   }
 
   const profilesRes = await query<{ id: string; email: string }>(
     "SELECT id, email FROM profiles WHERE status = 'active' AND email IS NOT NULL AND email != '' ORDER BY email",
   );
+
+  // Permission probe using the first available profile
+  let permissionErrors: string[] = [];
+  const probeEmail = profilesRes.rows[0]?.email;
+  if (probeEmail) {
+    permissionErrors = await checkOofPermissions(probeEmail, token);
+    if (permissionErrors.length > 0) {
+      return {
+        checkedProfiles: 0, synced: 0, removed: 0,
+        errors: permissionErrors.map((m) => `Missing permission: ${m}`),
+        at: new Date().toISOString(),
+        permissionsOk: false,
+        permissionErrors,
+      };
+    }
+  }
 
   let synced   = 0;
   let removed  = 0;
@@ -224,5 +254,5 @@ export async function runOofSync(): Promise<OofSyncResult> {
     [JSON.stringify({ checkedProfiles: profilesRes.rows.length, synced, removed, errorCount: errors.length })],
   );
 
-  return { checkedProfiles: profilesRes.rows.length, synced, removed, errors, at };
+  return { checkedProfiles: profilesRes.rows.length, synced, removed, errors, at, permissionsOk: true, permissionErrors: [] };
 }

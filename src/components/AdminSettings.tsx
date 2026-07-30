@@ -935,16 +935,21 @@ export function AdminSettings({ data, currentUserId }: Props) {
     setOofResult(null);
     try {
       const res  = await fetch("/api/admin/oof-sync", { method: "POST" });
-      const json = (await res.json()) as { ok?: boolean; result?: { checkedProfiles: number; synced: number; removed: number; errors: string[]; at: string }; error?: string };
+      const json = (await res.json()) as { ok?: boolean; result?: { checkedProfiles: number; synced: number; removed: number; errors: string[]; at: string; permissionsOk: boolean; permissionErrors: string[] }; error?: string };
       if (json.ok && json.result) {
         setOofLastAt(json.result.at);
         setOofStats({ checkedProfiles: json.result.checkedProfiles, synced: json.result.synced, removed: json.result.removed, errorCount: json.result.errors.length });
         const errs = json.result.errors;
-        setOofResult({
-          ok:     errs.length === 0,
-          error:  errs.length > 0 ? `${errs.length} error(s)` : undefined,
-          detail: errs.length > 0 ? errs.join("; ") : undefined,
-        });
+        const permOk = json.result.permissionsOk;
+        if (!permOk && json.result.permissionErrors.length > 0) {
+          setOofResult({ ok: false, error: "Missing Graph permissions", detail: json.result.permissionErrors.join("; ") });
+        } else {
+          setOofResult({
+            ok:     errs.length === 0,
+            error:  errs.length > 0 ? `${errs.length} error(s)` : undefined,
+            detail: errs.length > 0 ? errs.join("; ") : undefined,
+          });
+        }
       } else {
         setOofResult({ error: json.error ?? "Sync failed." });
       }
@@ -1278,7 +1283,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
               </div>
             </div>
             {usersExpanded && <div className="settings-list">
-              {profiles.map((profile) => (
+              {[...profiles].sort((a, b) => `${a.lastName} ${a.firstName}`.toLowerCase().localeCompare(`${b.lastName} ${b.firstName}`.toLowerCase())).map((profile) => (
                 <div key={profile.id} style={{ display: "flex", flexDirection: "column" }}>
                   <div className="setting-row">
                     <div className="person-line" style={{ flex: 1 }}>
@@ -1918,7 +1923,7 @@ export function AdminSettings({ data, currentUserId }: Props) {
               {oofResult && (
                 <span className={oofResult.ok ? "smtp-inline-ok" : "smtp-inline-error"}
                   title={oofResult.detail}>
-                  {oofResult.ok ? "✓ Sync complete" : `✗ ${oofResult.error}`}
+                  {oofResult.ok ? "✓ Sync complete — access confirmed" : `✗ ${oofResult.error}`}
                 </span>
               )}
             </div>
