@@ -1009,9 +1009,11 @@ h2 {
   .dash-sidebar .status-group { display: none; }
   /* Hide Monitor button on mobile */
   .monitor-popout-btn { display: none; }
-  /* Clocked In first, Scheduled Now second on mobile */
-  .section-clocked-in { order: 1; }
-  .section-scheduled-now { order: 2; }
+  /* Clocked In first (directly below My Clock), Scheduled Now second */
+  .section-clocked-in { order: -2; }
+  .section-scheduled-now { order: -1; }
+  /* Team Events at the bottom of the attendance list, above summary stat cards */
+  .dash-events-wrap { order: 99; }
   /* Team Events: stack date label above pills instead of side-by-side */
   .dash-events-day { flex-direction: column; gap: 5px; }
   .dash-events-day-label { min-width: unset; }
