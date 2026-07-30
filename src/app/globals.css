@@ -907,8 +907,10 @@ h2 {
 @media (max-width: 768px) {
   .dash-body { padding: 12px 16px 24px; gap: 16px; }
   .dash-sidebar { order: -1; }
-  /* Hide search/filter controls on mobile — clock is the primary action */
+  /* Hide search/filter and recent activity on mobile — clock is the primary action */
   .dash-sidebar-controls { display: none; }
+  .dash-sidebar .activity-feed,
+  .dash-sidebar .status-group { display: none; }
 }
 
 .dash-main {
