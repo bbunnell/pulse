@@ -1348,7 +1348,11 @@ body.monitor-mode              { background: #0f172a; }
   text-align: right;
 }
 
+.monitor-row.active.on_break { background: rgba(249,115,22,0.12); }
+.monitor-row.active.on_break:hover { background: rgba(249,115,22,0.18); }
 .monitor-row.active.on_break .monitor-meta { color: #FB923C; font-weight: 600; }
+.monitor-row.active.at_lunch { background: rgba(139,92,246,0.12); }
+.monitor-row.active.at_lunch:hover { background: rgba(139,92,246,0.18); }
 .monitor-row.active.at_lunch .monitor-meta { color: #A78BFA; font-weight: 600; }
 .monitor-row.late .monitor-meta            { color: #f87171; font-weight: 600; }
 
