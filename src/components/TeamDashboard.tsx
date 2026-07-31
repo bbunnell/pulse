@@ -865,8 +865,8 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
         )}
       </div>
 
-      {/* Scheduled shift line */}
-      {snapshot.scheduledNow && !isOut && (
+      {/* Scheduled shift line — only show if not yet clocked in */}
+      {snapshot.scheduledNow && !isOut && !isWorking && !isOnBreak && (
         <div className="attend-card-sched">
           Scheduled <ScheduledTime snapshot={snapshot} scheduleTz={orgTimezone} />
         </div>
