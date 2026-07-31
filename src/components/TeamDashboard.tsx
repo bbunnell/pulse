@@ -485,7 +485,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg gray" />
-                <h2>Not In Yet <InfoTooltip text="Has a scheduled shift today but hasn't clocked in yet. They may not have started their shift window or are about to arrive." /></h2>
+                <h2>Not In <InfoTooltip text="Has a scheduled shift today but hasn't clocked in yet. They may not have started their shift window or are about to arrive." /></h2>
                 <span className="status-count gray">{groups.notIn.length}</span>
               </div>
               <div className="attend-grid list-view">

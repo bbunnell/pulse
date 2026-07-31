@@ -163,7 +163,7 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
         </div>
         <div className="monitor-count gray">
           <span className="monitor-count-num">{notIn.filter(s => s.scheduledToday && !s.isLate).length}</span>
-          <span>Not In Yet</span>
+          <span>Not In</span>
         </div>
       </div>
 
@@ -207,7 +207,7 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
           <div key={s.profile.id} className="monitor-row not-in">
             <span className="monitor-dot">⚪</span>
             <span className="monitor-name">{profileName(s.profile)}</span>
-            <span className="monitor-meta">Not in yet</span>
+            <span className="monitor-meta">Not in</span>
           </div>
         ))}
       </div>
