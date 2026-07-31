@@ -890,7 +890,8 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
         ) : isOnBreak ? (
           <div className="attend-card-meta">
             <span className={`attend-label ${snapshot.status === "at_lunch" ? "lunch-label" : "break-label"}`}>
-              {snapshot.status === "at_lunch" ? "🍽 Lunch" : "☕ Break"}
+              <span style={{ fontSize: 16 }}>{snapshot.status === "at_lunch" ? "🍽" : "☕"}</span>
+              {snapshot.status === "at_lunch" ? " Lunch" : " Break"}
             </span>
             <span className="segment-timer" suppressHydrationWarning>
               {segStart ? segLabel(segSecs) : "—"}

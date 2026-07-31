@@ -784,6 +784,15 @@ h2 {
 .status-badge.blue   .status-dot { background: var(--blue); }
 .status-badge.gray   { background: var(--gray-soft);   color: var(--gray-text); }
 .status-badge.gray   .status-dot { background: var(--muted-2); }
+/* Break = orange, Lunch = purple — override the shared amber tone */
+.status-badge.status-on-break  { background: #FFF4ED; color: #C2410C; }
+.status-badge.status-on-break  .status-dot { background: #F97316; }
+.status-badge.status-at-lunch  { background: #F5F3FF; color: #5B21B6; }
+.status-badge.status-at-lunch  .status-dot { background: #8B5CF6; }
+[data-theme="dark"] .status-badge.status-on-break { background: rgba(249,115,22,0.15); color: #FB923C; }
+[data-theme="dark"] .status-badge.status-on-break .status-dot { background: #F97316; }
+[data-theme="dark"] .status-badge.status-at-lunch { background: rgba(139,92,246,0.15); color: #A78BFA; }
+[data-theme="dark"] .status-badge.status-at-lunch .status-dot { background: #8B5CF6; }
 
 /* ─── Toolbar ────────────────────────────────────────────────── */
 .toolbar {
@@ -1304,7 +1313,7 @@ body.monitor-mode              { background: #0f172a; }
 }
 
 .monitor-count.green .monitor-count-num { color: #4ade80; }
-.monitor-count.amber .monitor-count-num { color: #fbbf24; }
+.monitor-count.amber .monitor-count-num { color: #FB923C; }
 .monitor-count.blue  .monitor-count-num { color: #60a5fa; }
 .monitor-count.red   .monitor-count-num { color: #f87171; }
 .monitor-count.gray  .monitor-count-num { color: #94a3b8; }
@@ -1339,8 +1348,8 @@ body.monitor-mode              { background: #0f172a; }
   text-align: right;
 }
 
-.monitor-row.active.on_break .monitor-meta { color: #fbbf24; font-weight: 600; }
-.monitor-row.active.at_lunch .monitor-meta { color: #60a5fa; font-weight: 600; }
+.monitor-row.active.on_break .monitor-meta { color: #FB923C; font-weight: 600; }
+.monitor-row.active.at_lunch .monitor-meta { color: #A78BFA; font-weight: 600; }
 .monitor-row.late .monitor-meta            { color: #f87171; font-weight: 600; }
 
 .monitor-divider {
@@ -1523,8 +1532,12 @@ body.monitor-mode              { background: #0f172a; }
 .activity-row:last-child { border-bottom: none; }
 .activity-avatar { width: 24px !important; height: 24px !important; font-size: 10px !important; flex-shrink: 0; border-radius: 50% !important; overflow: hidden !important; }
 .segment-timer { font-weight: 600; }
-.break-label, .attend-card.on-break-row .segment-timer { color: var(--amber-text); }
-.lunch-label, .attend-card.at-lunch-row .segment-timer { color: var(--blue-text); }
+.break-label, .attend-card.on-break-row .segment-timer { color: #C2410C; }
+.lunch-label, .attend-card.at-lunch-row .segment-timer { color: #5B21B6; }
+[data-theme="dark"] .break-label,
+[data-theme="dark"] .attend-card.on-break-row .segment-timer { color: #FB923C; }
+[data-theme="dark"] .lunch-label,
+[data-theme="dark"] .attend-card.at-lunch-row .segment-timer { color: #A78BFA; }
 .activity-text { flex: 1; font-size: 12px; color: var(--ink-2); }
 .activity-time { font-size: 11px; color: var(--muted-2); flex-shrink: 0; }
 
@@ -1581,10 +1594,14 @@ body.monitor-mode              { background: #0f172a; }
 
 .attend-grid.list-view .attend-card:last-child { border-bottom: none; }
 .attend-grid.list-view .attend-card:hover { box-shadow: none; border-color: transparent; background: var(--gray-soft); }
-.attend-grid.list-view .attend-card.on-break-row { background: var(--amber-soft); }
-.attend-grid.list-view .attend-card.on-break-row:hover { background: var(--amber-soft); }
-.attend-grid.list-view .attend-card.at-lunch-row { background: var(--blue-soft); }
-.attend-grid.list-view .attend-card.at-lunch-row:hover { background: var(--blue-soft); }
+.attend-grid.list-view .attend-card.on-break-row { background: #FFF4ED; }
+.attend-grid.list-view .attend-card.on-break-row:hover { background: #FFF4ED; }
+.attend-grid.list-view .attend-card.at-lunch-row { background: #F5F3FF; }
+.attend-grid.list-view .attend-card.at-lunch-row:hover { background: #F5F3FF; }
+[data-theme="dark"] .attend-grid.list-view .attend-card.on-break-row,
+[data-theme="dark"] .attend-grid.list-view .attend-card.on-break-row:hover { background: rgba(249,115,22,0.12); }
+[data-theme="dark"] .attend-grid.list-view .attend-card.at-lunch-row,
+[data-theme="dark"] .attend-grid.list-view .attend-card.at-lunch-row:hover { background: rgba(139,92,246,0.12); }
 
 .attend-grid.list-view .attend-card-top {
   width: 210px;

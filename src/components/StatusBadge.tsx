@@ -6,7 +6,7 @@ export function StatusBadge({ status }: { status: AttendanceStatus }) {
   const label = statusLabels[status];
 
   return (
-    <span className={`status-badge ${tone}`}>
+    <span className={`status-badge ${tone} status-${status.replace(/_/g, "-")}`}>
       <span className="status-dot" />
       {label}
     </span>
