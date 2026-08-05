@@ -94,7 +94,7 @@ function ShiftCard({ shift, profile, canEdit, compact, scheduleTz, hasConflict, 
 
   return (
     <div className={`shift-card${compact ? " shift-card-compact" : ""}`}
-         style={{ borderLeftColor: color.border, background: color.bg }}>
+         style={{ borderColor: color.border, background: color.bg }}>
       <span className="shift-card-avatar" style={{ background: color.border, color: "#fff" }}>
         {initials}
       </span>
@@ -574,7 +574,7 @@ function DayTimelineView({
                   height:          h,
                   left:            `calc(${b.col * wPct}% + 2px)`,
                   width:           `calc(${wPct}% - 4px)`,
-                  borderLeftColor: color.border,
+                  borderColor:     color.border,
                   background:      color.bg,
                   color:           color.text,
                 }}>

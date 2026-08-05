@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T00:00:00.000Z",
+  "title": "Design System: Team Pulse",
+  "extensions": {
+    "colorMeta": {
+      "brand-royal": {
+        "role": "primary",
+        "displayName": "Royal Blue",
+        "canonical": "#00579D",
+        "tonalRamp": ["oklch(15% 0.06 250)", "oklch(25% 0.09 250)", "oklch(35% 0.12 250)", "oklch(42% 0.13 250)", "oklch(55% 0.13 250)", "oklch(68% 0.11 250)", "oklch(82% 0.07 250)", "oklch(95% 0.02 250)"]
+      },
+      "brand-navy": {
+        "role": "primary",
+        "displayName": "Deep Navy",
+        "canonical": "#133F62",
+        "tonalRamp": ["oklch(14% 0.04 248)", "oklch(22% 0.06 248)", "oklch(32% 0.08 248)", "oklch(40% 0.08 248)", "oklch(52% 0.08 248)", "oklch(66% 0.07 248)", "oklch(81% 0.04 248)", "oklch(95% 0.015 248)"]
+      },
+      "ink-navy": {
+        "role": "secondary",
+        "displayName": "Ink Navy",
+        "canonical": "#162334",
+        "tonalRamp": ["oklch(12% 0.02 250)", "oklch(22% 0.03 250)", "oklch(32% 0.035 250)", "oklch(42% 0.04 250)", "oklch(55% 0.04 250)", "oklch(68% 0.03 250)", "oklch(82% 0.02 250)", "oklch(95% 0.008 250)"]
+      },
+      "sky": {
+        "role": "secondary",
+        "displayName": "Sky",
+        "canonical": "#59BFEF",
+        "tonalRamp": ["oklch(20% 0.06 235)", "oklch(32% 0.09 235)", "oklch(45% 0.11 235)", "oklch(58% 0.12 235)", "oklch(76% 0.11 235)", "oklch(85% 0.08 235)", "oklch(92% 0.05 235)", "oklch(97% 0.02 235)"]
+      },
+      "accent-gold": {
+        "role": "tertiary",
+        "displayName": "Signal Gold",
+        "canonical": "#FFBF1D",
+        "tonalRamp": ["oklch(25% 0.07 85)", "oklch(38% 0.10 85)", "oklch(52% 0.13 85)", "oklch(65% 0.15 85)", "oklch(83% 0.16 85)", "oklch(90% 0.12 85)", "oklch(95% 0.07 85)", "oklch(98% 0.03 85)"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "canonical": "#F4F7FA",
+        "tonalRamp": ["oklch(18% 0.012 240)", "oklch(30% 0.012 240)", "oklch(42% 0.010 240)", "oklch(56% 0.009 240)", "oklch(70% 0.008 240)", "oklch(84% 0.007 240)", "oklch(97% 0.006 240)", "oklch(99% 0.003 240)"]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#D6E2EE",
+        "tonalRamp": ["oklch(20% 0.02 240)", "oklch(32% 0.025 240)", "oklch(45% 0.028 240)", "oklch(58% 0.03 240)", "oklch(72% 0.028 240)", "oklch(90% 0.022 240)", "oklch(95% 0.015 240)", "oklch(98% 0.008 240)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#5A7A96",
+        "tonalRamp": ["oklch(18% 0.03 245)", "oklch(28% 0.04 245)", "oklch(38% 0.05 245)", "oklch(53% 0.05 245)", "oklch(66% 0.045 245)", "oklch(79% 0.035 245)", "oklch(89% 0.02 245)", "oklch(96% 0.01 245)"]
+      },
+      "state-green": {
+        "role": "tertiary",
+        "displayName": "Working Green",
+        "canonical": "#059669",
+        "tonalRamp": ["oklch(20% 0.05 160)", "oklch(30% 0.08 160)", "oklch(42% 0.10 160)", "oklch(58% 0.13 160)", "oklch(70% 0.12 160)", "oklch(82% 0.09 160)", "oklch(91% 0.05 160)", "oklch(97% 0.02 160)"]
+      },
+      "state-amber": {
+        "role": "tertiary",
+        "displayName": "Attention Amber",
+        "canonical": "#D97706",
+        "tonalRamp": ["oklch(22% 0.06 65)", "oklch(33% 0.09 65)", "oklch(46% 0.12 65)", "oklch(65% 0.15 65)", "oklch(77% 0.13 65)", "oklch(87% 0.09 65)", "oklch(94% 0.05 65)", "oklch(98% 0.02 65)"]
+      },
+      "state-red": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "canonical": "#E23A39",
+        "tonalRamp": ["oklch(20% 0.07 25)", "oklch(31% 0.11 25)", "oklch(44% 0.15 25)", "oklch(58% 0.19 25)", "oklch(71% 0.16 25)", "oklch(83% 0.11 25)", "oklch(92% 0.06 25)", "oklch(97% 0.02 25)"]
+      },
+      "break-orange": {
+        "role": "tertiary",
+        "displayName": "Break Orange",
+        "canonical": "#F97316",
+        "tonalRamp": ["oklch(22% 0.07 45)", "oklch(34% 0.11 45)", "oklch(48% 0.15 45)", "oklch(70% 0.19 45)", "oklch(80% 0.15 45)", "oklch(88% 0.10 45)", "oklch(94% 0.06 45)", "oklch(98% 0.02 45)"]
+      },
+      "lunch-violet": {
+        "role": "tertiary",
+        "displayName": "Lunch Violet",
+        "canonical": "#8B5CF6",
+        "tonalRamp": ["oklch(22% 0.09 290)", "oklch(33% 0.14 290)", "oklch(46% 0.19 290)", "oklch(62% 0.21 290)", "oklch(74% 0.17 290)", "oklch(85% 0.12 290)", "oklch(93% 0.06 290)", "oklch(98% 0.02 290)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Metric readouts only. Always a number; the type ceiling of the product." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles (h1)." },
+      "title": { "displayName": "Title", "purpose": "Status group headings on the board, paired with a color dot and count chip." },
+      "body": { "displayName": "Body", "purpose": "Base prose and default control text." },
+      "label": { "displayName": "Label", "purpose": "Uppercase tracked captions: eyebrows and stat labels." },
+      "micro": { "displayName": "Micro", "purpose": "Dense inline metadata: timezone abbreviations, relative timestamps." }
+    },
+    "shadows": [
+      { "name": "rest", "value": "0 1px 2px rgba(22, 35, 52, 0.06)", "purpose": "Near-invisible seat on person cards. Separates a row from the canvas without reading as raised." },
+      { "name": "lift", "value": "0 1px 3px rgba(22, 35, 52, 0.10), 0 1px 2px rgba(22, 35, 52, 0.05)", "purpose": "Hover only, paired with a border shift to Hairline Strong." },
+      { "name": "rest-dark", "value": "0 1px 2px rgba(0, 0, 0, 0.35)", "purpose": "Dark-theme resting shadow; pure black alpha because navy surfaces need more separation." },
+      { "name": "lift-dark", "value": "0 1px 3px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.30)", "purpose": "Dark-theme hover shadow." },
+      { "name": "focus-ring", "value": "0 0 0 3px rgba(0, 87, 157, 0.10)", "purpose": "Input focus ring. NOTE: the shipped value is rgba(79,70,229,0.1) (indigo, off-palette). This is the corrected Royal Blue value." }
+    ],
+    "motion": [
+      { "name": "transition-fast", "value": "0.1s", "purpose": "Button background, border, and opacity changes." },
+      { "name": "transition-base", "value": "0.12s", "purpose": "Card lift, nav link color and border." },
+      { "name": "transition-input", "value": "0.15s", "purpose": "Input border and focus ring." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "768px" },
+      { "name": "sidebar-collapse", "value": "1000px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action on a surface. Royal Blue fill, deepening to Navy on hover.",
+      "html": "<button class=\"ds-btn-primary\">Punch In</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 6px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 500; background: #00579D; border: 1px solid #00579D; color: #fff; cursor: pointer; white-space: nowrap; transition: background 0.1s, border-color 0.1s, opacity 0.1s; } .ds-btn-primary:hover { background: #133F62; border-color: #133F62; } .ds-btn-primary:focus-visible { outline: 2px solid #59BFEF; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.38; cursor: not-allowed; }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Secondary action. White surface with a strong hairline border, filling with neutral tint on hover.",
+      "html": "<button class=\"ds-btn\">Break</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 6px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 500; background: #FFFFFF; border: 1px solid #B3C8DC; color: #2D4459; cursor: pointer; white-space: nowrap; transition: background 0.1s, border-color 0.1s; } .ds-btn:hover { background: #EEF3F8; } .ds-btn:focus-visible { outline: 2px solid #00579D; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard field. Border shifts to Royal Blue with a soft ring on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search people…\" />",
+      "css": ".ds-input { height: 34px; padding: 0 10px; background: #FFFFFF; border: 1px solid #B3C8DC; border-radius: 6px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; color: #162334; outline: none; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; } .ds-input::placeholder { color: #8DAABF; } .ds-input:focus { border-color: #00579D; box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.10); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "Signature component. A pill pairing a 6px state dot with a label; carries all eight attendance states.",
+      "html": "<span class=\"ds-badge ds-badge-green\"><span class=\"ds-badge-dot\"></span>Available</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 9999px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 500; white-space: nowrap; } .ds-badge-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; flex-shrink: 0; } .ds-badge-green { background: #ECFDF5; color: #065F46; } .ds-badge-amber { background: #FFFBEB; color: #78350F; } .ds-badge-red { background: #FEF2F2; color: #7F1D1D; } .ds-badge-break { background: #FFF4ED; color: #C2410C; } .ds-badge-lunch { background: #F5F3FF; color: #5B21B6; }"
+    },
+    {
+      "name": "Summary Stat",
+      "kind": "custom",
+      "refersTo": "summary-stat",
+      "description": "Signature component and the board's headline instrument. A 24px count in the state color over an uppercase caption.",
+      "html": "<div class=\"ds-stat\"><span class=\"ds-stat-value\">11</span><span class=\"ds-stat-label\">Clocked In</span></div>",
+      "css": ".ds-stat { display: inline-flex; flex-direction: column; gap: 2px; min-width: 96px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #D6E2EE; border-radius: 8px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-stat-value { font-size: 24px; font-weight: 700; line-height: 1; color: #059669; } .ds-stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: #5A7A96; }"
+    },
+    {
+      "name": "Person Card",
+      "kind": "card",
+      "refersTo": "attend-card",
+      "description": "Signature component. One person on the board: avatar and name first, state second. Lifts on hover.",
+      "html": "<article class=\"ds-person\"><span class=\"ds-person-avatar\">BA</span><span class=\"ds-person-info\"><strong>Bryant Aguilana</strong><small>In since 8:44 AM</small></span><span class=\"ds-person-meta\">On for <b>7h 28m</b></span></article>",
+      "css": ".ds-person { display: flex; align-items: center; gap: 10px; padding: 14px 15px; background: #FFFFFF; border: 1px solid #D6E2EE; border-radius: 12px; box-shadow: 0 1px 2px rgba(22,35,52,0.06); font-family: Inter, ui-sans-serif, system-ui, sans-serif; transition: box-shadow 0.12s, border-color 0.12s; } .ds-person:hover { box-shadow: 0 1px 3px rgba(22,35,52,0.10), 0 1px 2px rgba(22,35,52,0.05); border-color: #B3C8DC; } .ds-person-avatar { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9999px; background: #E6F0FA; color: #00579D; font-size: 11px; font-weight: 600; flex-shrink: 0; } .ds-person-info { display: flex; flex-direction: column; } .ds-person-info strong { font-size: 13px; font-weight: 600; color: #162334; } .ds-person-info small { font-size: 11px; color: #5A7A96; } .ds-person-meta { margin-left: auto; font-size: 12px; color: #5A7A96; } .ds-person-meta b { font-weight: 500; color: #2D4459; }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Top-bar navigation on Ink Navy. Solid white with a Sky underline when active.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\">Dashboard</a><a class=\"ds-nav-link\">My Time</a><a class=\"ds-nav-link\">Reports</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; height: 52px; padding: 0 14px; background: #162334; font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-nav-link { display: flex; align-items: center; height: 100%; padding: 0 13px; font-size: 12.5px; font-weight: 500; color: rgba(255,255,255,0.60); border-top: 2px solid transparent; border-bottom: 2px solid transparent; cursor: pointer; transition: color 0.12s, border-color 0.12s; } .ds-nav-link:hover { color: rgba(255,255,255,0.85); border-bottom-color: rgba(255,255,255,0.25); } .ds-nav-link-active { color: #FFFFFF; border-bottom-color: #59BFEF; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Primary container. Flat at rest: hairline border and clipped corners, no shadow.",
+      "html": "<section class=\"ds-panel\"><header class=\"ds-panel-header\"><h2>My Clock</h2></header><div class=\"ds-panel-body\">Panel content</div></section>",
+      "css": ".ds-panel { background: #FFFFFF; border: 1px solid #D6E2EE; border-radius: 12px; overflow: hidden; font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #D6E2EE; } .ds-panel-header h2 { font-size: 14px; font-weight: 600; color: #162334; margin: 0; } .ds-panel-body { padding: 14px 18px; font-size: 13px; color: #2D4459; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operations Board",
+    "overview": "Team Pulse is a status board you read at a glance, the way a shift supervisor reads a wall display from across the room. Its job is to answer one question faster than any other interface could: who is working right now. Everything in the system serves that glance. Information density is high, color is never decorative, and the largest type on the screen is a number rather than a title.\n\nBut this is a board about colleagues, not units. That is the tension the system deliberately holds. Time-and-attendance software drifts naturally toward surveillance: rows of identifiers, red flags, exception reports. Team Pulse refuses that reading. People appear as faces and full names before they appear as durations. States that would falsely accuse someone are suppressed rather than displayed with an asterisk. The palette's alert red is rationed hard enough that seeing it means something. The density is in service of the people using it, never pointed at the people inside it.\n\nThe component language stays restrained and precise so the data can be loud. Surfaces are flat at rest and lift only under the cursor. Borders are hairline. Radii are small and consistent. The interface is built to disappear behind eight status colors and a column of names.",
+    "keyCharacteristics": [
+      "Glanceable first: legible from across a room on a wall display, dense enough to fit a full team without scrolling",
+      "Color is meaning, never decoration: every colored element encodes a state",
+      "Warm at the human layer: avatars and full names outrank identifiers and metrics",
+      "Flat at rest, lifted on interaction",
+      "Dual-theme by construction: identity holds in both light and dark",
+      "Inherits the NBIT parent brand palette rather than establishing its own"
+    ],
+    "rules": [
+      { "name": "The Meaning-Only Rule", "body": "Color never decorates. If an element is colored, it encodes a state a user can act on. A colored element with no state behind it is a bug.", "section": "colors" },
+      { "name": "The Eight States Rule", "body": "The status vocabulary is closed at eight: Available, On Break, At Lunch, Not Punched In, Punched Out, Out Sick, On Vacation, Business Trip. A ninth state must replace one, not append to it. The board's readability depends on the vocabulary staying memorizable.", "section": "colors" },
+      { "name": "The Rationed Red Rule", "body": "Alert Red appears only for genuine exceptions and destructive controls. A screen where red is common is a screen where red has stopped working. Break and lunch deliberately use orange and violet rather than shades of amber so that a room full of people on break never reads as a room full of problems.", "section": "colors" },
+      { "name": "The Number Is The Headline Rule", "body": "The biggest type on any operational screen is a count, not a title. Headings identify sections; numbers carry the message. Never let a page title out-scale the metric it introduces.", "section": "typography" },
+      { "name": "The Dense Body Rule", "body": "Working UI text lives at 11-13px; 14px is base prose, not the default for interface chrome. This is deliberately tighter than a marketing surface and is what allows a full team on one screen. Do not fix the density by scaling type up globally.", "section": "typography" },
+      { "name": "The Punch-First Rule", "body": "On any viewport under 768px, the clock control is the first thing in the document flow. Nothing outranks it. If a new section claims the top of the mobile board, it is wrong.", "section": "layout" },
+      { "name": "The Hide, Don't Stack Rule", "body": "On phones, secondary controls are removed rather than pushed below the fold. A control that is not part of the five-second task does not earn vertical space.", "section": "layout" },
+      { "name": "The Flat-At-Rest Rule", "body": "A surface at rest has a border, not a shadow. Shadow is a response to the cursor. A screen full of shadowed cards is a screen with no hierarchy.", "section": "elevation" },
+      { "name": "The Pill-For-State Rule", "body": "Full radius signals state; rectangular radius signals structure. A pill is a thing that can change (a status, a count, a person). A rounded rectangle is a thing that holds. Never round a container to a pill or square off a badge.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do lead every person with an avatar and full name. The Operations Board is a board about colleagues; identifiers and durations are secondary. Where a photo exists, use it.",
+      "Do reach for an existing state color before adding one. The palette ships five state colors and four neutral steps; nearly every need is already named.",
+      "Do keep working UI text at 11-13px and let 14px be prose. Density is the feature.",
+      "Do suppress a derived flag that would be wrong rather than showing it with an explanation. A false 'Late' costs more trust than a missing one.",
+      "Do define new colors as CSS custom properties in the :root block with a light value and a [data-theme=\"dark\"] override. Both themes ship; identity must hold in both.",
+      "Do put the clock control first on mobile, above every other section."
+    ],
+    "donts": [
+      "Don't use the current input focus ring value. It is rgba(79, 70, 229, 0.1) - indigo #4F46E5, left over from a previous palette and unrelated to any token in this system. It should be a Royal Blue alpha. This is a known defect, documented here so it gets fixed rather than copied.",
+      "Don't hardcode semantic hex values outside the token block. Break Orange and Lunch Violet are currently written as literals rather than custom properties, which is why they have no dark-theme override of their own and no -soft / -text triplet. New state colors must follow the triplet pattern.",
+      "Don't add shadow to a surface at rest. Border plus canvas contrast is the resting depth model.",
+      "Don't expand the thick side-accent border pattern (border-left: 3px/4px solid). Four instances exist; they are a legacy treatment, not a system component, and the flat-plus-hairline language is the actual rule.",
+      "Don't introduce a second typeface. The system differentiates by weight and size within one grotesque, and the compressed size range depends on that consistency.",
+      "Don't let Signal Gold spread. It is the only color with no state meaning; its value is scarcity.",
+      "Don't scale type up to 'fix' density complaints. Investigate hierarchy and spacing first - the dense scale is deliberate and load-bearing."
+    ]
+  }
+}

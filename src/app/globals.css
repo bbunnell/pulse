@@ -62,6 +62,20 @@
   --accent-soft:      #FFF8E1;
   --accent-text:      #7A5800;
 
+  /* Break / Lunch — transient on-clock states.
+     Distinct hues (not amber shades) so a team on break never reads as a team in trouble. */
+  --break:            #F97316;
+  --break-soft:       #FFF4ED;
+  --break-text:       #C2410C;
+
+  --lunch:            #8B5CF6;
+  --lunch-soft:       #F5F3FF;
+  --lunch-text:       #5B21B6;
+
+  /* On-dark text variants for the monitor view, which is dark in both themes */
+  --break-on-dark:    #FB923C;
+  --lunch-on-dark:    #A78BFA;
+
   /* Radii */
   --radius-sm: 6px;
   --radius: 8px;
@@ -110,6 +124,12 @@
 
   --accent-soft:      rgba(255, 191, 29, 0.12);
   --accent-text:      #FFBF1D;
+
+  --break-soft:       rgba(249, 115, 22, 0.15);
+  --break-text:       #FB923C;
+
+  --lunch-soft:       rgba(139, 92, 246, 0.15);
+  --lunch-text:       #A78BFA;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -785,14 +805,10 @@ h2 {
 .status-badge.gray   { background: var(--gray-soft);   color: var(--gray-text); }
 .status-badge.gray   .status-dot { background: var(--muted-2); }
 /* Break = orange, Lunch = purple — override the shared amber tone */
-.status-badge.status-on-break  { background: #FFF4ED; color: #C2410C; }
-.status-badge.status-on-break  .status-dot { background: #F97316; }
-.status-badge.status-at-lunch  { background: #F5F3FF; color: #5B21B6; }
-.status-badge.status-at-lunch  .status-dot { background: #8B5CF6; }
-[data-theme="dark"] .status-badge.status-on-break { background: rgba(249,115,22,0.15); color: #FB923C; }
-[data-theme="dark"] .status-badge.status-on-break .status-dot { background: #F97316; }
-[data-theme="dark"] .status-badge.status-at-lunch { background: rgba(139,92,246,0.15); color: #A78BFA; }
-[data-theme="dark"] .status-badge.status-at-lunch .status-dot { background: #8B5CF6; }
+.status-badge.status-on-break  { background: var(--break-soft); color: var(--break-text); }
+.status-badge.status-on-break  .status-dot { background: var(--break); }
+.status-badge.status-at-lunch  { background: var(--lunch-soft); color: var(--lunch-text); }
+.status-badge.status-at-lunch  .status-dot { background: var(--lunch); }
 
 /* ─── Toolbar ────────────────────────────────────────────────── */
 .toolbar {
@@ -838,7 +854,7 @@ h2 {
 
 .input:focus, .select:focus, .textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 87, 157, 0.12);
 }
 
 .select {
@@ -1314,7 +1330,7 @@ body.monitor-mode              { background: #0f172a; }
 }
 
 .monitor-count.green .monitor-count-num { color: #4ade80; }
-.monitor-count.amber .monitor-count-num { color: #FB923C; }
+.monitor-count.amber .monitor-count-num { color: var(--break-on-dark); }
 .monitor-count.blue  .monitor-count-num { color: #60a5fa; }
 .monitor-count.red   .monitor-count-num { color: #f87171; }
 .monitor-count.gray  .monitor-count-num { color: #94a3b8; }
@@ -1349,12 +1365,14 @@ body.monitor-mode              { background: #0f172a; }
   text-align: right;
 }
 
-.monitor-row.active.on_break { background: rgba(249,115,22,0.12); }
-.monitor-row.active.on_break:hover { background: rgba(249,115,22,0.18); }
-.monitor-row.active.on_break .monitor-meta { color: #FB923C; font-weight: 600; }
-.monitor-row.active.at_lunch { background: rgba(139,92,246,0.12); }
-.monitor-row.active.at_lunch:hover { background: rgba(139,92,246,0.18); }
-.monitor-row.active.at_lunch .monitor-meta { color: #A78BFA; font-weight: 600; }
+/* The monitor is dark in both themes, so it uses the on-dark text variants
+   and mixes its own tints off the solid tokens rather than the theme-flipping -soft. */
+.monitor-row.active.on_break { background: color-mix(in srgb, var(--break) 12%, transparent); }
+.monitor-row.active.on_break:hover { background: color-mix(in srgb, var(--break) 18%, transparent); }
+.monitor-row.active.on_break .monitor-meta { color: var(--break-on-dark); font-weight: 600; }
+.monitor-row.active.at_lunch { background: color-mix(in srgb, var(--lunch) 12%, transparent); }
+.monitor-row.active.at_lunch:hover { background: color-mix(in srgb, var(--lunch) 18%, transparent); }
+.monitor-row.active.at_lunch .monitor-meta { color: var(--lunch-on-dark); font-weight: 600; }
 .monitor-row.late .monitor-meta            { color: #f87171; font-weight: 600; }
 
 .monitor-divider {
@@ -1468,9 +1486,9 @@ body.monitor-mode              { background: #0f172a; }
 .audit-when { color: var(--muted); white-space: nowrap; }
 .audit-summary { color: var(--ink-2); }
 
-/* ── Coverage cards (On Now) ── */
-.coverage-card.online { border-left: 3px solid var(--green); }
-.coverage-card.absent { border-left: 3px solid var(--red); }
+/* ── Coverage cards (On Now) ──
+   No side stripe: the card already states online/absent in its footer badge,
+   and break/lunch rows carry a full row tint. A third encoding is decoration. */
 
 .coverage-dot {
   width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
@@ -1543,12 +1561,8 @@ body.monitor-mode              { background: #0f172a; }
 .activity-row:last-child { border-bottom: none; }
 .activity-avatar { width: 24px !important; height: 24px !important; font-size: 10px !important; flex-shrink: 0; border-radius: 50% !important; overflow: hidden !important; }
 .segment-timer { font-weight: 600; }
-.break-label, .attend-card.on-break-row .segment-timer { color: #C2410C; }
-.lunch-label, .attend-card.at-lunch-row .segment-timer { color: #5B21B6; }
-[data-theme="dark"] .break-label,
-[data-theme="dark"] .attend-card.on-break-row .segment-timer { color: #FB923C; }
-[data-theme="dark"] .lunch-label,
-[data-theme="dark"] .attend-card.at-lunch-row .segment-timer { color: #A78BFA; }
+.break-label, .attend-card.on-break-row .segment-timer { color: var(--break-text); }
+.lunch-label, .attend-card.at-lunch-row .segment-timer { color: var(--lunch-text); }
 .activity-text { flex: 1; font-size: 12px; color: var(--ink-2); }
 .activity-time { font-size: 11px; color: var(--muted-2); flex-shrink: 0; }
 
@@ -1605,14 +1619,10 @@ body.monitor-mode              { background: #0f172a; }
 
 .attend-grid.list-view .attend-card:last-child { border-bottom: none; }
 .attend-grid.list-view .attend-card:hover { box-shadow: none; border-color: transparent; background: var(--gray-soft); }
-.attend-grid.list-view .attend-card.on-break-row { background: #FFF4ED; }
-.attend-grid.list-view .attend-card.on-break-row:hover { background: #FFF4ED; }
-.attend-grid.list-view .attend-card.at-lunch-row { background: #F5F3FF; }
-.attend-grid.list-view .attend-card.at-lunch-row:hover { background: #F5F3FF; }
-[data-theme="dark"] .attend-grid.list-view .attend-card.on-break-row,
-[data-theme="dark"] .attend-grid.list-view .attend-card.on-break-row:hover { background: rgba(249,115,22,0.12); }
-[data-theme="dark"] .attend-grid.list-view .attend-card.at-lunch-row,
-[data-theme="dark"] .attend-grid.list-view .attend-card.at-lunch-row:hover { background: rgba(139,92,246,0.12); }
+.attend-grid.list-view .attend-card.on-break-row,
+.attend-grid.list-view .attend-card.on-break-row:hover { background: var(--break-soft); }
+.attend-grid.list-view .attend-card.at-lunch-row,
+.attend-grid.list-view .attend-card.at-lunch-row:hover { background: var(--lunch-soft); }
 
 .attend-grid.list-view .attend-card-top {
   width: 210px;
@@ -3543,9 +3553,11 @@ body.monitor-mode              { background: #0f172a; }
 /* Shift blocks */
 .day-shift-block {
   position: absolute;
-  border-left: 4px solid;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  padding: 4px 6px 4px 7px;
+  /* 1px border in the person's colour rather than a 4px slab; the tinted
+     background and coloured name already carry identity. Colour set inline. */
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   display: flex;
@@ -4153,9 +4165,11 @@ body.monitor-mode              { background: #0f172a; }
 
 /* Shift card */
 .shift-card {
-  border-left: 3px solid;
+  /* 1px border in the person's colour; the saturated avatar chip carries
+     identity, so a 3px slab was a second encoding. Colour set inline. */
+  border: 1px solid;
   border-radius: var(--radius-sm);
-  padding: 5px 6px 5px 7px;
+  padding: 5px 6px;
   display: flex;
   align-items: flex-start;
   gap: 5px;
@@ -4522,7 +4536,7 @@ input[type="checkbox"] {
   color: white;
 }
 
-.rbc-today { background: rgba(79, 70, 229, 0.04) !important; }
+.rbc-today { background: rgba(0, 87, 157, 0.05) !important; }
 .rbc-off-range-bg { background: var(--gray-soft); }
 
 .rbc-event {
