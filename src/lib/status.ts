@@ -117,6 +117,20 @@ function shiftForLocalToday(shifts: Shift[], userId: string, tz: string, now: Da
 
 // ── Snapshot builder ───────────────────────────────────────────────────────────
 
+/**
+ * The hours a profile actually works on a given weekday.
+ * `workDayHours` holds per-day overrides; a day absent from the map uses the
+ * default window. Without this, late detection measures against the default even
+ * on days the employee genuinely starts later, flagging them late every week.
+ */
+function hoursForDow(profile: Profile, dow: number): { start: string; end: string } {
+  const ov = profile.workDayHours?.[String(dow)];
+  return {
+    start: ov?.start || profile.expectedStartTime,
+    end:   ov?.end   || profile.expectedEndTime,
+  };
+}
+
 export function buildAttendanceSnapshots(args: {
   profiles: Profile[];
   teams: Team[];
@@ -162,8 +176,9 @@ export function buildAttendanceSnapshots(args: {
       // noon UTC on that date — safe proxy for day-of-week across all tz offsets
       const empDow = new Date(empTodayStr + "T12:00:00Z").getDay();
       if (workDays.includes(empDow)) {
-        const workStart = zonedTimeToUtc(empTodayStr, profile.expectedStartTime, tz);
-        const workEnd   = zonedTimeToUtc(empTodayStr, profile.expectedEndTime, tz);
+        const dayHours  = hoursForDow(profile, empDow);
+        const workStart = zonedTimeToUtc(empTodayStr, dayHours.start, tz);
+        const workEnd   = zonedTimeToUtc(empTodayStr, dayHours.end, tz);
         if (now >= workStart && now < workEnd) {
           isScheduledNow = true;
           scheduledToday = true;
@@ -197,13 +212,14 @@ export function buildAttendanceSnapshots(args: {
 
         if (!activeShift && !todayShift) {
           // Late if past their expectedStartTime + grace, but only within their work day
-          const [h, m] = (profile.expectedStartTime ?? "08:30").split(":").map(Number);
+          const dayHours = hoursForDow(profile, empDow);
+          const [h, m] = (dayHours.start ?? "08:30").split(":").map(Number);
           const expectedStart = zonedTimeToUtc(
             empTodayStr,
             `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
             tz,
           );
-          const [eh, em] = (profile.expectedEndTime ?? "17:30").split(":").map(Number);
+          const [eh, em] = (dayHours.end ?? "17:30").split(":").map(Number);
           const expectedEnd = zonedTimeToUtc(
             empTodayStr,
             `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`,
