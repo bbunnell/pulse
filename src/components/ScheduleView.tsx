@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Pencil, Plus, RefreshCw, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Pencil, Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import type { Profile, ScheduleRule, ScheduleTemplate, ScheduledShift, TimeOffEntry } from "@/lib/types";
 import { profileName } from "@/lib/status";
 import { convertShiftTime, tzAbbr } from "@/lib/timezone";
+import { deriveStandardShifts, groupShiftsByWindow, type BoardShift, type ShiftGroup } from "@/lib/derived-shifts";
 import { CoverageHeatmap } from "@/components/schedule/CoverageHeatmap";
 import { RecurringRulePanel } from "@/components/schedule/RecurringRulePanel";
 import { BulkReassignModal } from "@/components/schedule/BulkReassignModal";
@@ -65,71 +66,112 @@ function formatTime(t: string): string {
 
 function crossesMidnight(start: string, end: string) { return end <= start; }
 
-// ── Shift card ─────────────────────────────────────────────────────────────────
-interface ShiftCardProps {
-  shift: ScheduledShift;
-  profile: Profile | undefined;
+// ── Shift group card ───────────────────────────────────────────────────────────
+// One card per distinct start/end window. Everyone working that exact window is
+// listed inside it, so a 13-person 8am–5pm block is one card rather than 13.
+interface ShiftGroupCardProps {
+  group: ShiftGroup;
+  profiles: Profile[];
+  timeOff: TimeOffEntry[];
   canEdit: boolean;
+  /** Editing regular hours means visiting /admin, which only admins can open. */
+  canEditProfiles: boolean;
   compact: boolean;
   scheduleTz: string;
-  hasConflict: boolean;
+  /** Names shown before collapsing behind a "+N more" toggle. */
+  collapseAfter?: number;
   onDelete(id: string): void;
   onEdit(shift: ScheduledShift): void;
+  onEditProfile(profileId: string): void;
 }
 
-function ShiftCard({ shift, profile, canEdit, compact, scheduleTz, hasConflict, onDelete, onEdit }: ShiftCardProps) {
-  const color     = profileColor(shift.profileId);
-  const overnight = crossesMidnight(shift.startTime, shift.endTime);
-  const initials  = profile ? `${profile.firstName[0]??''}${profile.lastName[0]??''}`.toUpperCase() : "?";
-  const name      = profile ? profileName(profile) : "Unknown";
-  const empTz     = profile?.timezone;
+function ShiftGroupCard({
+  group, profiles, timeOff, canEdit, canEditProfiles, compact, scheduleTz,
+  collapseAfter = 4, onDelete, onEdit, onEditProfile,
+}: ShiftGroupCardProps) {
+  const [expanded, setExpanded] = useState(false);
 
-  // Times are stored in the schedule reference tz. Secondary = the employee's local time.
-  const showSecondary = Boolean(empTz && empTz !== scheduleTz);
-  const converted = showSecondary ? convertShiftTime(shift.shiftDate, shift.startTime, scheduleTz, empTz!) : null;
-  const convertedEnd = showSecondary ? convertShiftTime(
-    overnight ? isoDate(addDays(new Date(shift.shiftDate), 1)) : shift.shiftDate,
-    shift.endTime, scheduleTz, empTz!
-  ) : null;
+  const overnight = crossesMidnight(group.startTime, group.endTime);
+  const single    = group.shifts.length === 1;
+  // A single person keeps their identity colour; a mixed group has no one identity,
+  // so it stays neutral rather than borrowing an arbitrary member's hue.
+  const color     = single ? profileColor(group.shifts[0].profileId) : null;
+
+  const members = group.shifts
+    .map((s) => ({ shift: s, profile: profiles.find((p) => p.id === s.profileId) }))
+    .sort((a, b) => {
+      const na = a.profile ? `${a.profile.lastName} ${a.profile.firstName}` : "";
+      const nb = b.profile ? `${b.profile.lastName} ${b.profile.firstName}` : "";
+      return na.toLowerCase().localeCompare(nb.toLowerCase());
+    });
+
+  const visible = expanded ? members : members.slice(0, collapseAfter);
+  const hidden  = members.length - visible.length;
 
   return (
-    <div className={`shift-card${compact ? " shift-card-compact" : ""}`}
-         style={{ borderColor: color.border, background: color.bg }}>
-      <span className="shift-card-avatar" style={{ background: color.border, color: "#fff" }}>
-        {initials}
-      </span>
-      <div className="shift-card-body" style={{ color: color.text }}>
-        <div className="shift-card-name">
-          {name}
-          {shift.ruleId && <span className="shift-recurring-dot" title="Recurring">↻</span>}
-          {hasConflict && <span className="shift-conflict-dot" title="PTO conflict — shift needs coverage">⚠</span>}
-          {shift.isOpen && <span className="shift-open-dot" title="Open shift — needs coverage">OPEN</span>}
-        </div>
-        {/* Primary time — schedule reference timezone (how the schedule is authored) */}
+    <div className={`shift-card${compact ? " shift-card-compact" : ""}${single ? "" : " shift-card-group"}`}
+         style={color ? { borderColor: color.border, background: color.bg } : undefined}>
+      <div className="shift-card-body" style={color ? { color: color.text } : undefined}>
+        {/* Time leads the card: it is what the group has in common */}
         <div className="shift-card-time">
-          {formatTime(shift.startTime)}–{formatTime(shift.endTime)}
+          {formatTime(group.startTime)}–{formatTime(group.endTime)}
           {overnight && <span className="shift-overnight-badge">+1</span>}
           <span className="shift-tz-label">{tzAbbr(scheduleTz)}</span>
+          {!single && <span className="shift-group-count">{members.length}</span>}
         </div>
-        {/* Secondary time — the employee's local timezone */}
-        {converted && convertedEnd && !compact && (
-          <div className="shift-card-viewer-time">
-            {converted.time}–{convertedEnd.time}
-            <span className="shift-tz-label">{converted.abbr}</span>
-          </div>
-        )}
-        {shift.label && !compact && <div className="shift-card-label">{shift.label}</div>}
+
+        <div className="shift-group-names">
+          {visible.map(({ shift, profile }) => {
+            const name = profile ? profileName(profile) : "Unknown";
+            const hasConflict = timeOff.some(
+              (t) => t.userId === shift.profileId && t.status === "approved" &&
+                     group.shiftDate >= t.startAt.slice(0, 10) && group.shiftDate <= t.endAt.slice(0, 10)
+            );
+            const mColor = profileColor(shift.profileId);
+            return (
+              <span key={shift.id} className="shift-group-name" title={name}>
+                <span className="shift-group-swatch" style={{ background: mColor.border }} aria-hidden="true" />
+                <span className="shift-group-name-text">{name}</span>
+                {shift.ruleId && <span className="shift-recurring-dot" title="Recurring">↻</span>}
+                {hasConflict && <span className="shift-conflict-dot" title="Time-off conflict — needs coverage">⚠</span>}
+                {shift.isOpen && <span className="shift-open-dot" title="Open shift — needs coverage">OPEN</span>}
+                {canEdit && !shift.derived && (
+                  <span className="shift-group-actions">
+                    <button className="shift-action-btn" type="button"
+                            aria-label={`Edit ${name}'s shift`} title="Edit shift"
+                            onClick={() => onEdit(shift)}><Pencil size={10}/></button>
+                    <button className="shift-action-btn" type="button"
+                            aria-label={`Remove ${name}'s shift`} title="Remove shift"
+                            onClick={() => onDelete(shift.id)}><X size={10}/></button>
+                  </span>
+                )}
+                {canEditProfiles && shift.derived && (
+                  <span className="shift-group-actions">
+                    {/* Derived rows have no shift record — their hours live on the
+                        profile, so editing goes there rather than forking a copy. */}
+                    <button className="shift-action-btn" type="button"
+                            aria-label={`Edit ${name}'s regular hours`}
+                            title="Regular hours — edit on their profile"
+                            onClick={() => onEditProfile(shift.profileId)}>
+                      <SlidersHorizontal size={10}/>
+                    </button>
+                  </span>
+                )}
+              </span>
+            );
+          })}
+          {hidden > 0 && (
+            <button type="button" className="shift-group-more" onClick={() => setExpanded(true)}>
+              +{hidden} more
+            </button>
+          )}
+          {expanded && members.length > collapseAfter && (
+            <button type="button" className="shift-group-more" onClick={() => setExpanded(false)}>
+              Show less
+            </button>
+          )}
+        </div>
       </div>
-      {canEdit && (
-        <div className="shift-actions">
-          <button className="shift-action-btn" title="Edit" onClick={() => onEdit(shift)} type="button">
-            <Pencil size={10}/>
-          </button>
-          <button className="shift-action-btn" title="Remove" onClick={() => onDelete(shift.id)} type="button">
-            <X size={10}/>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -240,11 +282,12 @@ function AddShiftModal({ profiles, defaultDate, scheduleTz, onSave, onClose }: M
 // ── Week row ───────────────────────────────────────────────────────────────────
 interface WeekRowProps {
   weekStart: Date;
-  shifts: ScheduledShift[];
+  shifts: BoardShift[];
   profiles: Profile[];
   timeOff: TimeOffEntry[];
   today: string;
   canEdit: boolean;
+  canEditProfiles: boolean;
   compact: boolean;
   showWeekLabel: boolean;
   showHeatmap: boolean;
@@ -252,9 +295,10 @@ interface WeekRowProps {
   onAddClick(date: string): void;
   onDelete(id: string): void;
   onEdit(shift: ScheduledShift): void;
+  onEditProfile(profileId: string): void;
 }
 
-function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, compact, showWeekLabel, showHeatmap, scheduleTz, onAddClick, onDelete, onEdit }: WeekRowProps) {
+function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, canEditProfiles, compact, showWeekLabel, showHeatmap, scheduleTz, onAddClick, onDelete, onEdit, onEditProfile }: WeekRowProps) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekEnd = addDays(weekStart, 6);
   const label = `${fmtMonthDay(weekStart)} – ${fmtMonthDay(weekEnd)}`;
@@ -268,9 +312,7 @@ function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, compact
         {days.map((day) => {
           const dateStr   = isoDate(day);
           const isToday   = dateStr === today;
-          const dayShifts = shifts
-            .filter((s) => s.shiftDate === dateStr)
-            .sort((a, b) => a.startTime.localeCompare(b.startTime));
+          const dayGroups = groupShiftsByWindow(shifts.filter((s) => s.shiftDate === dateStr));
 
           return (
             <div key={dateStr} className={`schedule-day-col${isToday?" is-today":""}`}>
@@ -280,22 +322,17 @@ function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, compact
                 {!compact && <div className="schedule-day-month">{MONTH_NAMES[day.getMonth()]}</div>}
               </div>
               <div className="schedule-day-body">
-                {dayShifts.length === 0 && (
-                  <div className="schedule-day-empty">No shifts</div>
+                {dayGroups.length === 0 && (
+                  <div className="schedule-day-empty">No one scheduled</div>
                 )}
-                {dayShifts.map((shift) => {
-                  const hasConflict = timeOff.some(t =>
-                    t.userId === shift.profileId && t.status === "approved" &&
-                    dateStr >= t.startAt.slice(0,10) && dateStr <= t.endAt.slice(0,10)
-                  );
-                  return (
-                    <ShiftCard key={shift.id} shift={shift}
-                               profile={profiles.find((p) => p.id === shift.profileId)}
-                               canEdit={canEdit} compact={compact} scheduleTz={scheduleTz}
-                               hasConflict={hasConflict}
-                               onDelete={onDelete} onEdit={onEdit}/>
-                  );
-                })}
+                {dayGroups.map((group) => (
+                  <ShiftGroupCard key={group.key} group={group}
+                                  profiles={profiles} timeOff={timeOff}
+                                  canEdit={canEdit} canEditProfiles={canEditProfiles}
+                                  compact={compact} scheduleTz={scheduleTz}
+                                  collapseAfter={compact ? 2 : 4}
+                                  onDelete={onDelete} onEdit={onEdit} onEditProfile={onEditProfile}/>
+                ))}
               </div>
               {canEdit && (
                 <button className="schedule-add-day-btn" type="button"
@@ -421,18 +458,20 @@ function toMin(time: string): number {
 
 interface DayTimelineProps {
   dayDate:    string;
-  allShifts:  ScheduledShift[];  // includes yesterday for overnight carry-overs
+  allShifts:  BoardShift[];  // includes yesterday for overnight carry-overs
   profiles:   Profile[];
   timeOff:    TimeOffEntry[];
   canEdit:    boolean;
+  canEditProfiles: boolean;
   scheduleTz:   string;
   onEdit(shift: ScheduledShift): void;
   onDelete(id: string): void;
   onAddClick(date: string): void;
+  onEditProfile(profileId: string): void;
 }
 
 function DayTimelineView({
-  dayDate, allShifts, profiles, timeOff, canEdit, scheduleTz, onEdit, onDelete, onAddClick,
+  dayDate, allShifts, profiles, timeOff, canEdit, canEditProfiles, scheduleTz, onEdit, onDelete, onAddClick, onEditProfile,
 }: DayTimelineProps) {
   const d       = new Date(dayDate + "T00:00:00");
   const prevDay = isoDate(addDays(d, -1));
@@ -445,8 +484,7 @@ function DayTimelineView({
   );
 
   interface Block {
-    shift:         ScheduledShift;
-    profile:       Profile | undefined;
+    group:         ShiftGroup;
     startMin:      number;
     endMin:        number;    // capped at 24*60 for tonight-spanning shifts
     isCarryOver:   boolean;
@@ -456,30 +494,29 @@ function DayTimelineView({
     totalCols:     number;
   }
 
-  // Build raw blocks
+  // Group first, then lay out: one block per distinct window rather than per person,
+  // so thirteen people on 8am-5pm occupy one column instead of thirteen.
   const raw: Omit<Block, "col" | "totalCols">[] = [
-    ...carryoverShifts.map(s => ({
-      shift:         s,
-      profile:       profiles.find(p => p.id === s.profileId),
+    ...groupShiftsByWindow(carryoverShifts).map(g => ({
+      group:         g,
       startMin:      0,
-      endMin:        toMin(s.endTime),
+      endMin:        toMin(g.endTime),
       isCarryOver:   true,
       continuesNext: false,
       hasPto:        false,
     })),
-    ...todayShifts.map(s => {
-      const overnight = crossesMidnight(s.startTime, s.endTime);
+    ...groupShiftsByWindow(todayShifts).map(g => {
+      const overnight = crossesMidnight(g.startTime, g.endTime);
       return {
-        shift:         s,
-        profile:       profiles.find(p => p.id === s.profileId),
-        startMin:      toMin(s.startTime),
-        endMin:        overnight ? 24 * 60 : toMin(s.endTime),
+        group:         g,
+        startMin:      toMin(g.startTime),
+        endMin:        overnight ? 24 * 60 : toMin(g.endTime),
         isCarryOver:   false,
         continuesNext: overnight,
-        hasPto:        timeOff.some(t =>
+        hasPto:        g.shifts.some(s => timeOff.some(t =>
           t.userId === s.profileId && t.status === "approved" &&
           dayDate >= t.startAt.slice(0, 10) && dayDate <= t.endAt.slice(0, 10),
-        ),
+        )),
       };
     }),
   ].sort((a, b) => a.startMin - b.startMin);
@@ -550,88 +587,97 @@ function DayTimelineView({
 
           {/* Shift blocks */}
           {blocks.map(b => {
-            const color    = profileColor(b.shift.profileId);
-            const empTz    = b.profile?.timezone ?? scheduleTz;
+            const g        = b.group;
+            const single   = g.shifts.length === 1;
+            const lead     = g.shifts[0];
+            const color    = single ? profileColor(lead.profileId) : null;
             const h        = Math.max((b.endMin - b.startMin) * MIN_PX - 2, 48);
             const wPct     = 100 / b.totalCols;
-            const showTz   = empTz !== scheduleTz;
+            // How many names fit before the block runs out of vertical room.
+            const nameCap  = Math.max(1, Math.floor((h - 74) / 18));
 
-            const srcDate  = b.isCarryOver ? prevDay : b.shift.shiftDate;
-            const endDate  = b.continuesNext
-              ? isoDate(addDays(new Date(b.shift.shiftDate + "T00:00:00"), 1))
-              : b.shift.shiftDate;
+            const members = g.shifts
+              .map(s => ({ shift: s, profile: profiles.find(p => p.id === s.profileId) }))
+              .sort((a, z) => {
+                const na = a.profile ? `${a.profile.lastName} ${a.profile.firstName}` : "";
+                const nz = z.profile ? `${z.profile.lastName} ${z.profile.firstName}` : "";
+                return na.toLowerCase().localeCompare(nz.toLowerCase());
+              });
+            const shown  = members.slice(0, nameCap);
+            const hidden = members.length - shown.length;
 
-            const cvtStart = showTz ? convertShiftTime(srcDate, b.isCarryOver ? "00:00" : b.shift.startTime, scheduleTz, empTz) : null;
-            const cvtEnd   = showTz ? convertShiftTime(endDate, b.continuesNext ? "23:59" : b.shift.endTime, scheduleTz, empTz) : null;
-
-            const name = b.profile ? profileName(b.profile) : "Unknown";
+            const anyOpen      = g.shifts.some(s => s.isOpen);
+            const anyRecurring = g.shifts.some(s => s.ruleId);
 
             return (
-              <div key={b.shift.id}
-                className={`day-shift-block${b.isCarryOver ? " carryover" : ""}${b.hasPto ? " pto-conflict" : ""}${b.shift.isOpen ? " open-shift" : ""}`}
+              <div key={g.key}
+                className={`day-shift-block${b.isCarryOver ? " carryover" : ""}${b.hasPto ? " pto-conflict" : ""}${anyOpen ? " open-shift" : ""}`}
                 style={{
                   top:             b.startMin * MIN_PX + 1,
                   height:          h,
                   left:            `calc(${b.col * wPct}% + 2px)`,
                   width:           `calc(${wPct}% - 4px)`,
-                  borderColor:     color.border,
-                  background:      color.bg,
-                  color:           color.text,
+                  ...(color ? { borderColor: color.border, background: color.bg, color: color.text } : {}),
                 }}>
 
-                {/* ── Header row: name + action buttons always visible ── */}
-                <div className="day-shift-header">
-                  <span className="day-shift-name-text" title={name}>{name}</span>
-                  {canEdit && (
-                    <div className="day-shift-btns">
-                      <button type="button" className="day-shift-btn" title="Edit shift"
-                              onClick={() => onEdit(b.shift)}>
-                        <Pencil size={11}/>
-                      </button>
-                      <button type="button" className="day-shift-btn" title="Remove shift"
-                              onClick={() => onDelete(b.shift.id)}>
-                        <X size={11}/>
-                      </button>
-                    </div>
-                  )}
+                {/* ── Time leads: it is what everyone in this block shares ── */}
+                <div className="day-shift-time">
+                  <strong>
+                    {b.isCarryOver ? "12:00am" : formatTime(g.startTime)}
+                    {" – "}
+                    {b.continuesNext ? "midnight" : formatTime(g.endTime)}
+                  </strong>
+                  <span className="shift-tz-label">{tzAbbr(scheduleTz)}</span>
+                  {!single && <span className="shift-group-count">{members.length}</span>}
                 </div>
 
-                {/* ── Badges (status indicators) ── */}
+                {/* ── Badges ── */}
                 <div className="day-shift-badges">
-                  {b.shift.ruleId  && <span className="dsb"       title="Recurring shift">↻ Recurring</span>}
-                  {b.hasPto        && <span className="dsb pto"   title="Employee has PTO this day">⚠ PTO conflict</span>}
-                  {b.shift.isOpen  && <span className="dsb open"  title="This shift needs coverage">OPEN</span>}
+                  {anyRecurring    && <span className="dsb"       title="Recurring shift">↻ Recurring</span>}
+                  {b.hasPto        && <span className="dsb pto"   title="Someone here has time off this day">⚠ Time-off conflict</span>}
+                  {anyOpen         && <span className="dsb open"  title="Needs coverage">OPEN</span>}
                   {b.isCarryOver   && <span className="dsb carry" title="Started previous day">← from prev day</span>}
                   {b.continuesNext && <span className="dsb carry" title="Ends next day">→ continues next day</span>}
                 </div>
 
-                {/* ── Primary time (schedule reference timezone) ── */}
-                <div className="day-shift-time">
-                  <strong>
-                    {b.isCarryOver ? "12:00am" : formatTime(b.shift.startTime)}
-                    {" – "}
-                    {b.continuesNext ? "midnight" : formatTime(b.shift.endTime)}
-                  </strong>
-                  <span className="shift-tz-label">{tzAbbr(scheduleTz)}</span>
+                {/* ── Who is working this window ── */}
+                <div className="day-shift-people">
+                  {shown.map(({ shift, profile }) => {
+                    const name = profile ? profileName(profile) : "Unknown";
+                    const mColor = profileColor(shift.profileId);
+                    return (
+                      <span key={shift.id} className="day-shift-person" title={name}>
+                        <span className="shift-group-swatch" style={{ background: mColor.border }} aria-hidden="true" />
+                        <span className="day-shift-person-name">{name}</span>
+                        {canEdit && !shift.derived && (
+                          <span className="day-shift-btns">
+                            <button type="button" className="day-shift-btn"
+                                    aria-label={`Edit ${name}'s shift`} title="Edit shift"
+                                    onClick={() => onEdit(shift)}><Pencil size={11}/></button>
+                            <button type="button" className="day-shift-btn"
+                                    aria-label={`Remove ${name}'s shift`} title="Remove shift"
+                                    onClick={() => onDelete(shift.id)}><X size={11}/></button>
+                          </span>
+                        )}
+                        {canEditProfiles && shift.derived && (
+                          <span className="day-shift-btns">
+                            <button type="button" className="day-shift-btn"
+                                    aria-label={`Edit ${name}'s regular hours`}
+                                    title="Regular hours — edit on their profile"
+                                    onClick={() => onEditProfile(shift.profileId)}>
+                              <SlidersHorizontal size={11}/>
+                            </button>
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                  {hidden > 0 && (
+                    <span className="day-shift-more" title={members.slice(nameCap).map(m => m.profile ? profileName(m.profile) : "Unknown").join(", ")}>
+                      +{hidden} more
+                    </span>
+                  )}
                 </div>
-
-                {/* ── Secondary time (employee's local timezone, if different) ── */}
-                {showTz && cvtStart && cvtEnd && (
-                  <div className="day-shift-viewer-time">
-                    {cvtStart.time}–{cvtEnd.time}
-                    <span className="shift-tz-label">{cvtStart.abbr}</span>
-                  </div>
-                )}
-
-                {/* ── Label ── */}
-                {b.shift.label && h > 90 && (
-                  <div className="day-shift-label">{b.shift.label}</div>
-                )}
-
-                {/* ── Notes ── */}
-                {b.shift.notes && h > 120 && (
-                  <div className="day-shift-notes">{b.shift.notes}</div>
-                )}
               </div>
             );
           })}
@@ -646,9 +692,11 @@ interface Props {
   timeOff: TimeOffEntry[];
   canEdit: boolean;
   scheduleTz: string;
+  /** Only admins can reach /admin, so only they get the "edit regular hours" jump. */
+  isAdmin?: boolean;
 }
 
-export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz }: Props) {
+export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin = false }: Props) {
   const [viewMode,        setViewMode]        = useState<ViewMode>(2);
   const [anchorDate,      setAnchorDate]      = useState<Date>(() => mondayOf(new Date()));
   const [shifts,          setShifts]          = useState<ScheduledShift[]>([]);
@@ -698,6 +746,18 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz }: Props) 
 
   useEffect(() => { void fetchShifts(fetchFrom, fetchTo); }, [fetchFrom, fetchTo, fetchShifts]);
 
+  // Standard-schedule staff have no shift rows; their hours live on their profile.
+  // Derive display-only shifts for them so the board shows everyone actually
+  // scheduled, not just the shift_based team.
+  const boardShifts = useMemo<BoardShift[]>(() => {
+    const dates: string[] = [];
+    for (let d = new Date(fetchFrom + "T12:00:00Z"); isoDate(d) <= fetchTo; d = addDays(d, 1)) {
+      dates.push(isoDate(d));
+    }
+    const derived = deriveStandardShifts({ profiles, timeOff, dates, scheduleTz });
+    return [...shifts, ...derived];
+  }, [shifts, profiles, timeOff, fetchFrom, fetchTo, scheduleTz]);
+
   function prevPeriod() {
     setAnchorDate(w => viewMode === "day" ? addDays(w, -1) : addDays(w, -(viewMode as number) * 7));
   }
@@ -706,6 +766,12 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz }: Props) 
   }
   function goToday() {
     setAnchorDate(viewMode === "day" ? new Date() : mondayOf(new Date()));
+  }
+
+  // Derived rows have no shift record: their hours are profile settings, so send the
+  // manager to the one place that owns them rather than forking a per-day copy.
+  function handleEditProfile(profileId: string) {
+    window.location.href = `/admin?profile=${encodeURIComponent(profileId)}`;
   }
   function changeMode(m: ViewMode) {
     setViewMode(m);
@@ -866,22 +932,25 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz }: Props) 
         {viewMode === "day" ? (
           <DayTimelineView
             dayDate={isoDate(weekStart)}
-            allShifts={shifts}
+            allShifts={boardShifts}
             profiles={profiles}
             timeOff={timeOff}
             canEdit={canEdit}
+            canEditProfiles={isAdmin}
             scheduleTz={scheduleTz}
             onEdit={setEditingShift}
             onDelete={handleDelete}
             onAddClick={setModalDate}
+            onEditProfile={handleEditProfile}
           />
         ) : (
           <div className={`schedule-weeks${showRules?" has-side-panel":""}`}>
             {weeks.map((ws) => (
-              <WeekRow key={isoDate(ws)} weekStart={ws} shifts={shifts} profiles={profiles}
-                       timeOff={timeOff} today={today} canEdit={canEdit} compact={compact}
+              <WeekRow key={isoDate(ws)} weekStart={ws} shifts={boardShifts} profiles={profiles}
+                       timeOff={timeOff} today={today} canEdit={canEdit} canEditProfiles={isAdmin} compact={compact}
                        showWeekLabel={(viewMode as number) > 1} showHeatmap={showHeatmap} scheduleTz={scheduleTz}
-                       onAddClick={setModalDate} onDelete={handleDelete} onEdit={setEditingShift}/>
+                       onAddClick={setModalDate} onDelete={handleDelete} onEdit={setEditingShift}
+                       onEditProfile={handleEditProfile}/>
             ))}
           </div>
         )}

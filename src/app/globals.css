@@ -4758,3 +4758,129 @@ input[type="checkbox"] {
   flex-direction: column;
   gap: 1px;
 }
+
+/* ─── Schedule: grouped shift cards ──────────────────────────────
+   One card per distinct start/end window, listing everyone in it.
+   Time leads, because it is what the group has in common. */
+.shift-card-group {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--ink-2);
+}
+
+.shift-group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 15px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  color: var(--surface);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.shift-group-names {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 3px;
+  min-width: 0;
+}
+
+.shift-group-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+/* The person's identity colour survives grouping as a small swatch, since the
+   card border can only carry one hue. */
+.shift-group-swatch {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.shift-group-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.shift-group-actions {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.1s;
+  flex-shrink: 0;
+}
+.shift-group-name:hover .shift-group-actions,
+.shift-group-actions:focus-within { opacity: 1; }
+
+.shift-group-more {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 1px 5px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--gray-soft);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.shift-group-more:hover { color: var(--ink-2); }
+
+/* ─── Schedule: grouped day-timeline blocks ─────────────────────── */
+.day-shift-people {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.day-shift-person {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.day-shift-person-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.day-shift-person .day-shift-btns {
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.1s;
+  flex-shrink: 0;
+}
+.day-shift-person:hover .day-shift-btns,
+.day-shift-person .day-shift-btns:focus-within { opacity: 1; }
+
+.day-shift-more {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 1px;
+}

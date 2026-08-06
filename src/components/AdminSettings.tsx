@@ -1198,6 +1198,19 @@ export function AdminSettings({ data, currentUserId }: Props) {
   // Edit modal
   const [editProfile, setEditProfile] = useState<Profile | null>(null);
 
+  // Deep link from the schedule board: /admin?profile=<id> opens that person's editor,
+  // since standard hours are a profile setting rather than a shift record.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("profile");
+    if (!id) return;
+    const target = data.profiles.find(p => p.id === id);
+    if (target) {
+      setEditProfile(target);
+      // Drop the param so a refresh or back-navigation doesn't reopen the modal.
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [data.profiles]);
+
   // Per-user delete confirmation
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting,        setDeleting]        = useState(false);

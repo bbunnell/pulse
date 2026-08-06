@@ -12,7 +12,7 @@ const navItems = [
   { href: "/",            label: "Dashboard",   icon: LayoutDashboard, minRole: "employee" as Role },
   { href: "/my-time",     label: "My Time",      icon: UserRound,       minRole: "employee" as Role },
   { href: "/my-schedule", label: "My Schedule",  icon: CalendarCheck,   minRole: "employee" as Role },
-  { href: "/schedule",    label: "After-Hours",  icon: CalendarRange,   minRole: "employee" as Role },
+  { href: "/schedule",    label: "Schedule",     icon: CalendarRange,   minRole: "employee" as Role },
   { href: "/time-off",    label: "Time Off",     icon: ShieldCheck,     minRole: "employee" as Role },
   { href: "/calendar",    label: "Events",       icon: CalendarDays,    minRole: "employee" as Role },
   { href: "/reports",     label: "Reports",      icon: ClipboardList,   minRole: "manager"  as Role },

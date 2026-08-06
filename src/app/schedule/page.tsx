@@ -23,6 +23,9 @@ export default async function SchedulePage() {
   }
 
   const canEdit = currentUser.role === "admin" || currentUser.role === "manager";
+  // /admin is admin-only, so only admins get the "edit regular hours" jump.
+  const isAdmin = currentUser.role === "admin";
 
-  return <ScheduleView profiles={profiles} timeOff={timeOff} canEdit={canEdit} scheduleTz={scheduleTz} />;
+  return <ScheduleView profiles={profiles} timeOff={timeOff} canEdit={canEdit}
+                       scheduleTz={scheduleTz} isAdmin={isAdmin} />;
 }
