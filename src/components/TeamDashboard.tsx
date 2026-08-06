@@ -477,6 +477,29 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
 <div className="dash-body">
         <div className="dash-main">
+          {/* Clocked In — everyone actively on the clock, including on break/lunch.
+              First on every viewport: who IS working is the board's headline. */}
+          {(groups.working.length > 0 || groups.onBreak.length > 0) && (
+            <div className="status-group section-clocked-in">
+              <div className="status-group-heading">
+                <span className="status-dot-lg green" />
+                <h2>Clocked In <InfoTooltip text="Everyone actively on the clock right now. Break and lunch status shown inline." /></h2>
+                <span className="status-count green">{groups.working.length + groups.onBreak.length}</span>
+              </div>
+              <div className="attend-grid list-view">
+                {[...groups.working, ...groups.onBreak]
+                  .sort((a, b) => {
+                    const na = `${a.profile.lastName} ${a.profile.firstName}`.toLowerCase();
+                    const nb = `${b.profile.lastName} ${b.profile.firstName}`.toLowerCase();
+                    return na.localeCompare(nb);
+                  })
+                  .map((s) => (
+                  <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Not Clocked In — one section answering "who should be here and isn't".
               Merged from the former Scheduled Now / Late / Not In split, whose
               boundaries were engineering distinctions rather than operational ones.
@@ -537,28 +560,6 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
               </div>
             );
           })()}
-
-          {/* Clocked In — everyone actively on the clock, including on break/lunch */}
-          {(groups.working.length > 0 || groups.onBreak.length > 0) && (
-            <div className="status-group section-clocked-in">
-              <div className="status-group-heading">
-                <span className="status-dot-lg green" />
-                <h2>Clocked In <InfoTooltip text="Everyone actively on the clock right now. Break and lunch status shown inline." /></h2>
-                <span className="status-count green">{groups.working.length + groups.onBreak.length}</span>
-              </div>
-              <div className="attend-grid list-view">
-                {[...groups.working, ...groups.onBreak]
-                  .sort((a, b) => {
-                    const na = `${a.profile.lastName} ${a.profile.firstName}`.toLowerCase();
-                    const nb = `${b.profile.lastName} ${b.profile.firstName}`.toLowerCase();
-                    return na.localeCompare(nb);
-                  })
-                  .map((s) => (
-                  <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Out today */}
           {groups.out.length > 0 && (
