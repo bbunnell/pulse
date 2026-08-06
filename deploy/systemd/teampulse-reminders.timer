@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Team Pulse reminders on a schedule
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+RandomizedDelaySec=15
+
+[Install]
+WantedBy=timers.target

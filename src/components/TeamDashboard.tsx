@@ -230,6 +230,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     const out: AttendanceSnapshot[] = [];
     const late: AttendanceSnapshot[] = [];
     const offToday: AttendanceSnapshot[] = [];
+    const doneToday: AttendanceSnapshot[] = [];
     const notIn: AttendanceSnapshot[] = [];
     for (const s of boardSnapshots) {
       if (s.status === "available") working.push(s);
@@ -248,9 +249,15 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                       || !!s.todayShift;
         if (!suppress) offToday.push(s);
       }
-      else if (!s.profile.hideWhenNotActive) notIn.push(s);
+      // The old catch-all swept up anyone who had already punched out, so at 9pm a
+      // full day's staff appeared under "Not Clocked In" as if they were missing.
+      // Finishing your day is not the same as failing to start it.
+      else if (!s.profile.hideWhenNotActive) {
+        if (s.todayShift?.punchOutAt) doneToday.push(s);
+        else                          notIn.push(s);
+      }
     }
-    return { working, onBreak, out, late, offToday, notIn };
+    return { working, onBreak, out, late, offToday, doneToday, notIn };
   }, [boardSnapshots]);
 
   const activity = useMemo(() => buildActivity(live.shifts, live.segments).slice(0, 8), [live.shifts, live.segments]);
@@ -475,7 +482,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
         </div>
       )}
 
-<div className="dash-body">
+<div className={`dash-body${userRole === "employee" ? " clock-first" : ""}`}>
         <div className="dash-main">
           {/* Clocked In — everyone actively on the clock, including on break/lunch.
               First on every viewport: who IS working is the board's headline. */}
@@ -572,6 +579,36 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
               <div className="attend-grid list-view">
                 {groups.out.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe}
                   onDeleteTimeOff={handleDeleteTimeOff} onEditTimeOff={openEditTimeOff} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Done for the day — worked and punched out. Shown as quiet chips so the
+              team picture stays complete without implying anyone is missing. */}
+          {groups.doneToday.length > 0 && (
+            <div className="status-group">
+              <div className="status-group-heading">
+                <span className="status-dot-lg gray" />
+                <h2>Done Today <InfoTooltip text="Worked earlier today and already punched out. No action needed." /></h2>
+                <span className="status-count gray">{groups.doneToday.length}</span>
+              </div>
+              <div className="off-today-chips">
+                {groups.doneToday.map((s) => (
+                  <div key={s.profile.id} className="off-today-chip">
+                    <UserAvatar
+                      userId={s.profile.id}
+                      firstName={s.profile.firstName}
+                      lastName={s.profile.lastName}
+                      className="avatar off-today-avatar"
+                    />
+                    <span>{profileName(s.profile)}</span>
+                    {s.todayShift?.punchOutAt && (
+                      <small className="subtle" style={{ fontSize: 10 }}>
+                        {formatClock(s.todayShift.punchOutAt)}
+                      </small>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}

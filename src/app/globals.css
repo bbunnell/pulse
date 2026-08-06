@@ -4984,3 +4984,14 @@ input[type="checkbox"] {
   border-radius: var(--radius-full);
   background: var(--red);
 }
+
+/* ─── Employee-first dashboard ───────────────────────────────────
+   PRODUCT.md Principle 1: the five-second task wins. Employees were landing on
+   the manager's monitoring board and had to look past the whole team to reach
+   their own punch button; only mobile put the clock first. On desktop the
+   sidebar now leads for employees, so the clock is the first thing they see.
+   Managers and admins keep the board-first layout they work from. */
+@media (min-width: 1001px) {
+  .dash-body.clock-first { grid-template-columns: 296px 1fr; }
+  .dash-body.clock-first .dash-sidebar { order: -1; }
+}

@@ -135,3 +135,40 @@ sudo systemctl reload nginx
 - Redirect HTTP to HTTPS once certs are available.
 - Ensure `NEXT_PUBLIC_APP_URL` uses `https://`.
 
+
+---
+
+## Scheduled tasks (required)
+
+**Without these, two features are silently dead.** They were dead in production
+until 2026-08-06: there was no cron and no systemd timer on the host, so
+out-of-office entries were never reconciled (a user clearing their Outlook
+auto-reply stayed "out" until an admin clicked Sync by hand) and reminders —
+clock-in/out nudges, escalations, understaffing alerts — never sent at all. The
+code was correct the whole time; nothing invoked it.
+
+Both endpoints authenticate with `CRON_SECRET` from `.env.local`, using
+different conventions:
+
+| Endpoint | Auth header | Frequency |
+|---|---|---|
+| `/api/reminders/send` | `Authorization: Bearer $CRON_SECRET` | every 5 min |
+| `/api/admin/oof-sync` | `x-cron-secret: $CRON_SECRET` | hourly |
+
+Install on a fresh host:
+
+```bash
+install -m 755 scripts/scheduled-tasks.sh /opt/teampulse/scripts/scheduled-tasks.sh
+cp deploy/systemd/teampulse-*.{service,timer} /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now teampulse-reminders.timer teampulse-oof.timer
+```
+
+Verify — a passing timer list is not proof the unit works, so run one directly:
+
+```bash
+systemctl list-timers 'teampulse-*'
+systemctl start teampulse-oof.service && journalctl -u teampulse-oof.service -n 5 --no-pager
+```
+
+`Persistent=true` means a run missed while the host was down fires on boot.

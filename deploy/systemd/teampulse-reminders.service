@@ -1,0 +1,7 @@
+[Unit]
+Description=Team Pulse reminders task
+After=network-online.target teampulse.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/teampulse/scripts/scheduled-tasks.sh reminders

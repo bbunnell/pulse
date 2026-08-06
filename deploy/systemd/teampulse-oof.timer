@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Team Pulse oof on a schedule
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=15
+
+[Install]
+WantedBy=timers.target
