@@ -97,7 +97,7 @@ async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]>
       startDateTime: now.toISOString(),
       endDateTime:   horizon.toISOString(),
       $filter:       "showAs eq 'oof'",
-      $select:       "subject,start,end,showAs",
+      $select:       "subject,start,end,showAs,isCancelled,responseStatus",
       $top:          "50",
     });
     const res = await fetch(
@@ -105,8 +105,17 @@ async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]>
       { headers: { Authorization: `Bearer ${token}`, Prefer: "outlook.timezone=\"UTC\"" } },
     );
     if (res.ok) {
-      const d = (await res.json()) as { value?: Array<{ subject?: string; start: { dateTime: string }; end: { dateTime: string } }> };
+      const d = (await res.json()) as { value?: Array<{
+        subject?: string; start: { dateTime: string }; end: { dateTime: string };
+        isCancelled?: boolean; responseStatus?: { response?: string };
+      }> };
       for (const ev of d.value ?? []) {
+        // calendarView returns events the user cancelled or declined; those are not
+        // time off. Without this a stale or rejected invite keeps someone "out"
+        // indefinitely, and re-creates itself on every sync if deleted by hand.
+        if (ev.isCancelled) continue;
+        const resp = ev.responseStatus?.response;
+        if (resp === "declined") continue;
         const start = new Date(ev.start.dateTime.endsWith("Z") ? ev.start.dateTime : ev.start.dateTime + "Z");
         const end   = new Date(ev.end.dateTime.endsWith("Z")   ? ev.end.dateTime   : ev.end.dateTime   + "Z");
         if (end <= now) continue;
