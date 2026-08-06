@@ -507,7 +507,10 @@ interface Props {
 
 export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin = false }: Props) {
   const [viewMode,        setViewMode]        = useState<ViewMode>("day");
-  const [anchorDate,      setAnchorDate]      = useState<Date>(() => mondayOf(new Date()));
+  // Day is the default view, so the anchor is today. mondayOf() is only right for
+  // the week views, and left over from when 2 Weeks was the default -- it opened
+  // the day view on Monday of the current week instead of today.
+  const [anchorDate,      setAnchorDate]      = useState<Date>(() => new Date());
   const [showHeatmap,     setShowHeatmap]     = useState(true);
 
   // "weekStart" alias — in day mode this is the selected day
