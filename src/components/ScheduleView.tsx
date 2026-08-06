@@ -757,8 +757,10 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
           </div>
         </div>
 
-        {/* ── Actions toolbar (managers/admins only) ── */}
-        {canEdit && (
+        {/* ── Actions toolbar (managers/admins only) ──
+            Coverage is the only control left, and the heatmap renders per week-column,
+            so the toolbar is hidden in day view rather than offering a dead toggle. */}
+        {canEdit && viewMode !== "day" && (
           <div className="schedule-toolbar">
             {/* Recurring rules, copy-week, bulk reassign and templates all authored
                 scheduled_shifts rows. Hours now live on the profile and the board no
