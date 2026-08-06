@@ -200,8 +200,8 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                 </div>
                 <small className="subtle" style={{fontSize:11,marginTop:4,display:"block"}}>
                   {workScheduleType === "standard"
-                    ? "Works regular hours — never shown as 'Off Today'. Appears late based on their expected start time."
-                    : "Only active when explicitly scheduled (e.g. NOC/after-hours team). Shown as 'Off Today' when no shift is scheduled."}
+                    ? "Works regular hours — never shown as 'Not Scheduled'. Appears late based on their expected start time."
+                    : "Only active when explicitly scheduled (e.g. NOC/after-hours team). Shown as 'Not Scheduled' when no shift is scheduled."}
                 </small>
               </div>
 
@@ -701,7 +701,7 @@ function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
                   <small className="subtle" style={{ fontSize:11, marginTop:4, display:"block" }}>
                     {workScheduleType === "standard"
                       ? "Works regular hours — appears late based on their expected start time."
-                      : "Only active when explicitly scheduled. Shown as 'Off Today' when no shift is scheduled."}
+                      : "Only active when explicitly scheduled. Shown as 'Not Scheduled' when no shift is scheduled."}
                   </small>
                 </div>
 

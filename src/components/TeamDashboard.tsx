@@ -169,6 +169,19 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     return () => { if (timer) window.clearInterval(timer); document.removeEventListener("visibilitychange", onVis); };
   }, [refreshLive]);
 
+  // Escape closes whichever modal is open. Both were previously dismissable only by
+  // clicking the overlay or the close button, which left keyboard users stuck.
+  useEffect(() => {
+    if (!markingTimeOff && !editingTimeOff) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      setMarkingTimeOff(null);
+      setEditingTimeOff(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [markingTimeOff, editingTimeOff]);
+
   const nowSafe = now ?? new Date();
 
   // Build snapshots for ALL profiles (so the clock widget works even for hidden users).
@@ -464,25 +477,60 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
 <div className="dash-body">
         <div className="dash-main">
-          {/* Scheduled Now — only people scheduled this moment who have NOT clocked in */}
+          {/* Not Clocked In — one section answering "who should be here and isn't".
+              Merged from the former Scheduled Now / Late / Not In split, whose
+              boundaries were engineering distinctions rather than operational ones.
+              The distinction now rides on each row (Late 18m vs a scheduled time),
+              and rows are ordered by how overdue they are. */}
           {(() => {
-            const scheduledNotIn = coverage.scheduledNow.filter(s =>
-              s.status !== "available" && s.status !== "on_break" && s.status !== "at_lunch"
-              && s.status !== "out_sick" && s.status !== "on_vacation" && s.status !== "on_business_trip"
+            const seen = new Set<string>();
+            const pool: AttendanceSnapshot[] = [];
+            const add = (s: AttendanceSnapshot) => {
+              if (seen.has(s.profile.id)) return;   // the source lists overlap
+              seen.add(s.profile.id);
+              pool.push(s);
+            };
+
+            // Shift window covers this moment, but not on the clock.
+            coverage.scheduledNow
+              .filter(s =>
+                s.status !== "available" && s.status !== "on_break" && s.status !== "at_lunch"
+                && s.status !== "out_sick" && s.status !== "on_vacation" && s.status !== "on_business_trip"
+              )
+              .forEach(add);
+            // Overdue outside a shift window. Manager-only, as it was before the merge —
+            // employees have never seen colleagues singled out as late.
+            if (canManage) groups.late.forEach(add);
+            // Scheduled today, shift hasn't started yet.
+            groups.notIn.forEach(add);
+
+            if (!pool.length) return null;
+
+            pool.sort((a, b) =>
+              (b.minutesLate - a.minutesLate)                                     // most overdue first
+              || (Number(Boolean(b.scheduledNow)) - Number(Boolean(a.scheduledNow))) // then due now
+              || `${a.profile.lastName} ${a.profile.firstName}`.toLowerCase()
+                   .localeCompare(`${b.profile.lastName} ${b.profile.firstName}`.toLowerCase())
             );
-            if (!scheduledNotIn.length) return null;
+
+            const lateCount = pool.filter(s => s.isLate).length;
+
             return (
-              <div className="status-group section-scheduled-now">
+              <div className="status-group section-not-clocked-in">
                 <div className="status-group-heading">
-                  <span className="status-dot-lg blue" />
-                  <h2>Scheduled Now <InfoTooltip text="People whose shift window covers this moment but who haven't clocked in yet." /></h2>
-                  <span className="status-count blue">{scheduledNotIn.length}</span>
+                  <span className="status-dot-lg amber" />
+                  <h2>Not Clocked In <InfoTooltip text="Anyone expected today who isn't on the clock yet, most overdue first. Each row shows whether they are late or simply not due to start yet." /></h2>
+                  <span className="status-count amber">{pool.length}</span>
+                  {/* Keep the manager's overdue signal without spending a whole section on it */}
+                  {canManage && lateCount > 0 && (
+                    <span className="status-count red">{lateCount} late</span>
+                  )}
                 </div>
                 <div className="attend-grid list-view">
-                  {scheduledNotIn.map((s) => (
+                  {pool.map((s) => (
                     <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone}
                       canManage={canManage} actionLoading={actionLoading} now={nowSafe}
-                      onForcePunchIn={handleForcePunchIn} onForcePunchOut={handleForcePunchOut}
+                      onForcePunchIn={handleForcePunchIn}
                       onMarkTimeOff={openMarkTimeOff} />
                   ))}
                 </div>
@@ -512,31 +560,12 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             </div>
           )}
 
-          {/* Late / Not Clocked In — exclude anyone already shown in Scheduled Now */}
-          {(() => {
-            const scheduledNowIds = new Set(coverage.scheduledNow.map(s => s.profile.id));
-            const lateNotScheduled = groups.late.filter(s => !scheduledNowIds.has(s.profile.id));
-            if (!canManage || !lateNotScheduled.length) return null;
-            return (
-              <div className="status-group">
-                <div className="status-group-heading">
-                  <span className="status-dot-lg red" />
-                  <h2>Late / Not Clocked In <InfoTooltip text="Overdue to clock in but outside a scheduled shift window. Use 'Clock in ↩' to log them in manually." /></h2>
-                  <span className="status-count red">{lateNotScheduled.length}</span>
-                </div>
-                <div className="attend-grid list-view">
-                  {lateNotScheduled.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} onMarkTimeOff={openMarkTimeOff} />)}
-                </div>
-              </div>
-            );
-          })()}
-
           {/* Out today */}
           {groups.out.length > 0 && (
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg red" />
-                <h2>Out Today <InfoTooltip text="On approved vacation or sick leave today. Their time off is recorded in the system." /></h2>
+                <h2>Out Today <InfoTooltip text="On vacation, sick leave, or a business trip today. Their time off is recorded in the system." /></h2>
                 <span className="status-count red">{groups.out.length}</span>
               </div>
               <div className="attend-grid list-view">
@@ -546,26 +575,12 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
             </div>
           )}
 
-          {/* Not in (scheduled today, not yet on) */}
-          {groups.notIn.length > 0 && (
-            <div className="status-group">
-              <div className="status-group-heading">
-                <span className="status-dot-lg gray" />
-                <h2>Not In <InfoTooltip text="Has a scheduled shift today but hasn't clocked in yet. They may not have started their shift window or are about to arrive." /></h2>
-                <span className="status-count gray">{groups.notIn.length}</span>
-              </div>
-              <div className="attend-grid list-view">
-                {groups.notIn.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchIn={handleForcePunchIn} onMarkTimeOff={openMarkTimeOff} />)}
-              </div>
-            </div>
-          )}
-
-          {/* Off today — compact inline chips */}
+          {/* Not scheduled today — compact inline chips */}
           {groups.offToday.length > 0 && (
             <div className="status-group">
               <div className="status-group-heading">
                 <span className="status-dot-lg gray" />
-                <h2>Off Today <InfoTooltip text="Not scheduled to work today. No action needed — shown for full team visibility." /></h2>
+                <h2>Not Scheduled <InfoTooltip text="Not due to work today. No action needed — shown for full team visibility." /></h2>
                 <span className="status-count gray">{groups.offToday.length}</span>
               </div>
               <div className="off-today-chips">
@@ -601,10 +616,12 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
               </div>
             )}
             <div className="dash-search">
-              <Search size={13} />
-              <input className="dash-search-input" placeholder="Search people…" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Search size={13} aria-hidden="true" />
+              <input className="dash-search-input" aria-label="Search people" placeholder="Search people…"
+                     value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            <select className="select dash-filter-select" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+            <select className="select dash-filter-select" aria-label="Filter by team"
+                    value={teamId} onChange={(e) => setTeamId(e.target.value)}>
               <option value="all">All teams</option>
               {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -712,10 +729,13 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       {/* Mark time off modal */}
       {markingTimeOff && (
         <div className="schedule-modal-overlay" onClick={() => setMarkingTimeOff(null)}>
-          <div className="schedule-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+          <div className="schedule-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}
+               role="dialog" aria-modal="true" aria-labelledby="mark-timeoff-title">
             <div className="schedule-modal-header">
-              <h3>Mark Time Off — {markingTimeOff.profile.firstName} {markingTimeOff.profile.lastName}</h3>
-              <button className="icon-btn" type="button" onClick={() => setMarkingTimeOff(null)}>✕</button>
+              <h3 id="mark-timeoff-title">Mark Time Off — {markingTimeOff.profile.firstName} {markingTimeOff.profile.lastName}</h3>
+              <button className="icon-btn" type="button" aria-label="Close" onClick={() => setMarkingTimeOff(null)}>
+                <X size={15} aria-hidden="true" />
+              </button>
             </div>
             <form onSubmit={handleMarkTimeOffSubmit}>
               <div className="schedule-modal-body">
@@ -791,10 +811,13 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       {/* Time-off edit modal */}
       {editingTimeOff && (
         <div className="schedule-modal-overlay" onClick={() => setEditingTimeOff(null)}>
-          <div className="schedule-modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+          <div className="schedule-modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}
+               role="dialog" aria-modal="true" aria-labelledby="edit-timeoff-title">
             <div className="schedule-modal-header">
-              <h3>Edit Time Off</h3>
-              <button className="icon-btn" type="button" onClick={() => setEditingTimeOff(null)}>✕</button>
+              <h3 id="edit-timeoff-title">Edit Time Off</h3>
+              <button className="icon-btn" type="button" aria-label="Close" onClick={() => setEditingTimeOff(null)}>
+                <X size={15} aria-hidden="true" />
+              </button>
             </div>
             <form onSubmit={handleSaveTimeOff}>
               <div className="schedule-modal-body">
@@ -1017,11 +1040,19 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
         )}
 
         {/* Manager-only override actions */}
+        {/* Manager overrides. Every label names the person: a screen reader hitting a
+            board of these otherwise hears "Clock out" a dozen times with no way to
+            tell whose row it is on. SVGs are decorative and hidden from the AT tree. */}
         {canManage && (isWorking || isOnBreak) && onForcePunchOut && (
           <button className="btn-punch danger" type="button" disabled={actionLoading}
                   title="Clock out (manager action)"
-                  onClick={() => onForcePunchOut(snapshot.profile.id)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  aria-label={`Clock out ${profileName(snapshot.profile)} (manager action)`}
+                  onClick={() => {
+                    if (confirm(`Clock out ${profileName(snapshot.profile)}? They are on the clock right now.`)) {
+                      onForcePunchOut(snapshot.profile.id);
+                    }
+                  }}>
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
           </button>
@@ -1029,8 +1060,9 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
         {canManage && snapshot.isLate && onForcePunchIn && (
           <button className="btn-punch" type="button" disabled={actionLoading}
                   title="Clock in (manager action)"
+                  aria-label={`Clock in ${profileName(snapshot.profile)} (manager action)`}
                   onClick={() => onForcePunchIn(snapshot.profile.id)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
             </svg>
           </button>
@@ -1038,8 +1070,9 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
         {canManage && !isOut && onMarkTimeOff && (
           <button className="btn-punch" type="button" disabled={actionLoading}
                   title="Mark sick / time off"
+                  aria-label={`Mark ${profileName(snapshot.profile)} sick or off`}
                   onClick={() => onMarkTimeOff(snapshot)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/>
             </svg>
           </button>
@@ -1048,16 +1081,18 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
           <div className="timeoff-actions">
             {onEditTimeOff && (
               <button className="btn-punch" type="button" title="Edit time off"
+                      aria-label={`Edit time off for ${profileName(snapshot.profile)}`}
                       onClick={() => onEditTimeOff(snapshot.timeOffToday!)}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
               </button>
             )}
             {onDeleteTimeOff && (
               <button className="btn-punch danger" type="button" title="Delete time off"
+                      aria-label={`Delete time off for ${profileName(snapshot.profile)}`}
                       onClick={() => onDeleteTimeOff(snapshot.timeOffToday!.id)}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>
               </button>
