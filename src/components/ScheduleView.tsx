@@ -1,15 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Pencil, SlidersHorizontal, X } from "lucide-react";
-import type { Profile, ScheduleRule, ScheduleTemplate, ScheduledShift, TimeOffEntry } from "@/lib/types";
+import type { Profile, ScheduledShift, TimeOffEntry } from "@/lib/types";
 import { profileName } from "@/lib/status";
 import { localDateInZone, localTimeInZone, tzAbbr } from "@/lib/timezone";
 import { deriveStandardShifts, groupShiftsByWindow, type BoardShift, type ShiftGroup } from "@/lib/derived-shifts";
 import { CoverageHeatmap } from "@/components/schedule/CoverageHeatmap";
-import { RecurringRulePanel } from "@/components/schedule/RecurringRulePanel";
-import { BulkReassignModal } from "@/components/schedule/BulkReassignModal";
-import { TemplatesModal } from "@/components/schedule/TemplatesModal";
 
 // ── Colour palette (NBIT brand-derived) ────────────────────────────────────────
 const PALETTE = [
@@ -222,100 +219,6 @@ function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, canEdit
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// ── Edit shift modal ─────────────────────────────────────────────────────────
-interface EditShiftProps {
-  shift: ScheduledShift;
-  profiles: Profile[];
-  scheduleTz: string;
-  onSave(updated: ScheduledShift): void;
-  onClose(): void;
-}
-
-function EditShiftModal({ shift, profiles, scheduleTz, onSave, onClose }: EditShiftProps) {
-  const [profileId, setProfileId] = useState(shift.profileId);
-  const [startTime, setStartTime] = useState(shift.startTime);
-  const [endTime,   setEndTime]   = useState(shift.endTime);
-  const [label,     setLabel]     = useState(shift.label ?? "");
-  const [notes,     setNotes]     = useState(shift.notes ?? "");
-  const [isOpen,    setIsOpen]    = useState(shift.isOpen);
-  const [detach,    setDetach]    = useState(false);
-  const [saving,    setSaving]    = useState(false);
-  const [error,     setError]     = useState("");
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true); setError("");
-    const res = await fetch(`/api/schedule/${shift.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profileId, startTime, endTime, label: label||undefined, notes: notes||undefined, isOpen, detachFromRule: detach }),
-    });
-    const json = (await res.json()) as { ok?: boolean; shift?: ScheduledShift; error?: string };
-    if (json.ok && json.shift) { onSave(json.shift); onClose(); }
-    else { setError(json.error ?? "Save failed."); }
-    setSaving(false);
-  }
-
-  return (
-    <div className="schedule-modal-overlay" ref={overlayRef}
-         onClick={e => { if (e.target === overlayRef.current) onClose(); }}>
-      <div className="schedule-modal">
-        <div className="schedule-modal-header">
-          <h3>Edit Shift — {shift.shiftDate}</h3>
-          <button className="icon-btn" type="button" onClick={onClose}><X size={16}/></button>
-        </div>
-        <form className="schedule-modal-body" onSubmit={handleSave}>
-          <div className="control">
-            <label>Person</label>
-            <select className="select" value={profileId} onChange={e=>setProfileId(e.target.value)}>
-              {profiles.map(p=><option key={p.id} value={p.id}>{profileName(p)}</option>)}
-            </select>
-          </div>
-          <div className="schedule-modal-row">
-            <div className="control" style={{flex:1}}>
-              <label>Start time</label>
-              <input className="input" type="time" value={startTime} onChange={e=>setStartTime(e.target.value)} required/>
-            </div>
-            <div className="control" style={{flex:1}}>
-              <label>End time</label>
-              <input className="input" type="time" value={endTime} onChange={e=>setEndTime(e.target.value)} required/>
-            </div>
-          </div>
-          <p className="subtle" style={{ fontSize: 11, marginTop: -4 }}>
-            Times are in <strong>{tzAbbr(scheduleTz)}</strong> (the schedule timezone).
-          </p>
-          <div className="control">
-            <label>Label</label>
-            <input className="input" value={label} onChange={e=>setLabel(e.target.value)} placeholder="Overnight, Day, Evening…"/>
-          </div>
-          <div className="control">
-            <label>Notes</label>
-            <input className="input" value={notes} onChange={e=>setNotes(e.target.value)}/>
-          </div>
-          <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,cursor:"pointer"}}>
-            <input type="checkbox" checked={isOpen} onChange={e=>setIsOpen(e.target.checked)}/>
-            Mark as open (needs coverage)
-          </label>
-          {shift.ruleId && (
-            <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,cursor:"pointer"}}>
-              <input type="checkbox" checked={detach} onChange={e=>setDetach(e.target.checked)}/>
-              Edit this occurrence only (detach from recurring rule)
-            </label>
-          )}
-          {error && <p className="error-line">{error}</p>}
-          <div className="schedule-modal-footer">
-            <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
-            <button className="button primary" type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
@@ -574,19 +477,7 @@ interface Props {
 export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin = false }: Props) {
   const [viewMode,        setViewMode]        = useState<ViewMode>(2);
   const [anchorDate,      setAnchorDate]      = useState<Date>(() => mondayOf(new Date()));
-  const [shifts,          setShifts]          = useState<ScheduledShift[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [modalDate,       setModalDate]       = useState<string | null>(null);
-  const [editingShift,    setEditingShift]    = useState<ScheduledShift | null>(null);
   const [showHeatmap,     setShowHeatmap]     = useState(true);
-  const [showRules,       setShowRules]       = useState(false);
-  const [showReassign,    setShowReassign]    = useState(false);
-  const [showTemplates,   setShowTemplates]   = useState(false);
-  const [showCopyWeek,    setShowCopyWeek]    = useState(false);
-  const [rules,           setRules]           = useState<ScheduleRule[]>([]);
-  const [templates,       setTemplates]       = useState<ScheduleTemplate[]>([]);
-  const [copyWeeksAhead,  setCopyWeeksAhead]  = useState(1);
-  const [copying,         setCopying]         = useState(false);
 
   // "weekStart" alias — in day mode this is the selected day
   const weekStart = anchorDate;
@@ -601,11 +492,6 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
     return () => window.clearInterval(t);
   }, []);
 
-  // Load rules and templates once
-  useEffect(() => {
-    fetch("/api/schedule/rules").then(r=>r.json()).then((d:{rules?:ScheduleRule[]})=>setRules(d.rules??[])).catch(()=>{});
-    fetch("/api/schedule/templates").then(r=>r.json()).then((d:{templates?:ScheduleTemplate[]})=>setTemplates(d.templates??[])).catch(()=>{});
-  }, []);
 
   const today    = isoDate(new Date());
 
@@ -619,17 +505,7 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
 
   const rangeEnd  = viewMode === "day" ? weekStart : addDays(weekStart, viewMode * 7 - 1);
 
-  const fetchShifts = useCallback(async (from: string, to: string) => {
-    setLoading(true);
-    try {
-      const res  = await fetch(`/api/schedule?from=${from}&to=${to}`);
-      const json = (await res.json()) as { shifts?: ScheduledShift[] };
-      setShifts(json.shifts ?? []);
-    } catch { setShifts([]); }
-    setLoading(false);
-  }, []);
 
-  useEffect(() => { void fetchShifts(fetchFrom, fetchTo); }, [fetchFrom, fetchTo, fetchShifts]);
 
   // Standard-schedule staff have no shift rows; their hours live on their profile.
   // Derive display-only shifts for them so the board shows everyone actually
@@ -644,7 +520,7 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
     // Legacy scheduled_shifts rows are deliberately ignored rather than merged,
     // so the board has exactly one source of truth.
     return derived;
-  }, [shifts, profiles, timeOff, fetchFrom, fetchTo, scheduleTz]);
+  }, [profiles, timeOff, fetchFrom, fetchTo, scheduleTz]);
 
   function prevPeriod() {
     setAnchorDate(w => viewMode === "day" ? addDays(w, -1) : addDays(w, -(viewMode as number) * 7));
@@ -667,38 +543,9 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
     setAnchorDate(m === "day" ? new Date() : mondayOf(new Date()));
   }
 
-  async function handleSave(data: Omit<ScheduledShift, "id"|"createdAt"|"updatedAt">) {
-    const res  = await fetch("/api/schedule", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const json = (await res.json()) as { shift?: ScheduledShift; error?: string };
-    if (!res.ok) throw new Error(json.error ?? "Failed to save.");
-    if (json.shift) setShifts((prev) => [...prev, json.shift!]);
-  }
 
-  async function handleDelete(id: string) {
-    const res = await fetch(`/api/schedule/${id}`, { method: "DELETE" });
-    if (res.ok) setShifts((prev) => prev.filter((s) => s.id !== id));
-  }
 
-  function handleEditSave(updated: ScheduledShift) {
-    setShifts(prev => prev.map(s => s.id === updated.id ? updated : s));
-  }
 
-  async function handleCopyWeek() {
-    setCopying(true);
-    const srcStart = isoDate(viewMode === "day" ? mondayOf(weekStart) : weekStart);
-    const targetWeeks = Array.from({ length: copyWeeksAhead }, (_, i) => i + 1);
-    await fetch("/api/schedule/copy-week", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sourceWeekStart: srcStart, targetWeeks }),
-    });
-    await fetchShifts(fetchFrom, fetchTo);
-    setShowCopyWeek(false);
-    setCopying(false);
-  }
 
   // Range label
   const DAY_LONG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -712,7 +559,6 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
     ? Array.from({ length: viewMode as number }, (_, i) => addDays(weekStart, i * 7))
     : [];
   const compact = viewMode === 4;
-  const activeIds = new Set(shifts.map((s) => s.profileId));
 
   return (
     <section className="page-shell">
@@ -751,7 +597,6 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
           </div>
 
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            {loading && <span className="schedule-loading">Loading…</span>}
             <span className="schedule-viewer-tz" title={scheduleTz}>{tzAbbr(scheduleTz)}</span>
             <button className="button secondary" onClick={goToday} type="button">Today</button>
           </div>
@@ -774,34 +619,8 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
         )}
 
         {/* ── Copy week inline panel ── */}
-        {showCopyWeek && (
-          <div className="schedule-inline-panel">
-            <p className="subtle" style={{fontSize:13}}>
-              Copy all {shifts.filter(s=>weeks.some(w=>{const end=addDays(w,6); return s.shiftDate>=isoDate(w)&&s.shiftDate<=isoDate(end);})).length} shifts from the current view to:
-            </p>
-            <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
-              <select className="select" style={{width:180}} value={copyWeeksAhead} onChange={e=>setCopyWeeksAhead(Number(e.target.value))}>
-                <option value={1}>Next 1 week forward</option>
-                <option value={2}>Next 2 weeks forward</option>
-                <option value={4}>Next 4 weeks forward</option>
-              </select>
-              <button className="button primary" type="button" disabled={copying} onClick={handleCopyWeek}>
-                {copying ? "Copying…" : "Copy"}
-              </button>
-              <button className="button secondary" type="button" onClick={()=>setShowCopyWeek(false)}>Cancel</button>
-            </div>
-          </div>
-        )}
 
         {/* ── Recurring rules side panel ── */}
-        {showRules && (
-          <RecurringRulePanel
-            profiles={profiles} rules={rules}
-            onRulesChange={setRules}
-            onClose={()=>setShowRules(false)}
-            scheduleTz={scheduleTz}
-          />
-        )}
 
         {/* ── Main view ── */}
         {viewMode === "day" ? (
@@ -813,19 +632,19 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
             canEdit={canEdit}
             canEditProfiles={isAdmin}
             scheduleTz={scheduleTz}
-            onEdit={setEditingShift}
-            onDelete={handleDelete}
-            onAddClick={setModalDate}
+            onEdit={() => {}}
+            onDelete={() => {}}
+            onAddClick={() => {}}
             onEditProfile={handleEditProfile}
             nowTick={nowTick}
           />
         ) : (
-          <div className={`schedule-weeks${showRules?" has-side-panel":""}`}>
+          <div className={"schedule-weeks"}>
             {weeks.map((ws) => (
               <WeekRow key={isoDate(ws)} weekStart={ws} shifts={boardShifts} profiles={profiles}
                        timeOff={timeOff} today={today} canEdit={canEdit} canEditProfiles={isAdmin} compact={compact}
                        showWeekLabel={(viewMode as number) > 1} showHeatmap={showHeatmap} scheduleTz={scheduleTz}
-                       onAddClick={setModalDate} onDelete={handleDelete} onEdit={setEditingShift}
+                       onAddClick={() => {}} onDelete={() => {}} onEdit={() => {}}
                        onEditProfile={handleEditProfile}
                        nowDateStr={nowTick ? localDateInZone(scheduleTz, nowTick) : null}
                        nowMinutes={nowTick ? toMin(localTimeInZone(scheduleTz, nowTick)) : -1}/>
@@ -836,25 +655,6 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
       </div>
 
       {/* ── Modals ── */}
-      {showReassign && (
-        <BulkReassignModal profiles={profiles}
-                           onDone={() => { void fetchShifts(fetchFrom, fetchTo); }}
-                           onClose={() => setShowReassign(false)}/>
-      )}
-      {showTemplates && (
-        <TemplatesModal
-          profiles={profiles} templates={templates}
-          currentWeekShifts={shifts.filter(s => {
-            const ws = weeks[0]; if (!ws) return false;
-            const we = addDays(ws, 6);
-            return s.shiftDate >= isoDate(ws) && s.shiftDate <= isoDate(we);
-          })}
-          currentWeekStart={isoDate(weekStart)}
-          onTemplatesChange={setTemplates}
-          onApplied={() => { void fetchShifts(fetchFrom, fetchTo); }}
-          onClose={() => setShowTemplates(false)}
-        />
-      )}
     </section>
   );
 }
