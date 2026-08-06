@@ -4884,3 +4884,103 @@ input[type="checkbox"] {
   color: var(--muted);
   margin-top: 1px;
 }
+
+/* ─── Week view: per-day mini timeline ───────────────────────────
+   Blocks sit at their real position on an hour axis and concurrent
+   windows sit side by side, so overlap is legible without opening
+   the day view. Today carries a red now-line. */
+.wk-tl {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.wk-tl-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.55;
+}
+.wk-tl-line.labelled { opacity: 1; }
+
+.wk-tl-hour {
+  position: absolute;
+  top: -6px;
+  left: 1px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted-2);
+  background: var(--surface);
+  padding: 0 2px;
+}
+
+.wk-tl-block {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  padding: 2px 3px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  z-index: 2;
+}
+.wk-tl-block.is-group {
+  border-color: var(--border-strong);
+  background: var(--gray-soft);
+}
+.wk-tl-block[onclick], .wk-tl-block:hover { cursor: pointer; }
+
+.wk-tl-time {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.wk-tl-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  color: var(--surface);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.wk-tl-name {
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wk-tl-rest { color: var(--muted); font-weight: 600; }
+
+/* The now-line is the one red element here, so it reads instantly. */
+.wk-tl-now {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: var(--red);
+  z-index: 5;
+  pointer-events: none;
+}
+.wk-tl-now::before {
+  content: "";
+  position: absolute;
+  left: 0; top: -3px;
+  width: 8px; height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--red);
+}

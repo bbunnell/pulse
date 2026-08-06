@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Pencil, Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import type { Profile, ScheduleRule, ScheduleTemplate, ScheduledShift, TimeOffEntry } from "@/lib/types";
 import { profileName } from "@/lib/status";
-import { convertShiftTime, tzAbbr } from "@/lib/timezone";
+import { convertShiftTime, localDateInZone, localTimeInZone, tzAbbr } from "@/lib/timezone";
 import { deriveStandardShifts, groupShiftsByWindow, type BoardShift, type ShiftGroup } from "@/lib/derived-shifts";
 import { CoverageHeatmap } from "@/components/schedule/CoverageHeatmap";
 import { RecurringRulePanel } from "@/components/schedule/RecurringRulePanel";
@@ -279,6 +279,99 @@ function AddShiftModal({ profiles, defaultDate, scheduleTz, onSave, onClose }: M
   );
 }
 
+// ── Week-view day timeline ─────────────────────────────────────────────────────
+// A compact vertical timeline per day column: blocks sit at their real position on
+// an hour axis, concurrent windows sit side by side, and today carries a red
+// now-line. This is what makes overlap legible without opening the day view.
+const WEEK_TL_START = 5;                       // first hour shown (5am)
+const WEEK_TL_END   = 24;                      // through midnight
+const WEEK_TL_HOURS = WEEK_TL_END - WEEK_TL_START;
+
+function WeekDayTimeline({
+  dateStr, groups, profiles, scheduleTz, compact, nowMin, onEditProfile,
+}: {
+  dateStr: string;
+  groups: ShiftGroup[];
+  profiles: Profile[];
+  scheduleTz: string;
+  compact: boolean;
+  /** Minutes past midnight in the schedule zone, or -1 when this is not today. */
+  nowMin: number;
+  onEditProfile?: (profileId: string) => void;
+}) {
+  const H = compact ? 150 : 230;                       // timeline height in px
+  const pxPerMin = H / (WEEK_TL_HOURS * 60);
+  const clampTop = (min: number) => Math.max(0, (min - WEEK_TL_START * 60) * pxPerMin);
+
+  // Greedy column packing so concurrent windows sit side by side rather than stacked.
+  interface Lane { group: ShiftGroup; top: number; height: number; col: number }
+  const laneEnds: number[] = [];
+  const lanes: Lane[] = groups.map((g) => {
+    const s = toMin(g.startTime);
+    const overnight = crossesMidnight(g.startTime, g.endTime);
+    const e = overnight ? WEEK_TL_END * 60 : toMin(g.endTime);
+    let col = laneEnds.findIndex((end) => end <= s);
+    if (col === -1) col = laneEnds.length;
+    laneEnds[col] = e;
+    return { group: g, top: clampTop(s), height: Math.max((e - s) * pxPerMin, 20), col };
+  });
+  const cols = Math.max(1, laneEnds.length);
+
+  return (
+    <div className="wk-tl" style={{ height: H }}>
+      {/* Hour gridlines, labelled every 3h so the axis stays readable when narrow */}
+      {Array.from({ length: WEEK_TL_HOURS + 1 }, (_, i) => {
+        const hour = WEEK_TL_START + i;
+        const label = hour % 3 === 0 && hour < 24;
+        return (
+          <div key={hour} className={`wk-tl-line${label ? " labelled" : ""}`}
+               style={{ top: i * 60 * pxPerMin }}>
+            {label && !compact && <span className="wk-tl-hour">{formatTime(`${String(hour).padStart(2,"0")}:00`)}</span>}
+          </div>
+        );
+      })}
+
+      {lanes.map(({ group, top, height, col }) => {
+        const single = group.shifts.length === 1;
+        const color  = single ? profileColor(group.shifts[0].profileId) : null;
+        const wPct   = 100 / cols;
+        const names  = group.shifts
+          .map((s) => profiles.find((p) => p.id === s.profileId))
+          .filter(Boolean)
+          .map((p) => profileName(p as Profile))
+          .sort((a, b) => a.localeCompare(b));
+        const fits = Math.max(0, Math.floor((height - 16) / 13));
+        const shown = names.slice(0, fits);
+
+        return (
+          <div key={group.key} className={`wk-tl-block${single ? "" : " is-group"}`}
+               title={`${formatTime(group.startTime)}–${formatTime(group.endTime)} ${tzAbbr(scheduleTz)}\n${names.join("\n")}`}
+               style={{
+                 top, height,
+                 left:  `calc(${col * wPct}% + 1px)`,
+                 width: `calc(${wPct}% - 2px)`,
+                 ...(color ? { borderColor: color.border, background: color.bg, color: color.text } : {}),
+               }}
+               onClick={onEditProfile && single ? () => onEditProfile(group.shifts[0].profileId) : undefined}>
+            <span className="wk-tl-time">
+              {formatTime(group.startTime)}
+              {!single && <span className="wk-tl-count">{group.shifts.length}</span>}
+            </span>
+            {shown.map((n) => <span key={n} className="wk-tl-name">{n}</span>)}
+            {names.length > shown.length && (
+              <span className="wk-tl-name wk-tl-rest">+{names.length - shown.length}</span>
+            )}
+          </div>
+        );
+      })}
+
+      {nowMin >= 0 && (
+        <div className="wk-tl-now" style={{ top: clampTop(nowMin) }} aria-label="Current time" />
+      )}
+    </div>
+  );
+}
+
 // ── Week row ───────────────────────────────────────────────────────────────────
 interface WeekRowProps {
   weekStart: Date;
@@ -296,9 +389,11 @@ interface WeekRowProps {
   onDelete(id: string): void;
   onEdit(shift: ScheduledShift): void;
   onEditProfile(profileId: string): void;
+  nowDateStr: string | null;
+  nowMinutes: number;
 }
 
-function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, canEditProfiles, compact, showWeekLabel, showHeatmap, scheduleTz, onAddClick, onDelete, onEdit, onEditProfile }: WeekRowProps) {
+function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, canEditProfiles, compact, showWeekLabel, showHeatmap, scheduleTz, onAddClick, onDelete, onEdit, onEditProfile, nowDateStr, nowMinutes }: WeekRowProps) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekEnd = addDays(weekStart, 6);
   const label = `${fmtMonthDay(weekStart)} – ${fmtMonthDay(weekEnd)}`;
@@ -322,17 +417,19 @@ function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, canEdit
                 {!compact && <div className="schedule-day-month">{MONTH_NAMES[day.getMonth()]}</div>}
               </div>
               <div className="schedule-day-body">
-                {dayGroups.length === 0 && (
+                {dayGroups.length === 0 ? (
                   <div className="schedule-day-empty">No one scheduled</div>
+                ) : (
+                  <WeekDayTimeline
+                    dateStr={dateStr}
+                    groups={dayGroups}
+                    profiles={profiles}
+                    scheduleTz={scheduleTz}
+                    compact={compact}
+                    nowMin={dateStr === nowDateStr ? nowMinutes : -1}
+                    onEditProfile={canEditProfiles ? onEditProfile : undefined}
+                  />
                 )}
-                {dayGroups.map((group) => (
-                  <ShiftGroupCard key={group.key} group={group}
-                                  profiles={profiles} timeOff={timeOff}
-                                  canEdit={canEdit} canEditProfiles={canEditProfiles}
-                                  compact={compact} scheduleTz={scheduleTz}
-                                  collapseAfter={compact ? 2 : 4}
-                                  onDelete={onDelete} onEdit={onEdit} onEditProfile={onEditProfile}/>
-                ))}
               </div>
               {canEdit && (
                 <button className="schedule-add-day-btn" type="button"
@@ -468,10 +565,12 @@ interface DayTimelineProps {
   onDelete(id: string): void;
   onAddClick(date: string): void;
   onEditProfile(profileId: string): void;
+  /** Ticking clock from the parent; null until mounted, to keep SSR markup stable. */
+  nowTick: Date | null;
 }
 
 function DayTimelineView({
-  dayDate, allShifts, profiles, timeOff, canEdit, canEditProfiles, scheduleTz, onEdit, onDelete, onAddClick, onEditProfile,
+  dayDate, allShifts, profiles, timeOff, canEdit, canEditProfiles, scheduleTz, onEdit, onDelete, onAddClick, onEditProfile, nowTick,
 }: DayTimelineProps) {
   const d       = new Date(dayDate + "T00:00:00");
   const prevDay = isoDate(addDays(d, -1));
@@ -532,10 +631,11 @@ function DayTimelineView({
   const totalCols = Math.max(1, colEnds.length);
   blocks.forEach(b => { b.totalCols = totalCols; });
 
-  // Current time indicator
-  const now    = new Date();
-  const isToday = dayDate === isoDate(now);
-  const nowMin  = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
+  // Current time indicator. Read in the schedule timezone, not the viewer's: blocks
+  // are positioned from schedule-zone times, so a Chicago viewer on a Pacific
+  // schedule would otherwise see the line sitting two hours off the blocks it marks.
+  const isToday = nowTick ? localDateInZone(scheduleTz, nowTick) === dayDate : false;
+  const nowMin  = isToday && nowTick ? toMin(localTimeInZone(scheduleTz, nowTick)) : -1;
 
   return (
     <div className="day-timeline-wrap">
@@ -716,6 +816,16 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
   // "weekStart" alias — in day mode this is the selected day
   const weekStart = anchorDate;
 
+  // The now-line has to advance on its own; previously `new Date()` was read once at
+  // render, so the marker sat wherever the last unrelated re-render left it.
+  // Starts null so server and first client render agree, then ticks each half minute.
+  const [nowTick, setNowTick] = useState<Date | null>(null);
+  useEffect(() => {
+    setNowTick(new Date());
+    const t = window.setInterval(() => setNowTick(new Date()), 30_000);
+    return () => window.clearInterval(t);
+  }, []);
+
   // Load rules and templates once
   useEffect(() => {
     fetch("/api/schedule/rules").then(r=>r.json()).then((d:{rules?:ScheduleRule[]})=>setRules(d.rules??[])).catch(()=>{});
@@ -755,7 +865,10 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
       dates.push(isoDate(d));
     }
     const derived = deriveStandardShifts({ profiles, timeOff, dates, scheduleTz });
-    return [...shifts, ...derived];
+    // Shifts are no longer a concept: everyone's hours come from their profile.
+    // Legacy scheduled_shifts rows are deliberately ignored rather than merged,
+    // so the board has exactly one source of truth.
+    return derived;
   }, [shifts, profiles, timeOff, fetchFrom, fetchTo, scheduleTz]);
 
   function prevPeriod() {
@@ -942,6 +1055,7 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
             onDelete={handleDelete}
             onAddClick={setModalDate}
             onEditProfile={handleEditProfile}
+            nowTick={nowTick}
           />
         ) : (
           <div className={`schedule-weeks${showRules?" has-side-panel":""}`}>
@@ -950,7 +1064,9 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
                        timeOff={timeOff} today={today} canEdit={canEdit} canEditProfiles={isAdmin} compact={compact}
                        showWeekLabel={(viewMode as number) > 1} showHeatmap={showHeatmap} scheduleTz={scheduleTz}
                        onAddClick={setModalDate} onDelete={handleDelete} onEdit={setEditingShift}
-                       onEditProfile={handleEditProfile}/>
+                       onEditProfile={handleEditProfile}
+                       nowDateStr={nowTick ? localDateInZone(scheduleTz, nowTick) : null}
+                       nowMinutes={nowTick ? toMin(localTimeInZone(scheduleTz, nowTick)) : -1}/>
             ))}
           </div>
         )}
