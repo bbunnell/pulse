@@ -42,6 +42,7 @@ export function mapProfile(row: DbRow): Profile {
     showOnDashboard:   (row.show_on_dashboard as boolean) ?? true,
     workScheduleType:  (row.work_schedule_type as "standard" | "shift_based") ?? "shift_based",
     standardWorkDays:  (row.standard_work_days as unknown as number[]) ?? [1,2,3,4,5],
+    workDayHours:      (row.work_day_hours as unknown as Record<string,{start:string;end:string}>) ?? {},
     hideWhenNotActive: (row.hide_when_not_active as boolean) ?? false,
     birthday:        toMonthDay(row.birthday),
     workAnniversary: toIsoDateStr(row.work_anniversary),

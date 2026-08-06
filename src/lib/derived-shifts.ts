@@ -92,13 +92,19 @@ export function deriveStandardShifts(args: {
     }
 
     for (const empDate of candidates) {
-      if (!workDays.includes(dayOfWeek(empDate))) continue;
+      const dow = dayOfWeek(empDate);
+      if (!workDays.includes(dow)) continue;
 
-      const startUtc = zonedTimeToUtc(empDate, p.expectedStartTime, empTz);
+      // A day may override the default window (e.g. 12:00-21:00 on Wed/Thu but
+      // 10:00-19:00 otherwise). Absent from the map means "use the default".
+      const override  = p.workDayHours?.[String(dow)];
+      const dayStart  = override?.start || p.expectedStartTime;
+      const dayEnd    = override?.end   || p.expectedEndTime;
+
+      const startUtc = zonedTimeToUtc(empDate, dayStart, empTz);
       // end <= start means the shift runs past midnight in the employee's own day
-      const endEmpDate =
-        p.expectedEndTime <= p.expectedStartTime ? addDaysIso(empDate, 1) : empDate;
-      const endUtc = zonedTimeToUtc(endEmpDate, p.expectedEndTime, empTz);
+      const endEmpDate = dayEnd <= dayStart ? addDaysIso(empDate, 1) : empDate;
+      const endUtc = zonedTimeToUtc(endEmpDate, dayEnd, empTz);
 
       const schedDate  = localDateInZone(scheduleTz, startUtc);
       if (!dates.includes(schedDate)) continue;      // outside the visible range

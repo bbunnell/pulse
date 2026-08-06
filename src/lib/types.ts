@@ -49,6 +49,13 @@ export interface Profile {
   showOnDashboard: boolean;  // false for placeholders that never clock in
   workScheduleType: "standard" | "shift_based";
   standardWorkDays: number[];  // 0=Sun … 6=Sat, in employee's own timezone
+  /**
+   * Per-weekday hour overrides, keyed by day of week "0"–"6".
+   * A day absent from the map uses expectedStartTime/expectedEndTime.
+   * Lets one person work different hours on different days (e.g. 12:00–21:00
+   * Wed/Thu but 10:00–19:00 otherwise) without a separate shift record.
+   */
+  workDayHours?: Record<string, { start: string; end: string }>;
   hideWhenNotActive: boolean;  // only show on board when clocked in or on PTO
   birthday?: string;         // "MM-DD" — month and day only, no year
   workAnniversary?: string;  // "YYYY-MM-DD" — hire / start date

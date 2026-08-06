@@ -37,6 +37,7 @@ export async function PATCH(
     workAnniversary?: string | null;
     workScheduleType?: "standard" | "shift_based";
     standardWorkDays?: number[];
+    workDayHours?: Record<string, { start: string; end: string }>;
     hideWhenNotActive?: boolean;
   };
 

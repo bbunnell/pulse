@@ -5045,3 +5045,48 @@ input[type="checkbox"] {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ─── Per-weekday hour overrides (admin profile) ─────────────────
+   Most people work one window every day, so days inherit the default hours until
+   explicitly customised. That keeps the common case a single pair of inputs and
+   makes the exception visible rather than buried in seven identical rows. */
+.perday-hours {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.perday-hours-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: 8px;
+}
+.perday-hours-head span { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.perday-hours-head small { font-size: 11px; }
+
+.perday-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+.perday-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 120px;
+  flex-shrink: 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+.perday-times {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.perday-times .input { height: 28px; font-size: 12px; }
+.perday-default {
+  font-size: 12px;
+  color: var(--muted);
+}

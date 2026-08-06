@@ -69,6 +69,7 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
   const [showOnDashboard,   setShowOnDashboard]   = useState(profile.showOnDashboard ?? true);
   const [workScheduleType,  setWorkScheduleType]  = useState<"standard"|"shift_based">(profile.workScheduleType ?? "shift_based");
   const [standardWorkDays,  setStandardWorkDays]  = useState<number[]>(profile.standardWorkDays ?? [1,2,3,4,5]);
+  const [workDayHours,      setWorkDayHours]      = useState<Record<string,{start:string;end:string}>>(profile.workDayHours ?? {});
   const [hideWhenNotActive, setHideWhenNotActive] = useState(profile.hideWhenNotActive ?? false);
   const [birthday,        setBirthday]         = useState(profile.birthday ?? "");
   const [workAnniversary, setWorkAnniversary]  = useState(profile.workAnniversary ?? "");
@@ -92,7 +93,7 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
     const res = await fetch(`/api/admin/profiles/${profile.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, expectedEndTime: endTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null, workScheduleType, standardWorkDays, hideWhenNotActive }),
+      body: JSON.stringify({ firstName, lastName, email, role, teamId: teamId || null, expectedStartTime: startTime, expectedEndTime: endTime, status, timezone, showOnDashboard, birthday: birthday || null, workAnniversary: workAnniversary || null, workScheduleType, standardWorkDays, hideWhenNotActive, workDayHours }),
     });
     const json = (await res.json()) as { ok?: boolean; profile?: Profile; error?: string };
     if (json.ok) {
@@ -227,6 +228,46 @@ function EditUserModal({ profile, teams, currentUserId, onSave, onClose }: EditM
                         {d}
                       </button>
                     ))}
+                  </div>
+
+                  {/* Per-day hours. Most people work one window every day, so a day
+                      inherits the hours above until explicitly customised -- keeping
+                      the common case a single pair of inputs and making the
+                      exception visible rather than buried in seven identical rows. */}
+                  <div className="perday-hours">
+                    <div className="perday-hours-head">
+                      <span>Different hours on certain days?</span>
+                      <small className="subtle">Days left unchecked use the work hours above.</small>
+                    </div>
+                    {standardWorkDays.map((dow) => {
+                      const label = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dow];
+                      const ov = workDayHours[String(dow)];
+                      return (
+                        <div key={dow} className="perday-row">
+                          <label className="perday-toggle">
+                            <input type="checkbox" checked={Boolean(ov)}
+                              onChange={(e) => setWorkDayHours(prev => {
+                                const next = { ...prev };
+                                if (e.target.checked) next[String(dow)] = { start: startTime, end: endTime };
+                                else delete next[String(dow)];
+                                return next;
+                              })} />
+                            <span>{label}</span>
+                          </label>
+                          {ov ? (
+                            <div className="perday-times">
+                              <input className="input" type="time" value={ov.start} aria-label={label + " start time"}
+                                onChange={(e) => setWorkDayHours(prev => ({ ...prev, [String(dow)]: { start: e.target.value, end: prev[String(dow)].end } }))} />
+                              <span className="subtle">to</span>
+                              <input className="input" type="time" value={ov.end} aria-label={label + " end time"}
+                                onChange={(e) => setWorkDayHours(prev => ({ ...prev, [String(dow)]: { start: prev[String(dow)].start, end: e.target.value } }))} />
+                            </div>
+                          ) : (
+                            <span className="perday-default">{startTime} – {endTime}</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

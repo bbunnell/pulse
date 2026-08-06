@@ -480,6 +480,7 @@ export async function updateProfile(
     workAnniversary: string | null;
     workScheduleType: "standard" | "shift_based";
     standardWorkDays: number[];
+    workDayHours: Record<string, { start: string; end: string }>;
     hideWhenNotActive: boolean;
   }>,
 ): Promise<Profile> {
@@ -499,7 +500,8 @@ export async function updateProfile(
        work_schedule_type   = COALESCE($13::text, work_schedule_type),
        standard_work_days   = COALESCE($14, standard_work_days),
        hide_when_not_active = COALESCE($15, hide_when_not_active),
-       expected_end_time    = COALESCE($16::time, expected_end_time)
+       expected_end_time    = COALESCE($16::time, expected_end_time),
+       work_day_hours       = COALESCE($17::jsonb, work_day_hours)
      WHERE id = $1
      RETURNING *`,
     [
@@ -519,6 +521,7 @@ export async function updateProfile(
       patch.standardWorkDays ?? null,
       patch.hideWhenNotActive ?? null,
       patch.expectedEndTime ?? null,
+      patch.workDayHours !== undefined ? JSON.stringify(patch.workDayHours) : null,
     ],
   );
   return mapProfile(result.rows[0]);
