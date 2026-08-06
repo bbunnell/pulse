@@ -5029,3 +5029,19 @@ input[type="checkbox"] {
   font-weight: 600;
   opacity: 0.8;
 }
+
+/* The gap banner is the one place a coverage hole is announced, so it links
+   straight to the schedule where the hole can actually be inspected. */
+.coverage-gap-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.coverage-gap-link:hover { filter: brightness(0.97); }
+.coverage-gap-cta {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

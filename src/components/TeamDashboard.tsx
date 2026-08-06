@@ -31,7 +31,9 @@ import type {
 import { buildAttendanceSnapshots, buildCoverage, buildSummary, profileName, type StaffingRuleLike } from "@/lib/status";
 import { InfoTooltip } from "@/components/InfoTooltip";
 import { activeSegmentForShift, formatClock, formatDuration, formatShortDate, openShiftForUser } from "@/lib/time";
-import { convertShiftTime, tzAbbr } from "@/lib/timezone";
+import { convertShiftTime, localDateInZone, tzAbbr } from "@/lib/timezone";
+import { deriveStandardShifts } from "@/lib/derived-shifts";
+import Link from "next/link";
 
 interface StaffingRule extends StaffingRuleLike { id: string; name: string }
 
@@ -218,9 +220,21 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
   const summary = useMemo(() => buildSummary(boardSnapshots), [boardSnapshots]);
 
-  // Coverage: now-lists from dashboard snapshots; gap detection from ALL scheduled shifts.
+  // Hours live on profiles now, so coverage derives from the same source the
+  // Schedule page uses. Reading the legacy scheduled_shifts rows here made the
+  // dashboard report gaps the schedule did not show.
+  const todayStr = localDateInZone(orgTimezone, nowSafe);
+  const coverageShifts = useMemo(
+    () => deriveStandardShifts({
+      profiles: data.profiles, timeOff: live.timeOff,
+      dates: [todayStr], scheduleTz: orgTimezone,
+    }),
+    [data.profiles, live.timeOff, todayStr, orgTimezone],
+  );
+
+  // Coverage: now-lists from dashboard snapshots; gap detection from derived hours.
   const coverage = useMemo(
-    () => buildCoverage(boardSnapshots, live.scheduledShifts, data.profiles, orgTimezone, nowSafe, live.staffingRules),
+    () => buildCoverage(boardSnapshots, coverageShifts, data.profiles, orgTimezone, nowSafe, live.staffingRules),
     [boardSnapshots, live.scheduledShifts, data.profiles, orgTimezone, nowSafe, live.staffingRules],
   );
 
@@ -460,13 +474,15 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
 
       {/* Coverage gap banner */}
       {coverage.gapHours.length > 0 && (
-        <div className="coverage-gap-banner">
+        <Link href="/schedule" className="coverage-gap-banner coverage-gap-link"
+              title="Open the schedule to review these gaps">
           <ShieldAlert size={16} />
           <span>
             <strong>Coverage gap{coverage.gapHours.length > 1 ? "s" : ""} today:</strong>{" "}
             {coverage.gapHours.map((h) => fmt12(`${String(h).padStart(2, "0")}:00`)).join(", ")} — no one scheduled.
           </span>
-        </div>
+          <span className="coverage-gap-cta">Review schedule →</span>
+        </Link>
       )}
 
       {/* Understaffed banner (covered but below minimum) */}
