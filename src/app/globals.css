@@ -4995,3 +4995,37 @@ input[type="checkbox"] {
   .dash-body.clock-first { grid-template-columns: 296px 1fr; }
   .dash-body.clock-first .dash-sidebar { order: -1; }
 }
+
+/* ─── Schedule: uncovered windows ────────────────────────────────
+   A stretch with nobody scheduled is on-call territory, not blank space, so it
+   is labelled rather than left as a hole in the timeline. Sits behind the shift
+   blocks (z-index 1 vs 2) so it can never obscure a real assignment. */
+.day-oncall-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--red);
+  border-radius: var(--radius-sm);
+  background: var(--red-soft);
+  pointer-events: none;
+}
+
+.day-oncall-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--red-text);
+  text-align: center;
+}
+
+.day-oncall-time {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}

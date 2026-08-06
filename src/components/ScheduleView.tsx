@@ -314,6 +314,27 @@ function DayTimelineView({
   const totalCols = Math.max(1, colEnds.length);
   blocks.forEach(b => { b.totalCols = totalCols; });
 
+  // Uncovered stretches: merge every block's interval, then invert. Anything left
+  // is a window with nobody scheduled, which is on-call territory rather than
+  // simply empty space -- so it is called out instead of rendering as a blank gap.
+  const MIN_GAP = 15;                                   // ignore sub-quarter-hour slivers
+  const covered = blocks
+    .map(b => [b.startMin, b.endMin] as [number, number])
+    .sort((a, z) => a[0] - z[0]);
+  const merged: [number, number][] = [];
+  for (const [st, en] of covered) {
+    const last = merged[merged.length - 1];
+    if (last && st <= last[1]) last[1] = Math.max(last[1], en);
+    else merged.push([st, en]);
+  }
+  const gaps: [number, number][] = [];
+  let cursor = 0;
+  for (const [st, en] of merged) {
+    if (st - cursor >= MIN_GAP) gaps.push([cursor, st]);
+    cursor = Math.max(cursor, en);
+  }
+  if (24 * 60 - cursor >= MIN_GAP) gaps.push([cursor, 24 * 60]);
+
   // Current time indicator. Read in the schedule timezone, not the viewer's: blocks
   // are positioned from schedule-zone times, so a Chicago viewer on a Pacific
   // schedule would otherwise see the line sitting two hours off the blocks it marks.
@@ -329,11 +350,6 @@ function DayTimelineView({
           <p className="day-timeline-fulldate">
             {MONTH_NAMES[d.getMonth()]} {d.getDate()}, {d.getFullYear()}
           </p>
-        </div>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          <span className="subtle" style={{fontSize:13}}>
-            {blocks.length} shift{blocks.length !== 1 ? "s" : ""}
-          </span>
         </div>
       </div>
 
@@ -362,6 +378,21 @@ function DayTimelineView({
               <span className="day-now-dot"/>
             </div>
           )}
+
+          {/* Uncovered windows — nobody scheduled, so on-call picks it up */}
+          {gaps.map(([st, en]) => (
+            <div key={`gap-${st}`} className="day-oncall-band"
+                 style={{ top: st * MIN_PX + 1, height: Math.max((en - st) * MIN_PX - 2, 22) }}>
+              <span className="day-oncall-label">
+                On Call Coverage
+                <span className="day-oncall-time">
+                  {formatTime(`${String(Math.floor(st / 60)).padStart(2,"0")}:${String(st % 60).padStart(2,"0")}`)}
+                  {" – "}
+                  {en >= 24 * 60 ? "midnight" : formatTime(`${String(Math.floor(en / 60)).padStart(2,"0")}:${String(en % 60).padStart(2,"0")}`)}
+                </span>
+              </span>
+            </div>
+          ))}
 
           {/* Shift blocks */}
           {blocks.map(b => {
@@ -475,7 +506,7 @@ interface Props {
 }
 
 export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin = false }: Props) {
-  const [viewMode,        setViewMode]        = useState<ViewMode>(2);
+  const [viewMode,        setViewMode]        = useState<ViewMode>("day");
   const [anchorDate,      setAnchorDate]      = useState<Date>(() => mondayOf(new Date()));
   const [showHeatmap,     setShowHeatmap]     = useState(true);
 
