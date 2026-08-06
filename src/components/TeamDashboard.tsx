@@ -224,12 +224,16 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   // Schedule page uses. Reading the legacy scheduled_shifts rows here made the
   // dashboard report gaps the schedule did not show.
   const todayStr = localDateInZone(orgTimezone, nowSafe);
+  const yesterdayStr = localDateInZone(orgTimezone, new Date(nowSafe.getTime() - 86_400_000));
   const coverageShifts = useMemo(
+    // Yesterday is included because an overnight shift covering this morning is
+    // dated to the day it STARTED. Deriving today alone drops it and reports a
+    // phantom midnight-to-dawn gap that nobody can find on the schedule.
     () => deriveStandardShifts({
       profiles: data.profiles, timeOff: live.timeOff,
-      dates: [todayStr], scheduleTz: orgTimezone,
+      dates: [yesterdayStr, todayStr], scheduleTz: orgTimezone,
     }),
-    [data.profiles, live.timeOff, todayStr, orgTimezone],
+    [data.profiles, live.timeOff, yesterdayStr, todayStr, orgTimezone],
   );
 
   // Coverage: now-lists from dashboard snapshots; gap detection from derived hours.
