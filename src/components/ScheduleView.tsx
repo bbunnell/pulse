@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Pencil, Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, SlidersHorizontal, X } from "lucide-react";
 import type { Profile, ScheduleRule, ScheduleTemplate, ScheduledShift, TimeOffEntry } from "@/lib/types";
 import { profileName } from "@/lib/status";
-import { convertShiftTime, localDateInZone, localTimeInZone, tzAbbr } from "@/lib/timezone";
+import { localDateInZone, localTimeInZone, tzAbbr } from "@/lib/timezone";
 import { deriveStandardShifts, groupShiftsByWindow, type BoardShift, type ShiftGroup } from "@/lib/derived-shifts";
 import { CoverageHeatmap } from "@/components/schedule/CoverageHeatmap";
 import { RecurringRulePanel } from "@/components/schedule/RecurringRulePanel";
@@ -65,219 +65,6 @@ function formatTime(t: string): string {
 }
 
 function crossesMidnight(start: string, end: string) { return end <= start; }
-
-// ── Shift group card ───────────────────────────────────────────────────────────
-// One card per distinct start/end window. Everyone working that exact window is
-// listed inside it, so a 13-person 8am–5pm block is one card rather than 13.
-interface ShiftGroupCardProps {
-  group: ShiftGroup;
-  profiles: Profile[];
-  timeOff: TimeOffEntry[];
-  canEdit: boolean;
-  /** Editing regular hours means visiting /admin, which only admins can open. */
-  canEditProfiles: boolean;
-  compact: boolean;
-  scheduleTz: string;
-  /** Names shown before collapsing behind a "+N more" toggle. */
-  collapseAfter?: number;
-  onDelete(id: string): void;
-  onEdit(shift: ScheduledShift): void;
-  onEditProfile(profileId: string): void;
-}
-
-function ShiftGroupCard({
-  group, profiles, timeOff, canEdit, canEditProfiles, compact, scheduleTz,
-  collapseAfter = 4, onDelete, onEdit, onEditProfile,
-}: ShiftGroupCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  const overnight = crossesMidnight(group.startTime, group.endTime);
-  const single    = group.shifts.length === 1;
-  // A single person keeps their identity colour; a mixed group has no one identity,
-  // so it stays neutral rather than borrowing an arbitrary member's hue.
-  const color     = single ? profileColor(group.shifts[0].profileId) : null;
-
-  const members = group.shifts
-    .map((s) => ({ shift: s, profile: profiles.find((p) => p.id === s.profileId) }))
-    .sort((a, b) => {
-      const na = a.profile ? `${a.profile.lastName} ${a.profile.firstName}` : "";
-      const nb = b.profile ? `${b.profile.lastName} ${b.profile.firstName}` : "";
-      return na.toLowerCase().localeCompare(nb.toLowerCase());
-    });
-
-  const visible = expanded ? members : members.slice(0, collapseAfter);
-  const hidden  = members.length - visible.length;
-
-  return (
-    <div className={`shift-card${compact ? " shift-card-compact" : ""}${single ? "" : " shift-card-group"}`}
-         style={color ? { borderColor: color.border, background: color.bg } : undefined}>
-      <div className="shift-card-body" style={color ? { color: color.text } : undefined}>
-        {/* Time leads the card: it is what the group has in common */}
-        <div className="shift-card-time">
-          {formatTime(group.startTime)}–{formatTime(group.endTime)}
-          {overnight && <span className="shift-overnight-badge">+1</span>}
-          <span className="shift-tz-label">{tzAbbr(scheduleTz)}</span>
-          {!single && <span className="shift-group-count">{members.length}</span>}
-        </div>
-
-        <div className="shift-group-names">
-          {visible.map(({ shift, profile }) => {
-            const name = profile ? profileName(profile) : "Unknown";
-            const hasConflict = timeOff.some(
-              (t) => t.userId === shift.profileId && t.status === "approved" &&
-                     group.shiftDate >= t.startAt.slice(0, 10) && group.shiftDate <= t.endAt.slice(0, 10)
-            );
-            const mColor = profileColor(shift.profileId);
-            return (
-              <span key={shift.id} className="shift-group-name" title={name}>
-                <span className="shift-group-swatch" style={{ background: mColor.border }} aria-hidden="true" />
-                <span className="shift-group-name-text">{name}</span>
-                {shift.ruleId && <span className="shift-recurring-dot" title="Recurring">↻</span>}
-                {hasConflict && <span className="shift-conflict-dot" title="Time-off conflict — needs coverage">⚠</span>}
-                {shift.isOpen && <span className="shift-open-dot" title="Open shift — needs coverage">OPEN</span>}
-                {canEdit && !shift.derived && (
-                  <span className="shift-group-actions">
-                    <button className="shift-action-btn" type="button"
-                            aria-label={`Edit ${name}'s shift`} title="Edit shift"
-                            onClick={() => onEdit(shift)}><Pencil size={10}/></button>
-                    <button className="shift-action-btn" type="button"
-                            aria-label={`Remove ${name}'s shift`} title="Remove shift"
-                            onClick={() => onDelete(shift.id)}><X size={10}/></button>
-                  </span>
-                )}
-                {canEditProfiles && shift.derived && (
-                  <span className="shift-group-actions">
-                    {/* Derived rows have no shift record — their hours live on the
-                        profile, so editing goes there rather than forking a copy. */}
-                    <button className="shift-action-btn" type="button"
-                            aria-label={`Edit ${name}'s regular hours`}
-                            title="Regular hours — edit on their profile"
-                            onClick={() => onEditProfile(shift.profileId)}>
-                      <SlidersHorizontal size={10}/>
-                    </button>
-                  </span>
-                )}
-              </span>
-            );
-          })}
-          {hidden > 0 && (
-            <button type="button" className="shift-group-more" onClick={() => setExpanded(true)}>
-              +{hidden} more
-            </button>
-          )}
-          {expanded && members.length > collapseAfter && (
-            <button type="button" className="shift-group-more" onClick={() => setExpanded(false)}>
-              Show less
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Add-shift modal ────────────────────────────────────────────────────────────
-const COMMON_LABELS = ["Overnight", "Morning", "Day", "Evening", "On-call"];
-
-interface ModalProps {
-  profiles: Profile[];
-  defaultDate: string;
-  scheduleTz: string;
-  onSave(data: Omit<ScheduledShift, "id"|"createdAt"|"updatedAt">): Promise<void>;
-  onClose(): void;
-}
-
-function AddShiftModal({ profiles, defaultDate, scheduleTz, onSave, onClose }: ModalProps) {
-  const [profileId, setProfileId] = useState(profiles[0]?.id ?? "");
-  const [shiftDate, setShiftDate] = useState(defaultDate);
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime,   setEndTime]   = useState("17:00");
-  const [label,     setLabel]     = useState("");
-  const [notes,     setNotes]     = useState("");
-  const [saving,    setSaving]    = useState(false);
-  const [error,     setError]     = useState("");
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!profileId || !shiftDate || !startTime || !endTime) { setError("All fields are required."); return; }
-    setSaving(true); setError("");
-    try {
-      await onSave({ profileId, shiftDate, startTime, endTime, isOpen: false,
-                     label: label || undefined, notes: notes || undefined, createdBy: undefined });
-      onClose();
-    } catch { setError("Failed to save. Please try again."); }
-    setSaving(false);
-  }
-
-  return (
-    <div className="schedule-modal-overlay" ref={overlayRef}
-         onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}>
-      <div className="schedule-modal">
-        <div className="schedule-modal-header">
-          <h3>Add Shift</h3>
-          <button className="icon-btn" onClick={onClose} type="button"><X size={16}/></button>
-        </div>
-        <form onSubmit={handleSave} className="schedule-modal-body">
-          <div className="control">
-            <label htmlFor="sm-profile">Person</label>
-            <select className="select" id="sm-profile" value={profileId}
-                    onChange={(e) => setProfileId(e.target.value)} required>
-              {profiles.map((p) => <option key={p.id} value={p.id}>{profileName(p)}</option>)}
-            </select>
-          </div>
-          <div className="control">
-            <label htmlFor="sm-date">Date</label>
-            <input className="input" id="sm-date" type="date" value={shiftDate}
-                   onChange={(e) => setShiftDate(e.target.value)} required/>
-          </div>
-          <div className="schedule-modal-row">
-            <div className="control" style={{ flex: 1 }}>
-              <label htmlFor="sm-start">Start</label>
-              <input className="input" id="sm-start" type="time" value={startTime}
-                     onChange={(e) => setStartTime(e.target.value)} required/>
-            </div>
-            <div className="control" style={{ flex: 1 }}>
-              <label htmlFor="sm-end">End</label>
-              <input className="input" id="sm-end" type="time" value={endTime}
-                     onChange={(e) => setEndTime(e.target.value)} required/>
-            </div>
-          </div>
-          <p className="subtle" style={{ fontSize: 11, marginTop: -4 }}>
-            Times are in <strong>{tzAbbr(scheduleTz)}</strong> (the schedule timezone).
-          </p>
-          {crossesMidnight(startTime, endTime) && (
-            <p className="schedule-midnight-hint">↻ Crosses midnight — ends the following day</p>
-          )}
-          <div className="control">
-            <label>Label <span className="subtle">(optional)</span></label>
-            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:6 }}>
-              {COMMON_LABELS.map((l) => (
-                <button key={l} type="button"
-                        className={`schedule-label-chip${label===l?" selected":""}`}
-                        onClick={() => setLabel(label===l?"":l)}>{l}</button>
-              ))}
-            </div>
-            <input className="input" value={label} onChange={(e) => setLabel(e.target.value)}
-                   placeholder="e.g. On-call, NOC, Graveyard…"/>
-          </div>
-          <div className="control">
-            <label>Notes <span className="subtle">(optional)</span></label>
-            <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)}
-                   placeholder="e.g. CA: 9PM–6AM / Manila: 1PM–10PM"/>
-          </div>
-          {error && <p className="error-line">{error}</p>}
-          <div className="schedule-modal-footer">
-            <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
-            <button className="button primary" type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Add Shift"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 // ── Week-view day timeline ─────────────────────────────────────────────────────
 // A compact vertical timeline per day column: blocks sit at their real position on
@@ -431,13 +218,6 @@ function WeekRow({ weekStart, shifts, profiles, timeOff, today, canEdit, canEdit
                   />
                 )}
               </div>
-              {canEdit && (
-                <button className="schedule-add-day-btn" type="button"
-                        onClick={() => onAddClick(dateStr)}
-                        title={`Add shift for ${DAY_NAMES[day.getDay()]} ${day.getDate()}`}>
-                  <Plus size={11}/> Add
-                </button>
-              )}
               {showHeatmap && <CoverageHeatmap dayDate={dateStr} allShifts={shifts}/>}
             </div>
           );
@@ -651,11 +431,6 @@ function DayTimelineView({
           <span className="subtle" style={{fontSize:13}}>
             {blocks.length} shift{blocks.length !== 1 ? "s" : ""}
           </span>
-          {canEdit && (
-            <button className="button primary" type="button" onClick={() => onAddClick(dayDate)}>
-              <Plus size={13}/> Add Shift
-            </button>
-          )}
         </div>
       </div>
 
@@ -946,11 +721,8 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
           <p className="eyebrow">Team coverage</p>
           <h1>Schedule</h1>
         </div>
-        {canEdit && (
-          <button className="button primary" onClick={() => setModalDate(today)} type="button">
-            <Plus size={14}/> Add Shift
-          </button>
-        )}
+        {/* No "Add Shift": hours come from the profile now, so a shift row would be
+            written and then ignored. Regular hours are edited in Admin. */}
       </header>
 
       <div className="page-content">
@@ -988,22 +760,10 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
         {/* ── Actions toolbar (managers/admins only) ── */}
         {canEdit && (
           <div className="schedule-toolbar">
-            <button type="button" className={`schedule-tool-btn${showRules?" active":""}`}
-                    onClick={()=>{setShowRules(v=>!v);setShowReassign(false);setShowTemplates(false);setShowCopyWeek(false);}}>
-              <RefreshCw size={13}/> Recurring Rules {rules.length > 0 && <span className="tool-badge">{rules.length}</span>}
-            </button>
-            <button type="button" className={`schedule-tool-btn${showCopyWeek?" active":""}`}
-                    onClick={()=>{setShowCopyWeek(v=>!v);setShowRules(false);setShowReassign(false);setShowTemplates(false);}}>
-              <Copy size={13}/> Copy Week
-            </button>
-            <button type="button" className="schedule-tool-btn"
-                    onClick={()=>{setShowReassign(true);setShowRules(false);setShowTemplates(false);}}>
-              Bulk Reassign
-            </button>
-            <button type="button" className="schedule-tool-btn"
-                    onClick={()=>{setShowTemplates(true);setShowRules(false);setShowReassign(false);}}>
-              Templates {templates.length > 0 && <span className="tool-badge">{templates.length}</span>}
-            </button>
+            {/* Recurring rules, copy-week, bulk reassign and templates all authored
+                scheduled_shifts rows. Hours now live on the profile and the board no
+                longer reads those rows, so these controls would appear to work while
+                changing nothing. Removed rather than left as traps. */}
             <button type="button" className={`schedule-tool-btn${showHeatmap?" active":""}`}
                     onClick={()=>setShowHeatmap(v=>!v)}>
               Coverage
@@ -1071,33 +831,9 @@ export function ScheduleView({ profiles, timeOff, canEdit, scheduleTz, isAdmin =
           </div>
         )}
 
-        {/* ── Legend (week views only) ── */}
-        {viewMode !== "day" && profiles.length > 0 && (
-          <div className="schedule-legend">
-            {profiles.map((p) => {
-              const color = profileColor(p.id);
-              const count = shifts.filter((s) => s.profileId === p.id).length;
-              return (
-                <div key={p.id} className="schedule-legend-item">
-                  <span className="schedule-legend-dot" style={{ background: color.border }}/>
-                  <span style={{ color: color.text, fontWeight: 500 }}>{profileName(p)}</span>
-                  {count > 0 && <span className="subtle" style={{ fontSize:11 }}>·&nbsp;{count}</span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* ── Modals ── */}
-      {modalDate !== null && (
-        <AddShiftModal profiles={profiles} defaultDate={modalDate} scheduleTz={scheduleTz}
-                       onSave={handleSave} onClose={() => setModalDate(null)}/>
-      )}
-      {editingShift && (
-        <EditShiftModal shift={editingShift} profiles={profiles} scheduleTz={scheduleTz}
-                        onSave={handleEditSave} onClose={() => setEditingShift(null)}/>
-      )}
       {showReassign && (
         <BulkReassignModal profiles={profiles}
                            onDone={() => { void fetchShifts(fetchFrom, fetchTo); }}
