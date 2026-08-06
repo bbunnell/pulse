@@ -5,12 +5,14 @@ import {
   AlertTriangle,
   Coffee,
   Clock,
+  Loader2,
   LogIn,
   LogOut,
   Search,
   ShieldAlert,
   TimerReset,
   Utensils,
+  X,
 } from "lucide-react";
 
 import { StatusBadge } from "@/components/StatusBadge";
@@ -107,6 +109,11 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const [markEndDate,     setMarkEndDate]     = useState("");
   const [markNotes,       setMarkNotes]       = useState("");
   const [markSaving,      setMarkSaving]      = useState(false);
+  // Failures stay next to the action that caused them: modal writes report inside
+  // their own modal, row actions (which have no modal) report on the board itself.
+  const [markError,       setMarkError]       = useState("");
+  const [editError,       setEditError]       = useState("");
+  const [boardError,      setBoardError]      = useState("");
 
   // Live data — seeded from server props, refreshed by polling without a full reload.
   const [live, setLive] = useState<{
@@ -288,33 +295,63 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     setMarkStartDate(today);
     setMarkEndDate(today);
     setMarkNotes("");
+    setMarkError("");
+  }
+
+  function openEditTimeOff(entry: TimeOffEntry) {
+    setEditingTimeOff(entry);
+    setEditError("");
   }
 
   async function handleMarkTimeOffSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!markingTimeOff) return;
     setMarkSaving(true);
+    setMarkError("");
     const start = markTimeOffMode === "today" ? new Date().toISOString().slice(0, 10) : markStartDate;
     const end   = markTimeOffMode === "today" ? start : (markEndDate || start);
-    await fetch("/api/admin/time-off", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: markingTimeOff.profile.id,
-        timeOffType: markTimeOffType,
-        startDate: start,
-        endDate: end,
-        notes: markNotes || undefined,
-      }),
-    });
-    setMarkSaving(false);
+    try {
+      const res = await fetch("/api/admin/time-off", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: markingTimeOff.profile.id,
+          timeOffType: markTimeOffType,
+          startDate: start,
+          endDate: end,
+          notes: markNotes || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        // Stay open so the typed notes survive and the manager can retry.
+        setMarkError(json.error ?? `Could not mark time off (${res.status}). Nothing was saved.`);
+        return;
+      }
+    } catch {
+      setMarkError("Network error — nothing was saved. Check your connection and try again.");
+      return;
+    } finally {
+      setMarkSaving(false);
+    }
     setMarkingTimeOff(null);
     await refreshLive();
   }
 
   async function handleDeleteTimeOff(id: string) {
     if (!confirm("Delete this time-off entry?")) return;
-    await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
+    setBoardError("");
+    try {
+      const res = await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        setBoardError(json.error ?? `Could not delete that time-off entry (${res.status}). It is still in place.`);
+        return;
+      }
+    } catch {
+      setBoardError("Network error — the time-off entry was not deleted.");
+      return;
+    }
     await refreshLive();
   }
 
@@ -322,18 +359,31 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     e.preventDefault();
     if (!editingTimeOff) return;
     setTimeOffSaving(true);
+    setEditError("");
     const fd = new FormData(e.currentTarget);
-    await fetch(`/api/admin/time-off/${editingTimeOff.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        timeOffType: fd.get("timeOffType"),
-        startAt: `${fd.get("startDate")}T00:00:00.000Z`,
-        endAt: `${fd.get("endDate")}T23:59:59.000Z`,
-        notes: fd.get("notes") || undefined,
-      }),
-    });
-    setTimeOffSaving(false);
+    try {
+      const res = await fetch(`/api/admin/time-off/${editingTimeOff.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timeOffType: fd.get("timeOffType"),
+          startAt: `${fd.get("startDate")}T00:00:00.000Z`,
+          endAt: `${fd.get("endDate")}T23:59:59.000Z`,
+          notes: fd.get("notes") || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        // Stay open so the edited values survive and the manager can retry.
+        setEditError(json.error ?? `Could not save those changes (${res.status}). Nothing was updated.`);
+        return;
+      }
+    } catch {
+      setEditError("Network error — nothing was updated. Check your connection and try again.");
+      return;
+    } finally {
+      setTimeOffSaving(false);
+    }
     setEditingTimeOff(null);
     await refreshLive();
   }
@@ -371,6 +421,22 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           ⧉ Monitor
         </button>
       </div>
+
+      {/* Failed row action (no modal to report into) — dismissible, sits where the action happened */}
+      {boardError && (
+        <div className="coverage-gap-banner" role="alert">
+          <AlertTriangle size={16} />
+          <span style={{ flex: 1 }}>{boardError}</span>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Dismiss error"
+            onClick={() => setBoardError("")}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Coverage gap banner */}
       {coverage.gapHours.length > 0 && (
@@ -475,7 +541,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
               </div>
               <div className="attend-grid list-view">
                 {groups.out.map((s) => <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe}
-                  onDeleteTimeOff={handleDeleteTimeOff} onEditTimeOff={setEditingTimeOff} />)}
+                  onDeleteTimeOff={handleDeleteTimeOff} onEditTimeOff={openEditTimeOff} />)}
               </div>
             </div>
           )}
@@ -558,9 +624,20 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                   <UserAvatar userId={activeUser.id} firstName={activeUser.firstName} lastName={activeUser.lastName} />
                   <div>
                     <strong style={{ fontSize: 13, fontWeight: 600 }}>{profileName(activeUser)}</strong>
-                    <small style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>
-                      {activeShift ? `In since ${formatClock(activeShift.punchInAt)}` : "Not clocked in"}
-                    </small>
+                    {/* Persistent confirmation that the punch landed — the primary user's
+                        whole success condition is "never in doubt", so this is not muted. */}
+                    {activeShift ? (
+                      <strong
+                        style={{ fontSize: 12, fontWeight: 600, color: "var(--green-text)", display: "block" }}
+                        suppressHydrationWarning
+                      >
+                        Punched in at {formatClock(activeShift.punchInAt)}
+                      </strong>
+                    ) : (
+                      <small style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>
+                        Not clocked in
+                      </small>
+                    )}
                   </div>
                 </div>
                 <div className="clock-mini-stats">
@@ -569,22 +646,39 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                 </div>
                 <div className="clock-mini-actions">
                   {!activeShift ? (
-                    <button className="button primary" style={{ width: "100%" }} type="button" onClick={handlePunchIn} disabled={actionLoading}><LogIn size={14} /> Punch In</button>
+                    <button className="button primary" style={{ width: "100%" }} type="button" onClick={handlePunchIn} disabled={actionLoading}>
+                      {actionLoading
+                        ? <><Loader2 size={14} className="spin" /> Punching in…</>
+                        : <><LogIn size={14} /> Punch In</>}
+                    </button>
                   ) : (
                     <>
-                      <button className="button danger" style={{ width: "100%" }} type="button" onClick={handlePunchOut} disabled={Boolean(activeSegment) || actionLoading}><LogOut size={14} /> Punch Out</button>
+                      <button className="button danger" style={{ width: "100%" }} type="button" onClick={handlePunchOut} disabled={Boolean(activeSegment) || actionLoading}>
+                        {actionLoading
+                          ? <><Loader2 size={14} className="spin" /> Punching out…</>
+                          : <><LogOut size={14} /> Punch Out</>}
+                      </button>
                       {!activeSegment ? (
                         <div className="clock-mini-row">
                           <button className="button" type="button" onClick={() => handleStartSegment("break")} disabled={actionLoading}><Coffee size={13} /> Break</button>
                           <button className="button" type="button" onClick={() => handleStartSegment("lunch")} disabled={actionLoading}><Utensils size={13} /> Lunch</button>
                         </div>
                       ) : (
-                        <button className="button warning" style={{ width: "100%" }} type="button" onClick={handleEndSegment} disabled={actionLoading}><TimerReset size={14} /> End {activeSegment.segmentType}</button>
+                        <button className="button warning" style={{ width: "100%" }} type="button" onClick={handleEndSegment} disabled={actionLoading}>
+                          {actionLoading
+                            ? <><Loader2 size={14} className="spin" /> Ending {activeSegment.segmentType}…</>
+                            : <><TimerReset size={14} /> End {activeSegment.segmentType}</>}
+                        </button>
                       )}
                     </>
                   )}
-                  {actionError && <p className="error-line" style={{ margin: 0 }}>{actionError}</p>}
-                  {activeSegment && <p className="warning-pill" style={{ justifyContent: "center" }}><AlertTriangle size={12} /> On {activeSegment.segmentType}</p>}
+                  {actionError && <p className="error-line" style={{ margin: 0 }} role="alert">{actionError}</p>}
+                  {/* Say why Punch Out is disabled, rather than just disabling it. */}
+                  {activeSegment && (
+                    <p className="warning-pill" style={{ justifyContent: "center" }}>
+                      <AlertTriangle size={12} /> End your {activeSegment.segmentType} to punch out
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -676,10 +770,17 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                          placeholder="Optional reason…" />
                 </label>
               </div>
+              {markError && (
+                <div style={{ padding: "0 20px 12px" }}>
+                  <p className="error-line" style={{ margin: 0 }} role="alert">
+                    <AlertTriangle size={13} /> {markError}
+                  </p>
+                </div>
+              )}
               <div className="schedule-modal-footer" style={{ padding: "0 20px 20px" }}>
                 <button type="button" className="button" onClick={() => setMarkingTimeOff(null)}>Cancel</button>
                 <button type="submit" className="button primary" disabled={markSaving}>
-                  {markSaving ? "Saving…" : "Mark Out"}
+                  {markSaving ? <><Loader2 size={13} className="spin" /> Saving…</> : "Mark Out"}
                 </button>
               </div>
             </form>
@@ -719,10 +820,17 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                     defaultValue={editingTimeOff.notes ?? ""} placeholder="Optional" />
                 </label>
               </div>
+              {editError && (
+                <div style={{ padding: "0 20px 12px" }}>
+                  <p className="error-line" style={{ margin: 0 }} role="alert">
+                    <AlertTriangle size={13} /> {editError}
+                  </p>
+                </div>
+              )}
               <div className="schedule-modal-footer" style={{ padding: "0 20px 20px" }}>
                 <button type="button" className="button" onClick={() => setEditingTimeOff(null)}>Cancel</button>
                 <button type="submit" className="button primary" disabled={timeOffSaving}>
-                  {timeOffSaving ? "Saving…" : "Save"}
+                  {timeOffSaving ? <><Loader2 size={13} className="spin" /> Saving…</> : "Save"}
                 </button>
               </div>
             </form>
