@@ -4779,7 +4779,7 @@ input[type="checkbox"] {
   border-radius: var(--radius-full);
   background: var(--muted);
   color: var(--surface);
-  font-size: 9px;
+  font-size: 10px;   /* the documented `micro` step */
   font-weight: 700;
 }
 
