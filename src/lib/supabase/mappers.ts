@@ -125,6 +125,7 @@ export function mapTimeOff(row: DbRow): TimeOffEntry {
     notes: (row.notes as string | null) ?? undefined,
     approvedBy: (row.approved_by as string | null) ?? undefined,
     approvedAt: (row.approved_at as string | null) ?? undefined,
+    source: (row.source as string | null) ?? "manual",
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };

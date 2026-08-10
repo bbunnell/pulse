@@ -100,6 +100,8 @@ export interface TimeOffEntry {
   notes?: string;
   approvedBy?: string;
   approvedAt?: string;
+  /** "manual" for entries a person created, "oof_sync" for ones imported from Exchange. */
+  source?: string;
   createdAt: string;
   updatedAt: string;
 }

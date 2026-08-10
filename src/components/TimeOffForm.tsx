@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { addHours } from "date-fns";
-import { CalendarPlus, CheckCircle, Paperclip, Trash2 } from "lucide-react";
+import { CalendarPlus, CheckCircle, Paperclip, Pencil, Trash2 } from "lucide-react";
 
 import type { OrgData, TimeOffEntry, TimeOffType } from "@/lib/types";
 import { buildClientIcs, icsFileName } from "@/lib/ics";
@@ -31,6 +31,10 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
   const [error, setError] = useState("");
   const [createdEntryId, setCreatedEntryId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<TimeOffEntry | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [listError, setListError] = useState("");
 
   const canManage = userRole === "admin" || userRole === "manager";
 
@@ -94,9 +98,69 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
 
   async function deleteEntry(id: string) {
     setDeletingId(id);
-    await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
-    setEntries((prev) => prev.filter((e) => e.id !== id));
-    setDeletingId(null);
+    setListError("");
+    try {
+      const res = await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        setListError(j.error ?? `Could not delete that entry (${res.status}). It is still there.`);
+        return;
+      }
+      setEntries((prev) => prev.filter((e) => e.id !== id));
+    } catch {
+      setListError("Network error — the entry was not deleted.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function startEdit(entry: TimeOffEntry) {
+    setEditing(entry);
+    setEditError("");
+  }
+
+  async function saveEdit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editing) return;
+    const fd = new FormData(e.currentTarget);
+    const startDate = String(fd.get("startDate"));
+    const endDate   = String(fd.get("endDate"));
+    if (endDate < startDate) {
+      setEditError("The end date cannot be before the start date.");
+      return;
+    }
+    setEditSaving(true);
+    setEditError("");
+    try {
+      const res = await fetch(`/api/admin/time-off/${editing.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timeOffType: fd.get("timeOffType"),
+          startAt: `${startDate}T00:00:00.000Z`,
+          endAt: `${endDate}T23:59:59.000Z`,
+          notes: fd.get("notes") || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        // Stay open so the edited values survive and can be retried.
+        setEditError(j.error ?? `Could not save those changes (${res.status}).`);
+        return;
+      }
+      setEntries((prev) => prev.map((x) => x.id === editing.id ? {
+        ...x,
+        timeOffType: fd.get("timeOffType") as TimeOffType,
+        startAt: `${startDate}T00:00:00.000Z`,
+        endAt: `${endDate}T23:59:59.000Z`,
+        notes: (fd.get("notes") as string) || undefined,
+      } : x));
+      setEditing(null);
+    } catch {
+      setEditError("Network error — nothing was saved.");
+    } finally {
+      setEditSaving(false);
+    }
   }
 
   return (
@@ -231,6 +295,11 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
                 <p className="subtle">{profile ? profileName(profile) : "—"}</p>
               </div>
             </div>
+            {listError && (
+              <div style={{ padding: "0 18px 10px" }}>
+                <p className="error-line" style={{ margin: 0 }} role="alert">{listError}</p>
+              </div>
+            )}
             <div className="settings-list">
               {userEntries.length ? (
                 userEntries.map((entry) => (
@@ -247,17 +316,36 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
                       <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
                         {entry.hours}h
                       </span>
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          title="Delete entry"
-                          disabled={deletingId === entry.id}
-                          onClick={() => deleteEntry(entry.id)}
-                          style={{ color: "var(--red)" }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                      {/* Own entries are editable regardless of role — plans change.
+                          Entries imported from Outlook are not: the next sync would
+                          revert the change, so they are corrected at the source. */}
+                      {entry.source === "oof_sync" ? (
+                        <span className="subtle" style={{ fontSize: 11 }} title="Imported from your Outlook calendar — change it there">
+                          from Outlook
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title="Edit entry"
+                            aria-label="Edit time off entry"
+                            onClick={() => startEdit(entry)}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title="Delete entry"
+                            aria-label="Delete time off entry"
+                            disabled={deletingId === entry.id}
+                            onClick={() => deleteEntry(entry.id)}
+                            style={{ color: "var(--red)" }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -320,6 +408,56 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
           </div>
         )}
       </div>
+
+      {/* Edit modal — plans change, so an entry can be corrected rather than
+          deleted and re-created. Escape and the overlay both close it. */}
+      {editing && (
+        <div className="schedule-modal-overlay" onClick={() => setEditing(null)}>
+          <div className="schedule-modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}
+               role="dialog" aria-modal="true" aria-labelledby="edit-own-timeoff-title">
+            <div className="schedule-modal-header">
+              <h3 id="edit-own-timeoff-title">Edit Time Off</h3>
+              <button className="icon-btn" type="button" aria-label="Close" onClick={() => setEditing(null)}>✕</button>
+            </div>
+            <form onSubmit={saveEdit}>
+              <div className="schedule-modal-body">
+                <label className="field-label">Type
+                  <select name="timeOffType" defaultValue={editing.timeOffType} className="field-input" style={{ marginTop: 4 }}>
+                    <option value="vacation">Vacation</option>
+                    <option value="sick">Sick</option>
+                    <option value="business_trip">Business Trip</option>
+                  </select>
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <label className="field-label">Start date
+                    <input name="startDate" type="date" className="field-input" style={{ marginTop: 4 }}
+                           defaultValue={editing.startAt.slice(0, 10)} required />
+                  </label>
+                  <label className="field-label">End date
+                    <input name="endDate" type="date" className="field-input" style={{ marginTop: 4 }}
+                           defaultValue={editing.endAt.slice(0, 10)} required />
+                  </label>
+                </div>
+                <label className="field-label">Notes
+                  <input name="notes" type="text" className="field-input" style={{ marginTop: 4 }}
+                         defaultValue={editing.notes ?? ""} placeholder="Optional" />
+                </label>
+              </div>
+              {editError && (
+                <div style={{ padding: "0 20px 12px" }}>
+                  <p className="error-line" style={{ margin: 0 }} role="alert">{editError}</p>
+                </div>
+              )}
+              <div className="schedule-modal-footer" style={{ padding: "0 20px 20px" }}>
+                <button type="button" className="button" onClick={() => setEditing(null)}>Cancel</button>
+                <button type="submit" className="button primary" disabled={editSaving}>
+                  {editSaving ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
