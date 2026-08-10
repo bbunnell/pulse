@@ -110,7 +110,7 @@ export function DashboardSchedule({ data }: { data: OrgData }) {
       if (d < today) d = projectDate(p.workAnniversary, year + 1);
       const yrs = yearsAgo(p.workAnniversary, d.getFullYear());
       if (yrs < 1) continue;
-      all.push({ id: `anniv-${p.id}`, kind: "anniversary", label: `🎉 ${p.firstName} — ${yrs}yr`, start: sod(d), end: eod(d) });
+      all.push({ id: `anniv-${p.id}`, kind: "anniversary", label: `🎉 ${p.firstName}'s ${yrs}yr Work Anniversary`, start: sod(d), end: eod(d) });
     }
 
     for (const ce of companyEvents) {
