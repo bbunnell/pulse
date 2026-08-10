@@ -35,6 +35,7 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
   const [listError, setListError] = useState("");
+  const [filterUserId, setFilterUserId] = useState("all");
 
   const canManage = userRole === "admin" || userRole === "manager";
 
@@ -46,6 +47,20 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
         .sort((a, b) => a.startAt.localeCompare(b.startAt)),
     [entries, userId],
   );
+  // Only people who actually have entries appear in the filter, so every option
+  // returns something rather than silently emptying the list.
+  const peopleWithEntries = useMemo(() => {
+    const ids = new Set(entries.map((e) => e.userId));
+    return data.profiles
+      .filter((p) => ids.has(p.id))
+      .sort((a, b) => profileName(a).localeCompare(profileName(b)));
+  }, [entries, data.profiles]);
+
+  const teamEntries = useMemo(() => {
+    const list = filterUserId === "all" ? entries : entries.filter((e) => e.userId === filterUserId);
+    return [...list].sort((a, b) => b.startAt.localeCompare(a.startAt));
+  }, [entries, filterUserId]);
+
   const createdEntry = entries.find((e) => e.id === createdEntryId);
   const icsHref =
     createdEntry && profile
@@ -362,15 +377,32 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
             <div className="panel-header">
               <div>
                 <h2>All Team Time Off</h2>
-                <p className="subtle">Manage entries for all employees.</p>
+                <p className="subtle">
+                  {filterUserId === "all"
+                    ? "Manage entries for all employees."
+                    : `${teamEntries.length} ${teamEntries.length === 1 ? "entry" : "entries"}`}
+                </p>
               </div>
+              <select
+                className="select"
+                aria-label="Filter time off by employee"
+                value={filterUserId}
+                onChange={(e) => setFilterUserId(e.target.value)}
+                style={{ width: "auto", minWidth: 170 }}
+              >
+                <option value="all">All employees</option>
+                {peopleWithEntries.map((p) => (
+                  <option key={p.id} value={p.id}>{profileName(p)}</option>
+                ))}
+              </select>
             </div>
             <div className="settings-list">
-              {entries.length === 0 ? (
-                <div className="empty-state">No time off entries.</div>
+              {teamEntries.length === 0 ? (
+                <div className="empty-state">
+                  {entries.length === 0 ? "No time off entries." : "No entries for that person."}
+                </div>
               ) : (
-                [...entries]
-                  .sort((a, b) => b.startAt.localeCompare(a.startAt))
+                teamEntries
                   .map((entry) => {
                     const entryProfile = data.profiles.find((p) => p.id === entry.userId);
                     return (
