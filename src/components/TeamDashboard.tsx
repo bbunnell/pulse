@@ -706,7 +706,10 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                         style={{ fontSize: 12, fontWeight: 600, color: "var(--green-text)", display: "block" }}
                         suppressHydrationWarning
                       >
-                        Punched in at {formatClock(activeShift.punchInAt)}
+                        {/* `now` is null until mount, so the time only ever renders in
+                            the browser's zone. Server-rendering it produced UTC, which
+                            suppressHydrationWarning then froze in place. */}
+                        {now ? `Punched in at ${formatClock(activeShift.punchInAt)}` : "Punched in"}
                       </strong>
                     ) : (
                       <small style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>
@@ -1046,7 +1049,10 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
         <div className="attend-card-info">
           <strong>{profileName(snapshot.profile)}</strong>
           <small suppressHydrationWarning>
-            {isOut ? (snapshot.timeOffToday ? formatShortDate(snapshot.timeOffToday.startAt) : "—") : formatClock(clockIn)}
+            {isOut
+              ? (snapshot.timeOffToday ? formatShortDate(snapshot.timeOffToday.startAt) : "—")
+              /* Same UTC-on-server trap as the clock widget: only format once mounted. */
+              : (now ? formatClock(clockIn) : "")}
           </small>
         </div>
         {snapshot.missingPunch && (
