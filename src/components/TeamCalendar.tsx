@@ -116,10 +116,26 @@ function EventModal({ existing, defaultDate, profiles, onSave, onDelete, onClose
     else setError(json.error ?? "Save failed.");
   }
 
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
   async function handleDelete() {
     if (!existing || !onDelete) return;
-    if (!confirm(`Delete "${existing.title}"?`)) return;
-    await fetch(`/api/company-events/${existing.id}`, { method: "DELETE" });
+    // Native confirm() is suppressed inside the Teams client, so the button did
+    // nothing there. Confirm inline instead of relying on a browser dialog.
+    if (!confirmingDelete) { setConfirmingDelete(true); return; }
+    try {
+      const res = await fetch(`/api/company-events/${existing.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(j.error ?? `Could not delete that event (${res.status}).`);
+        setConfirmingDelete(false);
+        return;
+      }
+    } catch {
+      setError("Network error — the event was not deleted.");
+      setConfirmingDelete(false);
+      return;
+    }
     onDelete(existing.id);
     onClose();
   }
@@ -202,8 +218,9 @@ function EventModal({ existing, defaultDate, profiles, onSave, onDelete, onClose
 
           <div className="schedule-modal-footer">
             {existing && onDelete && (
-              <button type="button" className="button danger" onClick={handleDelete}>
-                <Trash2 size={13}/> Delete
+              <button type="button" className="button danger" onClick={handleDelete}
+                      title={confirmingDelete ? "Click again to confirm" : undefined}>
+                <Trash2 size={13}/> {confirmingDelete ? "Click again to confirm" : "Delete"}
               </button>
             )}
             <div style={{ flex: 1 }} />

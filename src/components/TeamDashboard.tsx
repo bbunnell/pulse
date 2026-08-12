@@ -116,6 +116,12 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const [markError,       setMarkError]       = useState("");
   const [editError,       setEditError]       = useState("");
   const [boardError,      setBoardError]      = useState("");
+  // Teams' embedded webview silently suppresses window.confirm(), so a native
+  // confirmation returns falsy and the action never runs — it looks like a dead
+  // button. Confirmations are rendered in-app so they work in every host.
+  const [confirmAsk, setConfirmAsk] = useState<
+    { message: string; confirmLabel: string; danger?: boolean; run: () => void } | null
+  >(null);
 
   // Live data — seeded from server props, refreshed by polling without a full reload.
   const [live, setLive] = useState<{
@@ -322,7 +328,15 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const handlePunchOut = () => clockAction("/api/time-clock/punch", { action: "punch_out" });
   const handleStartSegment = (t: SegmentType) => clockAction("/api/time-clock/segment", { action: `start_${t}` });
   const handleEndSegment = () => activeSegment && clockAction("/api/time-clock/segment", { action: `end_${activeSegment.segmentType}` });
-  const handleForcePunchOut = (profileId: string) => clockAction("/api/time-clock/admin-punch", { profileId, action: "punch_out" });
+  const handleForcePunchOut = (profileId: string) => {
+    const p = data.profiles.find((x) => x.id === profileId);
+    setConfirmAsk({
+      message: `Clock out ${p ? profileName(p) : "this person"}? They are on the clock right now.`,
+      confirmLabel: "Clock out",
+      danger: true,
+      run: () => void clockAction("/api/time-clock/admin-punch", { profileId, action: "punch_out" }),
+    });
+  };
   const handleForcePunchIn  = (profileId: string) => clockAction("/api/time-clock/admin-punch", { profileId, action: "punch_in" });
 
   function openMarkTimeOff(snapshot: AttendanceSnapshot) {
@@ -376,8 +390,16 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     await refreshLive();
   }
 
-  async function handleDeleteTimeOff(id: string) {
-    if (!confirm("Delete this time-off entry?")) return;
+  function handleDeleteTimeOff(id: string) {
+    setConfirmAsk({
+      message: "Delete this time-off entry? The person will no longer show as out.",
+      confirmLabel: "Delete",
+      danger: true,
+      run: () => void reallyDeleteTimeOff(id),
+    });
+  }
+
+  async function reallyDeleteTimeOff(id: string) {
     setBoardError("");
     try {
       const res = await fetch(`/api/admin/time-off/${id}`, { method: "DELETE" });
@@ -921,6 +943,31 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           </div>
         </div>
       )}
+      {/* In-app confirmation. Native confirm() is a no-op inside the Teams client,
+          which made every guarded action look like a dead button there. */}
+      {confirmAsk && (
+        <div className="schedule-modal-overlay" onClick={() => setConfirmAsk(null)}>
+          <div className="schedule-modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}
+               role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <div className="schedule-modal-header">
+              <h3 id="confirm-title">Are you sure?</h3>
+              <button className="icon-btn" type="button" aria-label="Close" onClick={() => setConfirmAsk(null)}>
+                <X size={15} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="schedule-modal-body">
+              <p style={{ margin: 0, fontSize: 13, color: "var(--ink-2)" }}>{confirmAsk.message}</p>
+            </div>
+            <div className="schedule-modal-footer" style={{ padding: "0 20px 20px" }}>
+              <button type="button" className="button" onClick={() => setConfirmAsk(null)}>Cancel</button>
+              <button type="button" className={`button ${confirmAsk.danger ? "danger" : "primary"}`}
+                      onClick={() => { const run = confirmAsk.run; setConfirmAsk(null); run(); }}>
+                {confirmAsk.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -1111,11 +1158,7 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, onFo
           <button className="btn-punch danger" type="button" disabled={actionLoading}
                   title="Clock out (manager action)"
                   aria-label={`Clock out ${profileName(snapshot.profile)} (manager action)`}
-                  onClick={() => {
-                    if (confirm(`Clock out ${profileName(snapshot.profile)}? They are on the clock right now.`)) {
-                      onForcePunchOut(snapshot.profile.id);
-                    }
-                  }}>
+                  onClick={() => onForcePunchOut(snapshot.profile.id)}>
             <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
