@@ -1281,14 +1281,24 @@ export function AdminSettings({ data, currentUserId }: Props) {
   async function saveUserWebhook(profileId: string) {
     setWebhookSaving(true);
     const url = webhookDraft.trim();
-    await fetch(`/api/admin/profiles/${profileId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teamsWebhookUrl: url || null }),
-    });
-    setUserWebhooks((prev) => ({ ...prev, [profileId]: url }));
-    setWebhookEditId(null);
-    setWebhookSaving(false);
+    try {
+      const res = await fetch(`/api/admin/profiles/${profileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamsWebhookUrl: url || null }),
+      });
+      if (!res.ok) {
+        // Keep the editor open with the typed value rather than showing it as saved.
+        alert(`Could not save that webhook (${res.status}). It was not changed.`);
+        return;
+      }
+      setUserWebhooks((prev) => ({ ...prev, [profileId]: url }));
+      setWebhookEditId(null);
+    } catch {
+      alert("Network error — the webhook was not saved.");
+    } finally {
+      setWebhookSaving(false);
+    }
   }
 
   return (
@@ -1391,14 +1401,26 @@ export function AdminSettings({ data, currentUserId }: Props) {
                       value={profile.role}
                       onChange={async (e) => {
                         const newRole = e.target.value as Role;
+                        const prevRole = profile.role;
                         setProfiles((prev) =>
                           prev.map((p) => p.id === profile.id ? { ...p, role: newRole } : p)
                         );
-                        await fetch(`/api/admin/profiles/${profile.id}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ role: newRole }),
-                        });
+                        // Local state was updated optimistically above. A role is a
+                        // permission change, so a silent failure would leave the UI
+                        // claiming access the server never granted — roll back and say so.
+                        try {
+                          const res = await fetch(`/api/admin/profiles/${profile.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ role: newRole }),
+                          });
+                          if (!res.ok) throw new Error(String(res.status));
+                        } catch {
+                          setProfiles((prev) =>
+                            prev.map((p) => p.id === profile.id ? { ...p, role: prevRole } : p)
+                          );
+                          alert(`Could not change ${profile.firstName}'s role. It is unchanged.`);
+                        }
                       }}
                     >
                       {(Object.keys(roleLabel) as Role[]).map((r) => (
