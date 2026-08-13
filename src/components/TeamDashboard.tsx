@@ -284,6 +284,29 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     return { working, onBreak, out, late, offToday, doneToday, notIn };
   }, [boardSnapshots]);
 
+  // Break/lunch history for anyone who has worked today. Pulse already records
+  // every segment; this only surfaces it. Deliberately shows what HAS happened
+  // rather than pre-listing "Break 1 / Break 2" slots: the number of breaks is not
+  // fixed across an 8h day, a 9h day and an overnight, and rendering unmet slots in
+  // red would make the board all-red every morning for nothing being wrong.
+  const breaksToday = useMemo(() => {
+    return boardSnapshots
+      .filter((s) => s.todayShift)
+      .map((s) => ({
+        snapshot: s,
+        segs: live.segments
+          .filter((sg) => sg.shiftId === s.todayShift!.id)
+          .sort((a, b) => a.startAt.localeCompare(b.startAt)),
+      }))
+      .sort((a, b) => {
+        // People with nothing yet sink to the bottom — they are what a scheduler scans for.
+        if (!a.segs.length !== !b.segs.length) return a.segs.length ? 1 : -1;
+        const na = `${a.snapshot.profile.lastName} ${a.snapshot.profile.firstName}`.toLowerCase();
+        const nb = `${b.snapshot.profile.lastName} ${b.snapshot.profile.firstName}`.toLowerCase();
+        return na.localeCompare(nb);
+      });
+  }, [boardSnapshots, live.segments]);
+
   const activity = useMemo(() => buildActivity(live.shifts, live.segments).slice(0, 8), [live.shifts, live.segments]);
 
   // Current user (reliable — no profiles[0] fallback).
@@ -544,6 +567,50 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                   })
                   .map((s) => (
                   <AttendCard key={s.profile.id} snapshot={s} orgTimezone={orgTimezone} canManage={canManage} actionLoading={actionLoading} now={nowSafe} onForcePunchOut={handleForcePunchOut} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Breaks & Lunch — answers "has this person had their break yet?" so a
+              scheduler can hand out work without asking in chat. Shows only what
+              has actually happened; an empty row means nothing yet, which is
+              informative late in a shift and unremarkable early on. */}
+          {breaksToday.length > 0 && (
+            <div className="status-group">
+              <div className="status-group-heading">
+                <span className="status-dot-lg gray" />
+                <h2>Breaks &amp; Lunch <InfoTooltip text="Breaks and lunches taken today, in the order they happened. A row with nothing has not taken one yet." /></h2>
+                <span className="status-count gray">{breaksToday.filter(r => r.segs.length > 0).length}/{breaksToday.length}</span>
+              </div>
+              <div className="attend-grid list-view">
+                {breaksToday.map(({ snapshot: s, segs }) => (
+                  <div key={s.profile.id} className="break-row">
+                    <div className="break-row-who">
+                      <UserAvatar userId={s.profile.id} firstName={s.profile.firstName}
+                                  lastName={s.profile.lastName} className="avatar break-row-avatar" />
+                      <span className="break-row-name">{profileName(s.profile)}</span>
+                    </div>
+                    <div className="break-row-segs">
+                      {segs.length === 0 ? (
+                        <span className="break-none">None yet</span>
+                      ) : segs.map((sg) => {
+                        const running = !sg.endAt;
+                        const mins = running
+                          ? Math.max(0, Math.floor((nowSafe.getTime() - new Date(sg.startAt).getTime()) / 60_000))
+                          : Math.max(0, Math.floor((new Date(sg.endAt!).getTime() - new Date(sg.startAt).getTime()) / 60_000));
+                        return (
+                          <span key={sg.id}
+                                className={`break-chip ${sg.segmentType === "lunch" ? "lunch" : "brk"}${running ? " running" : ""}`}
+                                title={`${sg.segmentType === "lunch" ? "Lunch" : "Break"} started ${formatClock(sg.startAt)}`}>
+                            <span aria-hidden="true">{sg.segmentType === "lunch" ? "🍽" : "☕"}</span>
+                            <span suppressHydrationWarning>{now ? formatClock(sg.startAt) : ""}</span>
+                            <small>{running ? "now" : `${mins}m`}</small>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
