@@ -302,8 +302,9 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
           .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()),
       }))
       .sort((a, b) => {
-        // People with nothing yet sink to the bottom — they are what a scheduler scans for.
-        if (!a.segs.length !== !b.segs.length) return a.segs.length ? 1 : -1;
+        // People WITH breaks lead: the whole point is seeing the data without
+        // scrolling. Rows reading "None yet" carry no information and sink.
+        if (!a.segs.length !== !b.segs.length) return a.segs.length ? -1 : 1;
         const na = `${a.snapshot.profile.lastName} ${a.snapshot.profile.firstName}`.toLowerCase();
         const nb = `${b.snapshot.profile.lastName} ${b.snapshot.profile.firstName}`.toLowerCase();
         return na.localeCompare(nb);
@@ -608,7 +609,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
                                 title={`${sg.segmentType === "lunch" ? "Lunch" : "Break"} started ${formatClock(sg.startAt)}`}>
                             <span aria-hidden="true">{sg.segmentType === "lunch" ? "🍽" : "☕"}</span>
                             <span suppressHydrationWarning>{now ? formatClock(sg.startAt) : ""}</span>
-                            <small>{running ? "now" : `${mins}m`}</small>
+                            <small>{running ? "now" : mins < 1 ? "<1m" : `${mins}m`}</small>
                           </span>
                         );
                       })}
