@@ -296,7 +296,10 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
         snapshot: s,
         segs: live.segments
           .filter((sg) => sg.shiftId === s.todayShift!.id)
-          .sort((a, b) => a.startAt.localeCompare(b.startAt)),
+          // startAt is typed string but arrives as a Date on the server-rendered
+          // pass (pg returns timestamps as Date; only the JSON API stringifies
+          // them). Compare as instants so both shapes work.
+          .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()),
       }))
       .sort((a, b) => {
         // People with nothing yet sink to the bottom — they are what a scheduler scans for.
