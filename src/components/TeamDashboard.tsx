@@ -1150,13 +1150,6 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, segm
   const isWorking = snapshot.status === "available";
   const isOnBreak = snapshot.status === "on_break" || snapshot.status === "at_lunch";
 
-  // Break / lunch duration
-  const segStart  = snapshot.activeSegment?.startAt;
-  const segSecs   = (segStart && now) ? Math.max(0, Math.floor((now.getTime() - new Date(segStart).getTime()) / 1_000)) : 0;
-  function segLabel(secs: number): string {
-    return secs < 60 ? `${secs}s` : formatDuration(Math.floor(secs / 60));
-  }
-
   return (
     <article className={`attend-card${snapshot.status === "on_break" ? " on-break-row" : snapshot.status === "at_lunch" ? " at-lunch-row" : ""}`}>
       <div className="attend-card-top">
@@ -1189,7 +1182,14 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, segm
               {snapshot.timeOffToday.timeOffType === "vacation" ? "Vacation" : snapshot.timeOffToday.timeOffType === "business_trip" ? "Business Trip" : "Sick"}
             </span>
           </div>
-        ) : isWorking ? (
+        ) : (isWorking || isOnBreak) ? (
+          /* One branch for "on the clock", whether or not they are away right now.
+             These used to be separate: the on-break branch showed only the running
+             timer and REPLACED the chip list, so the moment someone stepped out to
+             lunch their earlier breaks vanished from the board. That inverted the
+             point of the feature — the people you most want to check on are the
+             ones currently away, and they were exactly the ones whose history was
+             hidden. Now the running segment is simply a chip that is still counting. */
           <div className="attend-card-meta">
             {segments && segments.length > 0 && (
               <span className="attend-breaks">
@@ -1198,13 +1198,22 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, segm
                   const mins = running
                     ? Math.max(0, Math.floor(((now?.getTime() ?? Date.now()) - new Date(sg.startAt).getTime()) / 60_000))
                     : Math.max(0, Math.floor((new Date(sg.endAt!).getTime() - new Date(sg.startAt).getTime()) / 60_000));
+                  const kind = sg.segmentType === "lunch" ? "Lunch" : "Break";
                   return (
                     <span key={sg.id}
                           className={`break-chip ${sg.segmentType === "lunch" ? "lunch" : "brk"}${running ? " running" : ""}`}
-                          title={`${sg.segmentType === "lunch" ? "Lunch" : "Break"} started ${formatClock(sg.startAt)}`}>
-                      <span aria-hidden="true">{sg.segmentType === "lunch" ? "🍽" : "☕"}</span>
+                          title={running
+                            ? `${kind} started ${formatClock(sg.startAt)} — still out`
+                            : `${kind} ${formatClock(sg.startAt)}, ${mins}m`}>
+                      {sg.segmentType === "lunch"
+                        ? <Utensils size={11} aria-hidden="true" />
+                        : <Coffee size={11} aria-hidden="true" />}
+                      {/* The icon carries the kind visually; name it for screen readers. */}
+                      <span className="sr-only">{kind} </span>
                       <span suppressHydrationWarning>{now ? formatClock(sg.startAt) : ""}</span>
-                      <small>{running ? "now" : mins < 1 ? "<1m" : `${mins}m`}</small>
+                      <small suppressHydrationWarning>
+                        {mins < 1 ? "<1m" : `${mins}m`}{running ? " · now" : ""}
+                      </small>
                     </span>
                   );
                 })}
@@ -1214,16 +1223,6 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, segm
             <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-2)" }}>
               {formatDuration(snapshot.clockedInMinutes)}
               {snapshot.overtimeMinutes > 0 && <span className="ot-badge"> +{formatDuration(snapshot.overtimeMinutes)} OT</span>}
-            </span>
-          </div>
-        ) : isOnBreak ? (
-          <div className="attend-card-meta">
-            <span className={`attend-label ${snapshot.status === "at_lunch" ? "lunch-label" : "break-label"}`}>
-              <span style={{ fontSize: 16 }}>{snapshot.status === "at_lunch" ? "🍽" : "☕"}</span>
-              {snapshot.status === "at_lunch" ? " Lunch" : " Break"}
-            </span>
-            <span className="segment-timer" suppressHydrationWarning>
-              {segStart ? segLabel(segSecs) : "—"}
             </span>
           </div>
         ) : snapshot.isLate ? (

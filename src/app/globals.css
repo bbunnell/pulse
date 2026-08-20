@@ -5278,7 +5278,9 @@ input[type="checkbox"] {
 
 .break-chip {
   display: inline-flex;
-  align-items: baseline;
+  /* center, not baseline: the chip now leads with an SVG icon, and an SVG has no
+     text baseline to align to — it would hang low against the time beside it. */
+  align-items: center;
   gap: 5px;
   padding: 2px 8px;
   border-radius: var(--radius-full);
@@ -5286,6 +5288,7 @@ input[type="checkbox"] {
   font-weight: 600;
 }
 .break-chip small { font-size: 10px; font-weight: 600; opacity: 0.75; }
+.break-chip svg  { flex-shrink: 0; }
 .break-chip.brk   { background: var(--break-soft); color: var(--break-text); }
 .break-chip.lunch { background: var(--lunch-soft); color: var(--lunch-text); }
 /* In progress reads as live, not as a problem — no red. */
