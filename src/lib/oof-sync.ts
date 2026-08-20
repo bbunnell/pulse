@@ -79,13 +79,13 @@ async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]>
             notes:     "Out of office (auto-reply)",
           });
         }
-      } else if (d.status === "alwaysEnabled") {
-        periods.push({
-          startDate: toDateStr(now),
-          endDate:   toDateStr(horizon),
-          notes:     "Out of office (auto-reply always on)",
-        });
       }
+      // status === "alwaysEnabled" is deliberately ignored. An auto-reply with no
+      // end date carries no date information, so this used to invent one 60 days
+      // out and book the person a two-month vacation. Plenty of people leave an
+      // auto-reply on indefinitely ("I check email twice a day") without being
+      // away at all. Only a SCHEDULED auto-reply, which has real start and end
+      // dates the person chose, becomes time off.
     }
   } catch {
     // swallow per-user errors; caller aggregates them
