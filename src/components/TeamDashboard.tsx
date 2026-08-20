@@ -22,7 +22,6 @@ import type {
   AttendanceSnapshot,
   OrgData,
   Role,
-  ScheduledShift,
   SegmentType,
   Shift,
   ShiftSegment,
@@ -39,7 +38,6 @@ interface StaffingRule extends StaffingRuleLike { id: string; name: string }
 
 interface Props {
   data: OrgData;
-  scheduledShifts: ScheduledShift[];
   staffingRules: StaffingRule[];
   currentUserId?: string;
   userRole: Role | null;
@@ -97,7 +95,7 @@ const ACTIVITY_LABEL: Record<ActivityEvent["kind"], string> = {
 
 // ── Component ────────────────────────────────────────────────────────────────────
 
-export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUserId, userRole, orgTimezone = "America/Chicago" }: Props) {
+export function TeamDashboard({ data, staffingRules, currentUserId, userRole, orgTimezone = "America/Chicago" }: Props) {
   const [teamId, setTeamId] = useState("all");
   const [search, setSearch] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -128,13 +126,11 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
     shifts: Shift[];
     segments: ShiftSegment[];
     timeOff: TimeOffEntry[];
-    scheduledShifts: ScheduledShift[];
     staffingRules: StaffingRule[];
   }>({
     shifts: data.shifts,
     segments: data.segments,
     timeOff: data.timeOff,
-    scheduledShifts,
     staffingRules,
   });
 
@@ -148,12 +144,12 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       if (!res.ok) return;
       const json = (await res.json()) as {
         shifts: Shift[]; segments: ShiftSegment[]; timeOff: TimeOffEntry[];
-        scheduledShifts: ScheduledShift[]; staffingRules: StaffingRule[]; serverTime: string;
+        staffingRules: StaffingRule[]; serverTime: string;
       };
       offsetRef.current = new Date(json.serverTime).getTime() - Date.now();
       setLive({
         shifts: json.shifts, segments: json.segments,
-        timeOff: json.timeOff, scheduledShifts: json.scheduledShifts,
+        timeOff: json.timeOff,
         staffingRules: json.staffingRules ?? [],
       });
     } catch { /* keep last good data */ }
@@ -200,7 +196,10 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
       shifts: live.shifts,
       segments: live.segments,
       timeOff: live.timeOff,
-      scheduledShifts: live.scheduledShifts,
+      // Shifts are no longer a concept: every profile is `standard`, so the
+      // profile-hours branch inside buildAttendanceSnapshots covers scheduling.
+      // Passing the legacy rows would reintroduce a second source of truth.
+      scheduledShifts: [],
       scheduleTz: orgTimezone,
       now: nowSafe,
     }),
@@ -245,7 +244,7 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   // Coverage: now-lists from dashboard snapshots; gap detection from derived hours.
   const coverage = useMemo(
     () => buildCoverage(boardSnapshots, coverageShifts, data.profiles, orgTimezone, nowSafe, live.staffingRules),
-    [boardSnapshots, live.scheduledShifts, data.profiles, orgTimezone, nowSafe, live.staffingRules],
+    [boardSnapshots, coverageShifts, data.profiles, orgTimezone, nowSafe, live.staffingRules],
   );
 
   const groups = useMemo(() => {
@@ -314,15 +313,6 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
   const activeShift = activeUser ? openShiftForUser(live.shifts, activeUser.id) : undefined;
   const activeSegment = activeShift ? activeSegmentForShift(live.segments, activeShift.id) : undefined;
   const canManage = userRole === "admin" || userRole === "manager";
-
-  // Current user's upcoming scheduled shifts (next 7 days).
-  const myUpcoming = useMemo(() => {
-    if (!activeUser) return [];
-    return live.scheduledShifts
-      .filter((s) => s.profileId === activeUser.id)
-      .sort((a, b) => (a.shiftDate + a.startTime).localeCompare(b.shiftDate + b.startTime))
-      .slice(0, 3);
-  }, [activeUser, live.scheduledShifts]);
 
   // ── API helpers ─────────────────────────────────────────────
   async function clockAction(url: string, body: Record<string, string>) {

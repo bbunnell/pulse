@@ -5,10 +5,11 @@ import type { OrgData, ScheduledShift, Shift, ShiftSegment, TimeOffEntry } from 
 import type { StaffingRule } from "@/lib/db-store";
 import { buildAttendanceSnapshots, buildCoverage, profileName, type StaffingRuleLike } from "@/lib/status";
 import { formatDuration } from "@/lib/time";
+import { deriveStandardShifts } from "@/lib/derived-shifts";
+import { localDateInZone } from "@/lib/timezone";
 
 interface Props {
   data: OrgData;
-  scheduledShifts: ScheduledShift[];
   staffingRules: (StaffingRuleLike & { id: string; name: string })[];
   orgTimezone: string;
   currentUserId: string;
@@ -52,13 +53,13 @@ function fmtClock(iso: string): string {
   return `${h12}:${m}${suf}`;
 }
 
-export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, orgTimezone, currentUserId }: Props) {
+export function MonitorView({ data, staffingRules, orgTimezone, currentUserId }: Props) {
   const offsetRef = useRef(0);
   const [now, setNow]   = useState<Date | null>(null);
   const [live, setLive] = useState<{
-    shifts: Shift[]; segments: ShiftSegment[]; timeOff: TimeOffEntry[]; scheduledShifts: ScheduledShift[];
+    shifts: Shift[]; segments: ShiftSegment[]; timeOff: TimeOffEntry[];
   }>({
-    shifts: data.shifts, segments: data.segments, timeOff: data.timeOff, scheduledShifts: initShifts,
+    shifts: data.shifts, segments: data.segments, timeOff: data.timeOff,
   });
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -81,10 +82,10 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
       if (!res.ok) return;
       const j = (await res.json()) as {
         shifts: Shift[]; segments: ShiftSegment[]; timeOff: TimeOffEntry[];
-        scheduledShifts: ScheduledShift[]; serverTime: string;
+        serverTime: string;
       };
       offsetRef.current = new Date(j.serverTime).getTime() - Date.now();
-      setLive({ shifts: j.shifts, segments: j.segments, timeOff: j.timeOff, scheduledShifts: j.scheduledShifts });
+      setLive({ shifts: j.shifts, segments: j.segments, timeOff: j.timeOff });
       setLastRefresh(new Date());
     } catch { /* keep last */ }
   }, []);
@@ -105,12 +106,24 @@ export function MonitorView({ data, scheduledShifts: initShifts, staffingRules, 
     shifts: live.shifts,
     segments: live.segments,
     timeOff: live.timeOff,
-    scheduledShifts: live.scheduledShifts,
+    scheduledShifts: [],
     scheduleTz: orgTimezone,
     now: nowSafe,
   });
 
-  const coverage = buildCoverage(snapshots, live.scheduledShifts, data.profiles, orgTimezone, nowSafe, staffingRules);
+  // Coverage derives from profile hours, the same source the schedule board uses.
+  // Yesterday is included because an overnight shift covering this morning is dated
+  // to the day it STARTED; deriving today alone reports a phantom pre-dawn gap.
+  const coverageShifts = deriveStandardShifts({
+    profiles: data.profiles,
+    timeOff: live.timeOff,
+    dates: [
+      localDateInZone(orgTimezone, new Date(nowSafe.getTime() - 86_400_000)),
+      localDateInZone(orgTimezone, nowSafe),
+    ],
+    scheduleTz: orgTimezone,
+  });
+  const coverage = buildCoverage(snapshots, coverageShifts, data.profiles, orgTimezone, nowSafe, staffingRules);
 
   // Group for display
   const active  = snapshots.filter(s => ["available","on_break","at_lunch"].includes(s.status));

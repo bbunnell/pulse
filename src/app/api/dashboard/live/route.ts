@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession, getSessionProfileId } from "@/lib/session";
-import { loadOrgData, loadScheduleWindow } from "@/lib/data";
+import { loadOrgData} from "@/lib/data";
 import { getStaffingRules } from "@/lib/db-store";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +17,13 @@ export async function GET() {
   }
 
   try {
-    const [org, scheduledShifts, staffingRules] = await Promise.all([
-      loadOrgData(), loadScheduleWindow(), getStaffingRules(),
+    const [org, staffingRules] = await Promise.all([
+      loadOrgData(), getStaffingRules(),
     ]);
     return NextResponse.json({
       shifts: org.shifts,
       segments: org.segments,
       timeOff: org.timeOff,
-      scheduledShifts,
       staffingRules,
       serverTime: new Date().toISOString(),
     });

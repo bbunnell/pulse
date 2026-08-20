@@ -1,4 +1,4 @@
-import { getCurrentUserProfile, loadOrgData, loadScheduleWindow } from "@/lib/data";
+import { getCurrentUserProfile, loadOrgData} from "@/lib/data";
 import { getNotificationSettings, getStaffingRules } from "@/lib/db-store";
 import { MonitorView } from "@/components/MonitorView";
 
@@ -20,7 +20,7 @@ export default async function MonitorPage() {
     );
   }
 
-  const [data, scheduledShifts] = await Promise.all([loadOrgData(), loadScheduleWindow()]);
+  const data = await loadOrgData();
 
   let orgTimezone = "America/Los_Angeles";
   let staffingRules: Awaited<ReturnType<typeof getStaffingRules>> = [];
@@ -34,7 +34,6 @@ export default async function MonitorPage() {
   return (
     <MonitorView
       data={data}
-      scheduledShifts={scheduledShifts}
       staffingRules={staffingRules}
       orgTimezone={orgTimezone}
       currentUserId={currentUser.id}
