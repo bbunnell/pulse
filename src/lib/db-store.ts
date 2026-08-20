@@ -676,6 +676,23 @@ export async function recordReminderSent(
 
 // ── Standard-schedule reminders ───────────────────────────────────────────────
 
+/**
+ * DATE column → "YYYY-MM-DD".
+ *
+ * pg hands back `date` as a JavaScript Date at midnight UTC, so the obvious
+ * `String(v).slice(0, 10)` yields "Thu Aug 20" — which then goes back into the
+ * dedupe key and breaks it. UTC accessors avoid any local-offset shift.
+ */
+function toIsoDate(val: unknown): string {
+  if (val instanceof Date) {
+    const y = val.getUTCFullYear();
+    const m = String(val.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(val.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).slice(0, 10);
+}
+
 export interface ProfileDueForReminder {
   profileId:       string;
   email:           string;
@@ -689,46 +706,77 @@ export interface ProfileDueForReminder {
 }
 
 /**
- * Standard-schedule employees whose expected start time was `offsetMinutes` ago
- * (±2 min window, evaluated in each employee's own timezone).
- * Only fires on scheduled work days. Skips anyone already clocked in.
+ * Standard-schedule employees whose start time for TODAY was `offsetMinutes` ago,
+ * evaluated in each employee's own timezone.
+ *
+ * The match window is ±3 min, deliberately wider than the 5-minute timer period
+ * that drives this. A window narrower than the period leaves an uncovered gap
+ * every cycle, so anyone whose due moment lands in it is silently never reminded.
+ * Overlap is safe: the (profile, type, date) unique constraint absorbs a repeat.
+ *
+ * Hours come from the per-weekday `work_day_hours` override when one exists,
+ * falling back to `expected_start_time` — reminding someone at their default
+ * time on a day they work different hours is worse than not reminding them.
+ *
+ * Skips anyone on approved time off, and anyone already clocked in.
  */
 export async function getProfilesDueForCheckIn(
   offsetMinutes: number,
 ): Promise<ProfileDueForReminder[]> {
   const result = await query<{
     id: string; email: string; first_name: string; last_name: string;
-    timezone: string; expected_start_time: string; expected_end_time: string;
+    timezone: string; eff_start: string; eff_end: string;
     reminder_date: unknown; teams_webhook_url: string | null;
   }>(
-    `SELECT
-       p.id, p.email, p.first_name, p.last_name, p.timezone,
-       p.expected_start_time, p.expected_end_time,
-       (now() AT TIME ZONE p.timezone)::date AS reminder_date,
-       p.teams_webhook_url
-     FROM profiles p
-     WHERE p.work_schedule_type = 'standard'
-       AND p.status = 'active'
-       AND p.show_on_dashboard = true
-       AND p.expected_start_time IS NOT NULL
-       -- today is a scheduled work day (in their timezone)
-       AND EXTRACT(DOW FROM (now() AT TIME ZONE p.timezone))::int = ANY(p.standard_work_days)
-       -- their start time in their own tz was offsetMinutes ago (±2 min)
-       AND ((now() AT TIME ZONE p.timezone)::date + p.expected_start_time) AT TIME ZONE p.timezone
-             BETWEEN now() - make_interval(mins => $1 + 2)
-                 AND now() - make_interval(mins => $1 - 2)
-       -- not already sent today
+    `WITH today AS (
+       SELECT p.*,
+              (now() AT TIME ZONE p.timezone)::date AS shift_date,
+              EXTRACT(DOW FROM (now() AT TIME ZONE p.timezone))::int AS dow
+       FROM profiles p
+       WHERE p.work_schedule_type = 'standard'
+         AND p.status = 'active'
+         AND p.show_on_dashboard = true
+     ),
+     resolved AS (
+       SELECT t.*,
+              COALESCE(t.work_day_hours -> t.dow::text ->> 'start',
+                       t.expected_start_time::text)::time AS eff_start,
+              COALESCE(t.work_day_hours -> t.dow::text ->> 'end',
+                       t.expected_end_time::text)::time   AS eff_end
+       FROM today t
+       WHERE t.dow = ANY(t.standard_work_days)
+     )
+     SELECT r.id, r.email, r.first_name, r.last_name, r.timezone,
+            r.eff_start, r.eff_end,
+            r.shift_date AS reminder_date,
+            r.teams_webhook_url
+     FROM resolved r
+     WHERE r.eff_start IS NOT NULL
+       AND ((r.shift_date + r.eff_start) AT TIME ZONE r.timezone)
+             BETWEEN now() - make_interval(mins => $1 + 3)
+                 AND now() - make_interval(mins => $1 - 3)
+       -- not already sent for this work day
        AND NOT EXISTS (
          SELECT 1 FROM profile_reminders pr
-         WHERE pr.profile_id = p.id
+         WHERE pr.profile_id = r.id
            AND pr.reminder_type = 'check_in'
-           AND pr.reminder_date = (now() AT TIME ZONE p.timezone)::date
+           AND pr.reminder_date = r.shift_date
        )
-       -- not already clocked in
+       -- not on approved time off (compared in the employee's own zone)
+       AND NOT EXISTS (
+         SELECT 1 FROM time_off_entries te
+         WHERE te.user_id = r.id
+           AND te.status <> 'cancelled'
+           AND r.shift_date BETWEEN (te.start_at AT TIME ZONE r.timezone)::date
+                                AND (te.end_at   AT TIME ZONE r.timezone)::date
+       )
+       -- not already clocked in. Bounded to 18h so one forgotten punch-out
+       -- does not suppress this person's reminders indefinitely.
        AND NOT EXISTS (
          SELECT 1 FROM shifts sh
-         WHERE sh.user_id = p.id
+         WHERE sh.user_id = r.id
            AND sh.punch_out_at IS NULL
+           AND sh.punch_in_at > now() - interval '18 hours'
        )`,
     [offsetMinutes],
   );
@@ -739,9 +787,9 @@ export async function getProfilesDueForCheckIn(
     firstName:       r.first_name,
     lastName:        r.last_name,
     timezone:        r.timezone,
-    startTime:       String(r.expected_start_time).slice(0, 5),
-    endTime:         String(r.expected_end_time ?? "").slice(0, 5),
-    reminderDate:    String(r.reminder_date).slice(0, 10),
+    startTime:       String(r.eff_start).slice(0, 5),
+    endTime:         String(r.eff_end ?? "").slice(0, 5),
+    reminderDate:    toIsoDate(r.reminder_date),
     teamsWebhookUrl: r.teams_webhook_url ?? null,
   }));
 }
@@ -756,32 +804,64 @@ export async function getProfilesDueForCheckOut(
 ): Promise<ProfileDueForReminder[]> {
   const result = await query<{
     id: string; email: string; first_name: string; last_name: string;
-    timezone: string; expected_start_time: string; expected_end_time: string;
+    timezone: string; eff_start: string; eff_end: string;
     reminder_date: unknown; teams_webhook_url: string | null;
   }>(
-    `SELECT
-       p.id, p.email, p.first_name, p.last_name, p.timezone,
-       p.expected_start_time, p.expected_end_time,
-       (now() AT TIME ZONE p.timezone)::date AS reminder_date,
-       p.teams_webhook_url
-     FROM profiles p
-     WHERE p.work_schedule_type = 'standard'
-       AND p.status = 'active'
-       AND p.show_on_dashboard = true
-       AND p.expected_end_time IS NOT NULL
-       AND EXTRACT(DOW FROM (now() AT TIME ZONE p.timezone))::int = ANY(p.standard_work_days)
-       AND ((now() AT TIME ZONE p.timezone)::date + p.expected_end_time) AT TIME ZONE p.timezone
-             BETWEEN now() - make_interval(mins => $1 + 2)
-                 AND now() - make_interval(mins => $1 - 2)
+    // Two candidate work days, because an overnight shift ends on the day AFTER
+    // the one it belongs to. Josiah works Sun–Thu 21:00–06:00: his Thursday
+    // shift ends Friday 06:00, and Friday is not one of his work days. Keying
+    // off today alone both misses that check-out and invents a Sunday-morning
+    // one for a Saturday night he never worked.
+    `WITH candidates AS (
+       SELECT p.*, d.shift_date, EXTRACT(DOW FROM d.shift_date)::int AS dow
+       FROM profiles p
+       CROSS JOIN LATERAL (
+         VALUES ((now() AT TIME ZONE p.timezone)::date),
+                ((now() AT TIME ZONE p.timezone)::date - 1)
+       ) AS d(shift_date)
+       WHERE p.work_schedule_type = 'standard'
+         AND p.status = 'active'
+         AND p.show_on_dashboard = true
+     ),
+     resolved AS (
+       SELECT c.*,
+              COALESCE(c.work_day_hours -> c.dow::text ->> 'start',
+                       c.expected_start_time::text)::time AS eff_start,
+              COALESCE(c.work_day_hours -> c.dow::text ->> 'end',
+                       c.expected_end_time::text)::time   AS eff_end
+       FROM candidates c
+       WHERE c.dow = ANY(c.standard_work_days)
+     )
+     SELECT r.id, r.email, r.first_name, r.last_name, r.timezone,
+            r.eff_start, r.eff_end,
+            r.shift_date AS reminder_date,
+            r.teams_webhook_url
+     FROM resolved r
+     WHERE r.eff_end IS NOT NULL
+       -- end moment rolls to the next day when the shift crosses midnight
+       AND ((r.shift_date + r.eff_end
+             + CASE WHEN r.eff_start IS NOT NULL AND r.eff_end <= r.eff_start
+                    THEN interval '1 day' ELSE interval '0' END
+            ) AT TIME ZONE r.timezone)
+             BETWEEN now() - make_interval(mins => $1 + 3)
+                 AND now() - make_interval(mins => $1 - 3)
        AND NOT EXISTS (
          SELECT 1 FROM profile_reminders pr
-         WHERE pr.profile_id = p.id
+         WHERE pr.profile_id = r.id
            AND pr.reminder_type = 'check_out'
-           AND pr.reminder_date = (now() AT TIME ZONE p.timezone)::date
+           AND pr.reminder_date = r.shift_date
        )
+       AND NOT EXISTS (
+         SELECT 1 FROM time_off_entries te
+         WHERE te.user_id = r.id
+           AND te.status <> 'cancelled'
+           AND r.shift_date BETWEEN (te.start_at AT TIME ZONE r.timezone)::date
+                                AND (te.end_at   AT TIME ZONE r.timezone)::date
+       )
+       -- only nag someone who is actually still clocked in
        AND EXISTS (
          SELECT 1 FROM shifts sh
-         WHERE sh.user_id = p.id
+         WHERE sh.user_id = r.id
            AND sh.punch_out_at IS NULL
        )`,
     [offsetMinutes],
@@ -793,9 +873,9 @@ export async function getProfilesDueForCheckOut(
     firstName:       r.first_name,
     lastName:        r.last_name,
     timezone:        r.timezone,
-    startTime:       String(r.expected_start_time ?? "").slice(0, 5),
-    endTime:         String(r.expected_end_time).slice(0, 5),
-    reminderDate:    String(r.reminder_date).slice(0, 10),
+    startTime:       String(r.eff_start ?? "").slice(0, 5),
+    endTime:         String(r.eff_end).slice(0, 5),
+    reminderDate:    toIsoDate(r.reminder_date),
     teamsWebhookUrl: r.teams_webhook_url ?? null,
   }));
 }
