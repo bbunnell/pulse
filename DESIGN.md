@@ -20,6 +20,40 @@ colors:
   state-red: "#E23A39"
   break-orange: "#F97316"
   lunch-violet: "#8B5CF6"
+  state-red-hover: "#B91C1C"
+  state-amber-hover: "#B45309"
+  amber-border: "#FCD34D"
+  amber-border-2: "#FDE68A"
+  green-border: "#6EE7B7"
+  event-birthday: "#9333EA"
+  event-birthday-border: "#7E22CE"
+  event-company: "#0891B2"
+  event-company-border: "#0E7490"
+  coverage-covered: "#22C55E"
+  on-dark-line: "#1E293B"
+  on-dark-ink: "#E2E8F0"
+  on-dark-ink-2: "#CBD5E1"
+  on-dark-green: "#4ADE80"
+  on-dark-blue: "#60A5FA"
+  on-dark-red-bg: "#7F1D1D"
+  glow-indigo: "rgba(99, 102, 241, 0.07)"
+scrims:
+  # Neutral veils layered over coloured or already-dark backgrounds, where a
+  # solid token would have to be redefined per surface.
+  scrim-07: "rgba(0,0,0,0.07)"
+  scrim-10: "rgba(0,0,0,0.10)"
+  scrim-12: "rgba(0,0,0,0.12)"
+  scrim-20: "rgba(0,0,0,0.20)"
+  scrim-22: "rgba(0,0,0,0.22)"
+  scrim-45: "rgba(0,0,0,0.45)"
+shadows:
+  sm: "0 1px 2px rgba(22, 35, 52, 0.06)"
+  base: "0 1px 3px rgba(22, 35, 52, 0.10), 0 1px 2px rgba(22, 35, 52, 0.05)"
+  md: "0 1px 3px rgba(0,0,0,0.08)"
+  lg: "0 3px 10px rgba(0,0,0,0.15)"
+  tooltip: "0 4px 16px rgba(0,0,0,0.25)"
+  panel: "-4px 0 24px rgba(0,0,0,0.15)"
+  modal: "0 24px 64px rgba(0,0,0,0.25)"
 typography:
   avatar-xl:
     fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
@@ -85,9 +119,15 @@ typography:
     fontWeight: 700
     letterSpacing: "0.04em"
 rounded:
+  # The sub-6px steps are load-bearing in a board this dense: a 3px radius on a
+  # 16px status dot reads as intentional where 6px reads as a blob.
+  hairline: "1px"
+  xxs: "3px"
+  xs: "4px"
   sm: "6px"
   md: "8px"
   lg: "12px"
+  xl: "20px"
   full: "9999px"
 spacing:
   xs: "4px"
