@@ -37,23 +37,12 @@ colors:
   on-dark-blue: "#60A5FA"
   on-dark-red-bg: "#7F1D1D"
   glow-indigo: "rgba(99, 102, 241, 0.07)"
-scrims:
-  # Neutral veils layered over coloured or already-dark backgrounds, where a
-  # solid token would have to be redefined per surface.
   scrim-07: "rgba(0,0,0,0.07)"
   scrim-10: "rgba(0,0,0,0.10)"
   scrim-12: "rgba(0,0,0,0.12)"
   scrim-20: "rgba(0,0,0,0.20)"
   scrim-22: "rgba(0,0,0,0.22)"
   scrim-45: "rgba(0,0,0,0.45)"
-shadows:
-  sm: "0 1px 2px rgba(22, 35, 52, 0.06)"
-  base: "0 1px 3px rgba(22, 35, 52, 0.10), 0 1px 2px rgba(22, 35, 52, 0.05)"
-  md: "0 1px 3px rgba(0,0,0,0.08)"
-  lg: "0 3px 10px rgba(0,0,0,0.15)"
-  tooltip: "0 4px 16px rgba(0,0,0,0.25)"
-  panel: "-4px 0 24px rgba(0,0,0,0.15)"
-  modal: "0 24px 64px rgba(0,0,0,0.25)"
 typography:
   avatar-xl:
     fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"

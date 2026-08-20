@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-05T00:00:00.000Z",
+  "generatedAt": "2026-08-20T17:45:00.000Z",
   "title": "Design System: Team Pulse",
   "extensions": {
     "colorMeta": {
@@ -8,104 +8,612 @@
         "role": "primary",
         "displayName": "Royal Blue",
         "canonical": "#00579D",
-        "tonalRamp": ["oklch(15% 0.06 250)", "oklch(25% 0.09 250)", "oklch(35% 0.12 250)", "oklch(42% 0.13 250)", "oklch(55% 0.13 250)", "oklch(68% 0.11 250)", "oklch(82% 0.07 250)", "oklch(95% 0.02 250)"]
+        "tonalRamp": [
+          "oklch(15% 0.06 250)",
+          "oklch(25% 0.09 250)",
+          "oklch(35% 0.12 250)",
+          "oklch(42% 0.13 250)",
+          "oklch(55% 0.13 250)",
+          "oklch(68% 0.11 250)",
+          "oklch(82% 0.07 250)",
+          "oklch(95% 0.02 250)"
+        ]
       },
       "brand-navy": {
         "role": "primary",
         "displayName": "Deep Navy",
         "canonical": "#133F62",
-        "tonalRamp": ["oklch(14% 0.04 248)", "oklch(22% 0.06 248)", "oklch(32% 0.08 248)", "oklch(40% 0.08 248)", "oklch(52% 0.08 248)", "oklch(66% 0.07 248)", "oklch(81% 0.04 248)", "oklch(95% 0.015 248)"]
+        "tonalRamp": [
+          "oklch(14% 0.04 248)",
+          "oklch(22% 0.06 248)",
+          "oklch(32% 0.08 248)",
+          "oklch(40% 0.08 248)",
+          "oklch(52% 0.08 248)",
+          "oklch(66% 0.07 248)",
+          "oklch(81% 0.04 248)",
+          "oklch(95% 0.015 248)"
+        ]
       },
       "ink-navy": {
         "role": "secondary",
         "displayName": "Ink Navy",
         "canonical": "#162334",
-        "tonalRamp": ["oklch(12% 0.02 250)", "oklch(22% 0.03 250)", "oklch(32% 0.035 250)", "oklch(42% 0.04 250)", "oklch(55% 0.04 250)", "oklch(68% 0.03 250)", "oklch(82% 0.02 250)", "oklch(95% 0.008 250)"]
+        "tonalRamp": [
+          "oklch(12% 0.02 250)",
+          "oklch(22% 0.03 250)",
+          "oklch(32% 0.035 250)",
+          "oklch(42% 0.04 250)",
+          "oklch(55% 0.04 250)",
+          "oklch(68% 0.03 250)",
+          "oklch(82% 0.02 250)",
+          "oklch(95% 0.008 250)"
+        ]
       },
       "sky": {
         "role": "secondary",
         "displayName": "Sky",
         "canonical": "#59BFEF",
-        "tonalRamp": ["oklch(20% 0.06 235)", "oklch(32% 0.09 235)", "oklch(45% 0.11 235)", "oklch(58% 0.12 235)", "oklch(76% 0.11 235)", "oklch(85% 0.08 235)", "oklch(92% 0.05 235)", "oklch(97% 0.02 235)"]
+        "tonalRamp": [
+          "oklch(20% 0.06 235)",
+          "oklch(32% 0.09 235)",
+          "oklch(45% 0.11 235)",
+          "oklch(58% 0.12 235)",
+          "oklch(76% 0.11 235)",
+          "oklch(85% 0.08 235)",
+          "oklch(92% 0.05 235)",
+          "oklch(97% 0.02 235)"
+        ]
       },
       "accent-gold": {
         "role": "tertiary",
         "displayName": "Signal Gold",
         "canonical": "#FFBF1D",
-        "tonalRamp": ["oklch(25% 0.07 85)", "oklch(38% 0.10 85)", "oklch(52% 0.13 85)", "oklch(65% 0.15 85)", "oklch(83% 0.16 85)", "oklch(90% 0.12 85)", "oklch(95% 0.07 85)", "oklch(98% 0.03 85)"]
+        "tonalRamp": [
+          "oklch(25% 0.07 85)",
+          "oklch(38% 0.10 85)",
+          "oklch(52% 0.13 85)",
+          "oklch(65% 0.15 85)",
+          "oklch(83% 0.16 85)",
+          "oklch(90% 0.12 85)",
+          "oklch(95% 0.07 85)",
+          "oklch(98% 0.03 85)"
+        ]
       },
       "canvas": {
         "role": "neutral",
         "displayName": "Canvas",
         "canonical": "#F4F7FA",
-        "tonalRamp": ["oklch(18% 0.012 240)", "oklch(30% 0.012 240)", "oklch(42% 0.010 240)", "oklch(56% 0.009 240)", "oklch(70% 0.008 240)", "oklch(84% 0.007 240)", "oklch(97% 0.006 240)", "oklch(99% 0.003 240)"]
+        "tonalRamp": [
+          "oklch(18% 0.012 240)",
+          "oklch(30% 0.012 240)",
+          "oklch(42% 0.010 240)",
+          "oklch(56% 0.009 240)",
+          "oklch(70% 0.008 240)",
+          "oklch(84% 0.007 240)",
+          "oklch(97% 0.006 240)",
+          "oklch(99% 0.003 240)"
+        ]
       },
       "border": {
         "role": "neutral",
         "displayName": "Hairline",
         "canonical": "#D6E2EE",
-        "tonalRamp": ["oklch(20% 0.02 240)", "oklch(32% 0.025 240)", "oklch(45% 0.028 240)", "oklch(58% 0.03 240)", "oklch(72% 0.028 240)", "oklch(90% 0.022 240)", "oklch(95% 0.015 240)", "oklch(98% 0.008 240)"]
+        "tonalRamp": [
+          "oklch(20% 0.02 240)",
+          "oklch(32% 0.025 240)",
+          "oklch(45% 0.028 240)",
+          "oklch(58% 0.03 240)",
+          "oklch(72% 0.028 240)",
+          "oklch(90% 0.022 240)",
+          "oklch(95% 0.015 240)",
+          "oklch(98% 0.008 240)"
+        ]
       },
       "muted": {
         "role": "neutral",
         "displayName": "Muted",
         "canonical": "#5A7A96",
-        "tonalRamp": ["oklch(18% 0.03 245)", "oklch(28% 0.04 245)", "oklch(38% 0.05 245)", "oklch(53% 0.05 245)", "oklch(66% 0.045 245)", "oklch(79% 0.035 245)", "oklch(89% 0.02 245)", "oklch(96% 0.01 245)"]
+        "tonalRamp": [
+          "oklch(18% 0.03 245)",
+          "oklch(28% 0.04 245)",
+          "oklch(38% 0.05 245)",
+          "oklch(53% 0.05 245)",
+          "oklch(66% 0.045 245)",
+          "oklch(79% 0.035 245)",
+          "oklch(89% 0.02 245)",
+          "oklch(96% 0.01 245)"
+        ]
       },
       "state-green": {
         "role": "tertiary",
         "displayName": "Working Green",
         "canonical": "#059669",
-        "tonalRamp": ["oklch(20% 0.05 160)", "oklch(30% 0.08 160)", "oklch(42% 0.10 160)", "oklch(58% 0.13 160)", "oklch(70% 0.12 160)", "oklch(82% 0.09 160)", "oklch(91% 0.05 160)", "oklch(97% 0.02 160)"]
+        "tonalRamp": [
+          "oklch(20% 0.05 160)",
+          "oklch(30% 0.08 160)",
+          "oklch(42% 0.10 160)",
+          "oklch(58% 0.13 160)",
+          "oklch(70% 0.12 160)",
+          "oklch(82% 0.09 160)",
+          "oklch(91% 0.05 160)",
+          "oklch(97% 0.02 160)"
+        ]
       },
       "state-amber": {
         "role": "tertiary",
         "displayName": "Attention Amber",
         "canonical": "#D97706",
-        "tonalRamp": ["oklch(22% 0.06 65)", "oklch(33% 0.09 65)", "oklch(46% 0.12 65)", "oklch(65% 0.15 65)", "oklch(77% 0.13 65)", "oklch(87% 0.09 65)", "oklch(94% 0.05 65)", "oklch(98% 0.02 65)"]
+        "tonalRamp": [
+          "oklch(22% 0.06 65)",
+          "oklch(33% 0.09 65)",
+          "oklch(46% 0.12 65)",
+          "oklch(65% 0.15 65)",
+          "oklch(77% 0.13 65)",
+          "oklch(87% 0.09 65)",
+          "oklch(94% 0.05 65)",
+          "oklch(98% 0.02 65)"
+        ]
       },
       "state-red": {
         "role": "tertiary",
         "displayName": "Alert Red",
         "canonical": "#E23A39",
-        "tonalRamp": ["oklch(20% 0.07 25)", "oklch(31% 0.11 25)", "oklch(44% 0.15 25)", "oklch(58% 0.19 25)", "oklch(71% 0.16 25)", "oklch(83% 0.11 25)", "oklch(92% 0.06 25)", "oklch(97% 0.02 25)"]
+        "tonalRamp": [
+          "oklch(20% 0.07 25)",
+          "oklch(31% 0.11 25)",
+          "oklch(44% 0.15 25)",
+          "oklch(58% 0.19 25)",
+          "oklch(71% 0.16 25)",
+          "oklch(83% 0.11 25)",
+          "oklch(92% 0.06 25)",
+          "oklch(97% 0.02 25)"
+        ]
       },
       "break-orange": {
         "role": "tertiary",
         "displayName": "Break Orange",
         "canonical": "#F97316",
-        "tonalRamp": ["oklch(22% 0.07 45)", "oklch(34% 0.11 45)", "oklch(48% 0.15 45)", "oklch(70% 0.19 45)", "oklch(80% 0.15 45)", "oklch(88% 0.10 45)", "oklch(94% 0.06 45)", "oklch(98% 0.02 45)"]
+        "tonalRamp": [
+          "oklch(22% 0.07 45)",
+          "oklch(34% 0.11 45)",
+          "oklch(48% 0.15 45)",
+          "oklch(70% 0.19 45)",
+          "oklch(80% 0.15 45)",
+          "oklch(88% 0.10 45)",
+          "oklch(94% 0.06 45)",
+          "oklch(98% 0.02 45)"
+        ]
       },
       "lunch-violet": {
         "role": "tertiary",
         "displayName": "Lunch Violet",
         "canonical": "#8B5CF6",
-        "tonalRamp": ["oklch(22% 0.09 290)", "oklch(33% 0.14 290)", "oklch(46% 0.19 290)", "oklch(62% 0.21 290)", "oklch(74% 0.17 290)", "oklch(85% 0.12 290)", "oklch(93% 0.06 290)", "oklch(98% 0.02 290)"]
+        "tonalRamp": [
+          "oklch(22% 0.09 290)",
+          "oklch(33% 0.14 290)",
+          "oklch(46% 0.19 290)",
+          "oklch(62% 0.21 290)",
+          "oklch(74% 0.17 290)",
+          "oklch(85% 0.12 290)",
+          "oklch(93% 0.06 290)",
+          "oklch(98% 0.02 290)"
+        ]
+      },
+      "state-red-hover": {
+        "role": "state",
+        "displayName": "Danger Hover Red",
+        "canonical": "#B91C1C",
+        "tonalRamp": [
+          "oklch(15% 0.21 0)",
+          "oklch(25% 0.21 0)",
+          "oklch(35% 0.21 0)",
+          "oklch(42% 0.21 0)",
+          "oklch(55% 0.21 0)",
+          "oklch(68% 0.21 0)",
+          "oklch(82% 0.21 0)",
+          "oklch(95% 0.21 0)"
+        ]
+      },
+      "state-amber-hover": {
+        "role": "state",
+        "displayName": "Warning Hover Amber",
+        "canonical": "#B45309",
+        "tonalRamp": [
+          "oklch(15% 0.25 26)",
+          "oklch(25% 0.25 26)",
+          "oklch(35% 0.25 26)",
+          "oklch(42% 0.25 26)",
+          "oklch(55% 0.25 26)",
+          "oklch(68% 0.25 26)",
+          "oklch(82% 0.25 26)",
+          "oklch(95% 0.25 26)"
+        ]
+      },
+      "amber-border": {
+        "role": "state",
+        "displayName": "Amber Chip Edge",
+        "canonical": "#FCD34D",
+        "tonalRamp": [
+          "oklch(15% 0.27 46)",
+          "oklch(25% 0.27 46)",
+          "oklch(35% 0.27 46)",
+          "oklch(42% 0.27 46)",
+          "oklch(55% 0.27 46)",
+          "oklch(68% 0.27 46)",
+          "oklch(82% 0.27 46)",
+          "oklch(95% 0.27 46)"
+        ]
+      },
+      "amber-border-2": {
+        "role": "state",
+        "displayName": "Pale Amber Edge",
+        "canonical": "#FDE68A",
+        "tonalRamp": [
+          "oklch(15% 0.27 48)",
+          "oklch(25% 0.27 48)",
+          "oklch(35% 0.27 48)",
+          "oklch(42% 0.27 48)",
+          "oklch(55% 0.27 48)",
+          "oklch(68% 0.27 48)",
+          "oklch(82% 0.27 48)",
+          "oklch(95% 0.27 48)"
+        ]
+      },
+      "green-border": {
+        "role": "state",
+        "displayName": "Mint Chip Edge",
+        "canonical": "#6EE7B7",
+        "tonalRamp": [
+          "oklch(15% 0.2 156)",
+          "oklch(25% 0.2 156)",
+          "oklch(35% 0.2 156)",
+          "oklch(42% 0.2 156)",
+          "oklch(55% 0.2 156)",
+          "oklch(68% 0.2 156)",
+          "oklch(82% 0.2 156)",
+          "oklch(95% 0.2 156)"
+        ]
+      },
+      "event-birthday": {
+        "role": "tertiary",
+        "displayName": "Celebration Violet",
+        "canonical": "#9333EA",
+        "tonalRamp": [
+          "oklch(15% 0.23 271)",
+          "oklch(25% 0.23 271)",
+          "oklch(35% 0.23 271)",
+          "oklch(42% 0.23 271)",
+          "oklch(55% 0.23 271)",
+          "oklch(68% 0.23 271)",
+          "oklch(82% 0.23 271)",
+          "oklch(95% 0.23 271)"
+        ]
+      },
+      "event-birthday-border": {
+        "role": "tertiary",
+        "displayName": "Deep Celebration Violet",
+        "canonical": "#7E22CE",
+        "tonalRamp": [
+          "oklch(15% 0.2 272)",
+          "oklch(25% 0.2 272)",
+          "oklch(35% 0.2 272)",
+          "oklch(42% 0.2 272)",
+          "oklch(55% 0.2 272)",
+          "oklch(68% 0.2 272)",
+          "oklch(82% 0.2 272)",
+          "oklch(95% 0.2 272)"
+        ]
+      },
+      "event-company": {
+        "role": "tertiary",
+        "displayName": "Company Cyan",
+        "canonical": "#0891B2",
+        "tonalRamp": [
+          "oklch(15% 0.26 192)",
+          "oklch(25% 0.26 192)",
+          "oklch(35% 0.26 192)",
+          "oklch(42% 0.26 192)",
+          "oklch(55% 0.26 192)",
+          "oklch(68% 0.26 192)",
+          "oklch(82% 0.26 192)",
+          "oklch(95% 0.26 192)"
+        ]
+      },
+      "event-company-border": {
+        "role": "tertiary",
+        "displayName": "Deep Company Cyan",
+        "canonical": "#0E7490",
+        "tonalRamp": [
+          "oklch(15% 0.23 193)",
+          "oklch(25% 0.23 193)",
+          "oklch(35% 0.23 193)",
+          "oklch(42% 0.23 193)",
+          "oklch(55% 0.23 193)",
+          "oklch(68% 0.23 193)",
+          "oklch(82% 0.23 193)",
+          "oklch(95% 0.23 193)"
+        ]
+      },
+      "coverage-covered": {
+        "role": "state",
+        "displayName": "Coverage Green",
+        "canonical": "#22C55E",
+        "tonalRamp": [
+          "oklch(15% 0.2 142)",
+          "oklch(25% 0.2 142)",
+          "oklch(35% 0.2 142)",
+          "oklch(42% 0.2 142)",
+          "oklch(55% 0.2 142)",
+          "oklch(68% 0.2 142)",
+          "oklch(82% 0.2 142)",
+          "oklch(95% 0.2 142)"
+        ]
+      },
+      "on-dark-line": {
+        "role": "neutral",
+        "displayName": "Wall-Display Rule",
+        "canonical": "#1E293B",
+        "tonalRamp": [
+          "oklch(15% 0.09 217)",
+          "oklch(25% 0.09 217)",
+          "oklch(35% 0.09 217)",
+          "oklch(42% 0.09 217)",
+          "oklch(55% 0.09 217)",
+          "oklch(68% 0.09 217)",
+          "oklch(82% 0.09 217)",
+          "oklch(95% 0.09 217)"
+        ]
+      },
+      "on-dark-ink": {
+        "role": "neutral",
+        "displayName": "Wall-Display Ink",
+        "canonical": "#E2E8F0",
+        "tonalRamp": [
+          "oklch(15% 0.09 214)",
+          "oklch(25% 0.09 214)",
+          "oklch(35% 0.09 214)",
+          "oklch(42% 0.09 214)",
+          "oklch(55% 0.09 214)",
+          "oklch(68% 0.09 214)",
+          "oklch(82% 0.09 214)",
+          "oklch(95% 0.09 214)"
+        ]
+      },
+      "on-dark-ink-2": {
+        "role": "neutral",
+        "displayName": "Wall-Display Ink Dim",
+        "canonical": "#CBD5E1",
+        "tonalRamp": [
+          "oklch(15% 0.08 213)",
+          "oklch(25% 0.08 213)",
+          "oklch(35% 0.08 213)",
+          "oklch(42% 0.08 213)",
+          "oklch(55% 0.08 213)",
+          "oklch(68% 0.08 213)",
+          "oklch(82% 0.08 213)",
+          "oklch(95% 0.08 213)"
+        ]
+      },
+      "on-dark-green": {
+        "role": "state",
+        "displayName": "Wall-Display Green",
+        "canonical": "#4ADE80",
+        "tonalRamp": [
+          "oklch(15% 0.19 142)",
+          "oklch(25% 0.19 142)",
+          "oklch(35% 0.19 142)",
+          "oklch(42% 0.19 142)",
+          "oklch(55% 0.19 142)",
+          "oklch(68% 0.19 142)",
+          "oklch(82% 0.19 142)",
+          "oklch(95% 0.19 142)"
+        ]
+      },
+      "on-dark-blue": {
+        "role": "state",
+        "displayName": "Wall-Display Blue",
+        "canonical": "#60A5FA",
+        "tonalRamp": [
+          "oklch(15% 0.26 213)",
+          "oklch(25% 0.26 213)",
+          "oklch(35% 0.26 213)",
+          "oklch(42% 0.26 213)",
+          "oklch(55% 0.26 213)",
+          "oklch(68% 0.26 213)",
+          "oklch(82% 0.26 213)",
+          "oklch(95% 0.26 213)"
+        ]
+      },
+      "on-dark-red-bg": {
+        "role": "state",
+        "displayName": "Wall-Display Red Bed",
+        "canonical": "#7F1D1D",
+        "tonalRamp": [
+          "oklch(15% 0.18 0)",
+          "oklch(25% 0.18 0)",
+          "oklch(35% 0.18 0)",
+          "oklch(42% 0.18 0)",
+          "oklch(55% 0.18 0)",
+          "oklch(68% 0.18 0)",
+          "oklch(82% 0.18 0)",
+          "oklch(95% 0.18 0)"
+        ]
+      },
+      "glow-indigo": {
+        "role": "neutral",
+        "displayName": "Ambient Indigo Glow",
+        "canonical": "rgba(99, 102, 241, 0.07)",
+        "purpose": "Radial wash at the top of the page body."
+      },
+      "scrim-07": {
+        "role": "neutral",
+        "displayName": "Scrim 7%",
+        "canonical": "rgba(0,0,0,0.07)",
+        "purpose": "Faintest veil; carried-over schedule blocks."
+      },
+      "scrim-10": {
+        "role": "neutral",
+        "displayName": "Scrim 10%",
+        "canonical": "rgba(0,0,0,0.10)",
+        "purpose": "Resting fill for controls sitting on coloured surfaces."
+      },
+      "scrim-12": {
+        "role": "neutral",
+        "displayName": "Scrim 12%",
+        "canonical": "rgba(0,0,0,0.12)",
+        "purpose": "Slightly firmer resting fill."
+      },
+      "scrim-20": {
+        "role": "neutral",
+        "displayName": "Scrim 20%",
+        "canonical": "rgba(0,0,0,0.20)",
+        "purpose": "Hover state for scrim-10 controls."
+      },
+      "scrim-22": {
+        "role": "neutral",
+        "displayName": "Scrim 22%",
+        "canonical": "rgba(0,0,0,0.22)",
+        "purpose": "Hover state for scrim-12 controls."
+      },
+      "scrim-45": {
+        "role": "neutral",
+        "displayName": "Scrim 45%",
+        "canonical": "rgba(0,0,0,0.45)",
+        "purpose": "Modal backdrop."
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Metric readouts only. Always a number; the type ceiling of the product." },
-      "headline": { "displayName": "Headline", "purpose": "Page titles (h1)." },
-      "title": { "displayName": "Title", "purpose": "Status group headings on the board, paired with a color dot and count chip." },
-      "body": { "displayName": "Body", "purpose": "Base prose and default control text." },
-      "label": { "displayName": "Label", "purpose": "Uppercase tracked captions: eyebrows and stat labels." },
-      "micro": { "displayName": "Micro", "purpose": "Dense inline metadata: timezone abbreviations, relative timestamps." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Metric readouts only. Always a number; the type ceiling of the product."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles (h1)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Status group headings on the board, paired with a color dot and count chip."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Base prose and default control text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase tracked captions: eyebrows and stat labels."
+      },
+      "micro": {
+        "displayName": "Micro",
+        "purpose": "Dense inline metadata: timezone abbreviations, relative timestamps."
+      },
+      "avatar-xl": {
+        "displayName": "Avatar XL",
+        "purpose": "Initials inside the 96px profile avatar."
+      },
+      "headline-sm": {
+        "displayName": "Headline Small",
+        "purpose": "Page h1 and panel headers."
+      },
+      "subtitle": {
+        "displayName": "Subtitle",
+        "purpose": "Bold section headings inside cards."
+      },
+      "body-lg": {
+        "displayName": "Body Large",
+        "purpose": "Mobile navigation items, where tap targets need the size."
+      },
+      "body-sm": {
+        "displayName": "Body Small",
+        "purpose": "The board's workhorse: names, times, row labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Densest readable step; meta lines and chip text."
+      },
+      "micro-xs": {
+        "displayName": "Micro XS",
+        "purpose": "Avatar initials and count badges in tight circles."
+      }
     },
     "shadows": [
-      { "name": "rest", "value": "0 1px 2px rgba(22, 35, 52, 0.06)", "purpose": "Near-invisible seat on person cards. Separates a row from the canvas without reading as raised." },
-      { "name": "lift", "value": "0 1px 3px rgba(22, 35, 52, 0.10), 0 1px 2px rgba(22, 35, 52, 0.05)", "purpose": "Hover only, paired with a border shift to Hairline Strong." },
-      { "name": "rest-dark", "value": "0 1px 2px rgba(0, 0, 0, 0.35)", "purpose": "Dark-theme resting shadow; pure black alpha because navy surfaces need more separation." },
-      { "name": "lift-dark", "value": "0 1px 3px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.30)", "purpose": "Dark-theme hover shadow." },
-      { "name": "focus-ring", "value": "0 0 0 3px rgba(0, 87, 157, 0.10)", "purpose": "Input focus ring. NOTE: the shipped value is rgba(79,70,229,0.1) (indigo, off-palette). This is the corrected Royal Blue value." }
+      {
+        "name": "rest",
+        "value": "0 1px 2px rgba(22, 35, 52, 0.06)",
+        "purpose": "Near-invisible seat on person cards. Separates a row from the canvas without reading as raised."
+      },
+      {
+        "name": "lift",
+        "value": "0 1px 3px rgba(22, 35, 52, 0.10), 0 1px 2px rgba(22, 35, 52, 0.05)",
+        "purpose": "Hover only, paired with a border shift to Hairline Strong."
+      },
+      {
+        "name": "rest-dark",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.35)",
+        "purpose": "Dark-theme resting shadow; pure black alpha because navy surfaces need more separation."
+      },
+      {
+        "name": "lift-dark",
+        "value": "0 1px 3px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.30)",
+        "purpose": "Dark-theme hover shadow."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgba(0, 87, 157, 0.10)",
+        "purpose": "Input focus ring. NOTE: the shipped value is rgba(79,70,229,0.1) (indigo, off-palette). This is the corrected Royal Blue value."
+      },
+      {
+        "name": "card",
+        "value": "0 1px 3px rgba(0,0,0,0.08)",
+        "purpose": "Flat card seat on the schedule board."
+      },
+      {
+        "name": "raised",
+        "value": "0 3px 10px rgba(0,0,0,0.15)",
+        "purpose": "Dragged or actively-hovered schedule card."
+      },
+      {
+        "name": "tooltip",
+        "value": "0 4px 16px rgba(0,0,0,0.25)",
+        "purpose": "Info tooltips, which float over dark and light alike."
+      },
+      {
+        "name": "panel",
+        "value": "-4px 0 24px rgba(0,0,0,0.15)",
+        "purpose": "Right-hand slide-over panel; directional, casting left."
+      },
+      {
+        "name": "modal",
+        "value": "0 24px 64px rgba(0,0,0,0.25)",
+        "purpose": "Centred dialogs. The only deep shadow in the system."
+      }
     ],
     "motion": [
-      { "name": "transition-fast", "value": "0.1s", "purpose": "Button background, border, and opacity changes." },
-      { "name": "transition-base", "value": "0.12s", "purpose": "Card lift, nav link color and border." },
-      { "name": "transition-input", "value": "0.15s", "purpose": "Input border and focus ring." }
+      {
+        "name": "transition-fast",
+        "value": "0.1s",
+        "purpose": "Button background, border, and opacity changes."
+      },
+      {
+        "name": "transition-base",
+        "value": "0.12s",
+        "purpose": "Card lift, nav link color and border."
+      },
+      {
+        "name": "transition-input",
+        "value": "0.15s",
+        "purpose": "Input border and focus ring."
+      }
     ],
     "breakpoints": [
-      { "name": "mobile", "value": "768px" },
-      { "name": "sidebar-collapse", "value": "1000px" }
+      {
+        "name": "mobile",
+        "value": "768px"
+      },
+      {
+        "name": "sidebar-collapse",
+        "value": "1000px"
+      }
     ]
   },
   "components": [
@@ -186,15 +694,51 @@
       "Inherits the NBIT parent brand palette rather than establishing its own"
     ],
     "rules": [
-      { "name": "The Meaning-Only Rule", "body": "Color never decorates. If an element is colored, it encodes a state a user can act on. A colored element with no state behind it is a bug.", "section": "colors" },
-      { "name": "The Eight States Rule", "body": "The status vocabulary is closed at eight: Available, On Break, At Lunch, Not Punched In, Punched Out, Out Sick, On Vacation, Business Trip. A ninth state must replace one, not append to it. The board's readability depends on the vocabulary staying memorizable.", "section": "colors" },
-      { "name": "The Rationed Red Rule", "body": "Alert Red appears only for genuine exceptions and destructive controls. A screen where red is common is a screen where red has stopped working. Break and lunch deliberately use orange and violet rather than shades of amber so that a room full of people on break never reads as a room full of problems.", "section": "colors" },
-      { "name": "The Number Is The Headline Rule", "body": "The biggest type on any operational screen is a count, not a title. Headings identify sections; numbers carry the message. Never let a page title out-scale the metric it introduces.", "section": "typography" },
-      { "name": "The Dense Body Rule", "body": "Working UI text lives at 11-13px; 14px is base prose, not the default for interface chrome. This is deliberately tighter than a marketing surface and is what allows a full team on one screen. Do not fix the density by scaling type up globally.", "section": "typography" },
-      { "name": "The Punch-First Rule", "body": "On any viewport under 768px, the clock control is the first thing in the document flow. Nothing outranks it. If a new section claims the top of the mobile board, it is wrong.", "section": "layout" },
-      { "name": "The Hide, Don't Stack Rule", "body": "On phones, secondary controls are removed rather than pushed below the fold. A control that is not part of the five-second task does not earn vertical space.", "section": "layout" },
-      { "name": "The Flat-At-Rest Rule", "body": "A surface at rest has a border, not a shadow. Shadow is a response to the cursor. A screen full of shadowed cards is a screen with no hierarchy.", "section": "elevation" },
-      { "name": "The Pill-For-State Rule", "body": "Full radius signals state; rectangular radius signals structure. A pill is a thing that can change (a status, a count, a person). A rounded rectangle is a thing that holds. Never round a container to a pill or square off a badge.", "section": "shapes" }
+      {
+        "name": "The Meaning-Only Rule",
+        "body": "Color never decorates. If an element is colored, it encodes a state a user can act on. A colored element with no state behind it is a bug.",
+        "section": "colors"
+      },
+      {
+        "name": "The Eight States Rule",
+        "body": "The status vocabulary is closed at eight: Available, On Break, At Lunch, Not Punched In, Punched Out, Out Sick, On Vacation, Business Trip. A ninth state must replace one, not append to it. The board's readability depends on the vocabulary staying memorizable.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rationed Red Rule",
+        "body": "Alert Red appears only for genuine exceptions and destructive controls. A screen where red is common is a screen where red has stopped working. Break and lunch deliberately use orange and violet rather than shades of amber so that a room full of people on break never reads as a room full of problems.",
+        "section": "colors"
+      },
+      {
+        "name": "The Number Is The Headline Rule",
+        "body": "The biggest type on any operational screen is a count, not a title. Headings identify sections; numbers carry the message. Never let a page title out-scale the metric it introduces.",
+        "section": "typography"
+      },
+      {
+        "name": "The Dense Body Rule",
+        "body": "Working UI text lives at 11-13px; 14px is base prose, not the default for interface chrome. This is deliberately tighter than a marketing surface and is what allows a full team on one screen. Do not fix the density by scaling type up globally.",
+        "section": "typography"
+      },
+      {
+        "name": "The Punch-First Rule",
+        "body": "On any viewport under 768px, the clock control is the first thing in the document flow. Nothing outranks it. If a new section claims the top of the mobile board, it is wrong.",
+        "section": "layout"
+      },
+      {
+        "name": "The Hide, Don't Stack Rule",
+        "body": "On phones, secondary controls are removed rather than pushed below the fold. A control that is not part of the five-second task does not earn vertical space.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "A surface at rest has a border, not a shadow. Shadow is a response to the cursor. A screen full of shadowed cards is a screen with no hierarchy.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Pill-For-State Rule",
+        "body": "Full radius signals state; rectangular radius signals structure. A pill is a thing that can change (a status, a count, a person). A rounded rectangle is a thing that holds. Never round a container to a pill or square off a badge.",
+        "section": "shapes"
+      }
     ],
     "dos": [
       "Do lead every person with an avatar and full name. The Operations Board is a board about colleagues; identifiers and durations are secondary. Where a photo exists, use it.",
