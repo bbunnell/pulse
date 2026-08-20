@@ -21,9 +21,14 @@ colors:
   break-orange: "#F97316"
   lunch-violet: "#8B5CF6"
 typography:
-  display:
+  avatar-xl:
     fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "28px"
+    fontWeight: 600
+    lineHeight: 1
+  display:
+    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontSize: "24px"
     fontWeight: 700
     lineHeight: 1
   headline:
