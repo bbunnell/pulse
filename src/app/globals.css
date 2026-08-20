@@ -1098,8 +1098,11 @@ h2 {
 @media (max-width: 768px) {
   .dash-body { padding: 12px 16px 24px; gap: 16px; order: 2; }
   .dash-summary-row { order: 3; }
+  /* Above the clock, not below the whole board. A coverage gap is rare by
+     construction; when one exists it outranks the punch widget, and burying it
+     under six stat tiles contradicts "surface problems while still fixable". */
   .coverage-gap-banner,
-  .coverage-understaffed-banner { order: 4; }
+  .coverage-understaffed-banner { order: -3; }
   .dash-sidebar { order: -1; }
   /* Hide search/filter and recent activity on mobile — clock is the primary action */
   .dash-sidebar-controls { display: none; }
