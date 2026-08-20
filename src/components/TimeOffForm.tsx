@@ -144,6 +144,12 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
       setEditError("The end date cannot be before the start date.");
       return;
     }
+    // Build in LOCAL time, matching the create form. Writing a literal
+    // `${date}T00:00:00.000Z` pins midnight UTC, which is the PREVIOUS evening
+    // anywhere west of UTC — an entry starting Aug 21 rendered as Aug 20. The end
+    // date hid the bug because 23:59:59 UTC is still the same local day.
+    const startIso = buildDateTime(startDate, "00:00").toISOString();
+    const endIso   = buildDateTime(endDate,   "23:59").toISOString();
     setEditSaving(true);
     setEditError("");
     try {
@@ -152,8 +158,8 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           timeOffType: fd.get("timeOffType"),
-          startAt: `${startDate}T00:00:00.000Z`,
-          endAt: `${endDate}T23:59:59.000Z`,
+          startAt: startIso,
+          endAt: endIso,
           notes: fd.get("notes") || undefined,
         }),
       });
@@ -166,8 +172,8 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
       setEntries((prev) => prev.map((x) => x.id === editing.id ? {
         ...x,
         timeOffType: fd.get("timeOffType") as TimeOffType,
-        startAt: `${startDate}T00:00:00.000Z`,
-        endAt: `${endDate}T23:59:59.000Z`,
+        startAt: startIso,
+        endAt: endIso,
         notes: (fd.get("notes") as string) || undefined,
       } : x));
       setEditing(null);

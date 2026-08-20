@@ -30,7 +30,7 @@ import type {
 } from "@/lib/types";
 import { buildAttendanceSnapshots, buildCoverage, buildSummary, profileName, type StaffingRuleLike } from "@/lib/status";
 import { InfoTooltip } from "@/components/InfoTooltip";
-import { activeSegmentForShift, formatClock, formatDuration, formatShortDate, openShiftForUser } from "@/lib/time";
+import { activeSegmentForShift, buildDateTime, formatClock, formatDuration, formatShortDate, openShiftForUser } from "@/lib/time";
 import { convertShiftTime, localDateInZone, tzAbbr } from "@/lib/timezone";
 import { deriveStandardShifts } from "@/lib/derived-shifts";
 import Link from "next/link";
@@ -449,8 +449,10 @@ export function TeamDashboard({ data, scheduledShifts, staffingRules, currentUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           timeOffType: fd.get("timeOffType"),
-          startAt: `${fd.get("startDate")}T00:00:00.000Z`,
-          endAt: `${fd.get("endDate")}T23:59:59.000Z`,
+          // Local time, matching the create form. A literal midnight-UTC value is
+          // the previous evening west of UTC and shifted the start date back a day.
+          startAt: buildDateTime(String(fd.get("startDate")), "00:00").toISOString(),
+          endAt:   buildDateTime(String(fd.get("endDate")),   "23:59").toISOString(),
           notes: fd.get("notes") || undefined,
         }),
       });
