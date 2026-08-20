@@ -1,4 +1,4 @@
-import type { Profile, ReminderRule, ScheduleRule, ScheduleTemplate, ScheduledShift, Shift, ShiftSegment, Team, TemplateShift, TimeOffEntry } from "@/lib/types";
+import type { Profile, ReminderRule, Shift, ShiftSegment, Team, TimeOffEntry } from "@/lib/types";
 
 type DbRow = Record<string, string | number | boolean | null | undefined>;
 
@@ -149,54 +149,3 @@ export function mapTimeOff(row: DbRow): TimeOffEntry {
   };
 }
 
-export function mapScheduledShift(row: DbRow): ScheduledShift {
-  // pg returns TIME as "HH:MM:SS" string — trim to "HH:MM"
-  const trimTime = (t: unknown) => String(t).slice(0, 5);
-
-  const shiftDate = toIsoDateStr(row.shift_date) ?? String(row.shift_date).slice(0, 10);
-
-  return {
-    id: row.id as string,
-    profileId: row.profile_id as string,
-    shiftDate,
-    startTime: trimTime(row.start_time),
-    endTime: trimTime(row.end_time),
-    label: (row.label as string | null) ?? undefined,
-    notes: (row.notes as string | null) ?? undefined,
-    ruleId:    (row.rule_id   as string | null) ?? undefined,
-    isOpen:    (row.is_open   as boolean)        ?? false,
-    createdBy: (row.created_by as string | null) ?? undefined,
-    createdAt: toIso(row.created_at),
-    updatedAt: toIso(row.updated_at),
-  };
-}
-
-export function mapScheduleRule(row: DbRow): ScheduleRule {
-  return {
-    id:             row.id as string,
-    profileId:      row.profile_id as string,
-    startTime:      String(row.start_time).slice(0, 5),
-    endTime:        String(row.end_time).slice(0, 5),
-    label:          (row.label as string | null) ?? undefined,
-    notes:          (row.notes as string | null) ?? undefined,
-    daysOfWeek:     row.days_of_week as unknown as number[],
-    repeatWeeks:    row.repeat_weeks as 1 | 2 | 4,
-    effectiveFrom:  toIsoDateStr(row.effective_from) ?? String(row.effective_from).slice(0, 10),
-    effectiveUntil: toIsoDateStr(row.effective_until),
-    createdBy:  (row.created_by as string | null) ?? undefined,
-    createdAt:   toIso(row.created_at),
-    updatedAt:   toIso(row.updated_at),
-  };
-}
-
-export function mapScheduleTemplate(row: DbRow): ScheduleTemplate {
-  return {
-    id:          row.id as string,
-    name:        row.name as string,
-    description: (row.description as string | null) ?? undefined,
-    shifts:      (row.shifts as unknown as TemplateShift[]) ?? [],
-    createdBy:   (row.created_by as string | null) ?? undefined,
-    createdAt:   toIso(row.created_at),
-    updatedAt:   toIso(row.updated_at),
-  };
-}

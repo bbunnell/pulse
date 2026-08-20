@@ -4,9 +4,8 @@ import type { PoolClient } from "pg";
 
 import { query, withTransaction } from "@/lib/db";
 import { isUuid } from "@/lib/uuid";
-import { mapProfile, mapReminderRule, mapScheduleRule, mapScheduleTemplate, mapScheduledShift, mapSegment, mapShift, mapTeam, mapTimeOff } from "@/lib/supabase/mappers";
-import type { OrgData, Profile, Role, ScheduleRule, ScheduleTemplate, ScheduledShift, Shift, ShiftSegment, Team, TemplateShift, TimeOffEntry } from "@/lib/types";
-import type { GeneratedShift, AppliedTemplateShift } from "@/lib/schedule-engine";
+import { mapProfile, mapReminderRule, mapSegment, mapShift, mapTeam, mapTimeOff } from "@/lib/supabase/mappers";
+import type { OrgData, Profile, Role, Shift, ShiftSegment, Team, TimeOffEntry } from "@/lib/types";
 
 export type EmailSettings = {
   tenantId: string;
@@ -551,129 +550,6 @@ export async function deleteProfile(profileId: string): Promise<boolean> {
   return (result.rowCount ?? 0) > 0;
 }
 
-/**
- * Returns scheduled shifts whose START TIME was `offsetMinutes` ago (±2 min window),
- * anchored to the schedule reference timezone (the tz shift times are authored in).
- * Person must NOT have punched in yet.
- */
-export async function getShiftsDueForCheckIn(
-  scheduleTz: string,
-  offsetMinutes: number,
-): Promise<ShiftDueForReminder[]> {
-  const result = await query<{
-    id: string; profile_id: string; email: string;
-    first_name: string; last_name: string; timezone: string;
-    shift_date: unknown; start_time: string; end_time: string; label: string | null;
-    teams_webhook_url: string | null;
-  }>(
-    `SELECT
-       ss.id, ss.profile_id, ss.start_time, ss.end_time, ss.label,
-       ss.shift_date,
-       p.email, p.first_name, p.last_name, p.timezone, p.teams_webhook_url
-     FROM scheduled_shifts ss
-     JOIN profiles p ON p.id = ss.profile_id
-     WHERE NOT EXISTS (
-       SELECT 1 FROM shift_reminders sr
-       WHERE sr.scheduled_shift_id = ss.id AND sr.reminder_type = 'check_in'
-     )
-     -- anchor to the schedule reference timezone
-     AND (ss.shift_date::timestamp + ss.start_time) AT TIME ZONE $2
-           BETWEEN now() - make_interval(mins => $1 + 2)
-               AND now() - make_interval(mins => $1 - 2)
-     AND NOT EXISTS (
-       SELECT 1 FROM shifts sh
-       WHERE sh.user_id = ss.profile_id
-         AND sh.punch_in_at >= (ss.shift_date::timestamp + ss.start_time) AT TIME ZONE $2
-                               - interval '30 minutes'
-         AND sh.punch_out_at IS NULL
-     )`,
-    [offsetMinutes, scheduleTz],
-  );
-
-  return result.rows.map((r) => ({
-    scheduledShiftId: r.id,
-    profileId:        r.profile_id,
-    email:            r.email,
-    firstName:        r.first_name,
-    lastName:         r.last_name,
-    timezone:         r.timezone,
-    shiftDate:        String(r.shift_date).slice(0, 10),
-    startTime:        String(r.start_time).slice(0, 5),
-    endTime:          String(r.end_time).slice(0, 5),
-    label:            r.label,
-    teamsWebhookUrl:  r.teams_webhook_url ?? null,
-  }));
-}
-
-/**
- * Returns scheduled shifts whose END TIME was `offsetMinutes` ago (±2 min window),
- * anchored to the schedule reference timezone. Person must still have an open shift.
- */
-export async function getShiftsDueForCheckOut(
-  scheduleTz: string,
-  offsetMinutes: number,
-): Promise<ShiftDueForReminder[]> {
-  const result = await query<{
-    id: string; profile_id: string; email: string;
-    first_name: string; last_name: string; timezone: string;
-    shift_date: unknown; start_time: string; end_time: string; label: string | null;
-    teams_webhook_url: string | null;
-  }>(
-    `SELECT
-       ss.id, ss.profile_id, ss.start_time, ss.end_time, ss.label,
-       ss.shift_date,
-       p.email, p.first_name, p.last_name, p.timezone, p.teams_webhook_url
-     FROM scheduled_shifts ss
-     JOIN profiles p ON p.id = ss.profile_id
-     WHERE NOT EXISTS (
-       SELECT 1 FROM shift_reminders sr
-       WHERE sr.scheduled_shift_id = ss.id AND sr.reminder_type = 'check_out'
-     )
-     -- overnight shifts (end_time < start_time) end the following calendar day
-     AND CASE
-           WHEN ss.end_time > ss.start_time
-           THEN (ss.shift_date::timestamp + ss.end_time) AT TIME ZONE $2
-           ELSE ((ss.shift_date::timestamp + interval '1 day') + ss.end_time) AT TIME ZONE $2
-         END
-         BETWEEN now() - make_interval(mins => $1 + 2)
-             AND now() - make_interval(mins => $1 - 2)
-     AND EXISTS (
-       SELECT 1 FROM shifts sh
-       WHERE sh.user_id = ss.profile_id
-         AND sh.punch_out_at IS NULL
-     )`,
-    [offsetMinutes, scheduleTz],
-  );
-
-  return result.rows.map((r) => ({
-    scheduledShiftId: r.id,
-    profileId:        r.profile_id,
-    email:            r.email,
-    firstName:        r.first_name,
-    lastName:         r.last_name,
-    timezone:         r.timezone,
-    shiftDate:        String(r.shift_date).slice(0, 10),
-    startTime:        String(r.start_time).slice(0, 5),
-    endTime:          String(r.end_time).slice(0, 5),
-    label:            r.label,
-    teamsWebhookUrl:  r.teams_webhook_url ?? null,
-  }));
-}
-
-export async function recordReminderSent(
-  scheduledShiftId: string,
-  profileId: string,
-  reminderType: "check_in" | "check_out",
-  channelsSent: string[],
-): Promise<void> {
-  await query(
-    `INSERT INTO shift_reminders (scheduled_shift_id, profile_id, reminder_type, channels_sent)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (scheduled_shift_id, reminder_type) DO NOTHING`,
-    [scheduledShiftId, profileId, reminderType, channelsSent],
-  );
-}
-
 // ── Standard-schedule reminders ───────────────────────────────────────────────
 
 /**
@@ -880,10 +756,113 @@ export async function getProfilesDueForCheckOut(
   }));
 }
 
+export interface ProfileLateForEscalation {
+  profileId:    string;
+  firstName:    string;
+  lastName:     string;
+  teamId:       string | null;
+  startTime:    string;
+  minutesLate:  number;
+  reminderDate: string;
+}
+
+/**
+ * Standard-schedule employees who are `thresholdMinutes` past their start for
+ * today and still have not clocked in, while their shift is still running.
+ *
+ * Replaces the old `scheduled_shifts` version. Every profile is `standard`
+ * now, so that query only ever matched legacy rows — including an "NBIT"
+ * pseudo-profile scheduled 06:00–17:00 daily out to 2028 — which meant
+ * escalating against a schedule nobody actually works.
+ *
+ * Resolves per-weekday overrides and skips time off, same as the reminders.
+ */
+export async function getProfilesLateForEscalation(
+  thresholdMinutes: number,
+): Promise<ProfileLateForEscalation[]> {
+  const result = await query<{
+    id: string; first_name: string; last_name: string; team_id: string | null;
+    eff_start: string; minutes_late: string; reminder_date: unknown;
+  }>(
+    `WITH today AS (
+       SELECT p.*,
+              (now() AT TIME ZONE p.timezone)::date AS shift_date,
+              EXTRACT(DOW FROM (now() AT TIME ZONE p.timezone))::int AS dow
+       FROM profiles p
+       WHERE p.work_schedule_type = 'standard'
+         AND p.status = 'active'
+         AND p.show_on_dashboard = true
+     ),
+     resolved AS (
+       SELECT t.*,
+              COALESCE(t.work_day_hours -> t.dow::text ->> 'start',
+                       t.expected_start_time::text)::time AS eff_start,
+              COALESCE(t.work_day_hours -> t.dow::text ->> 'end',
+                       t.expected_end_time::text)::time   AS eff_end
+       FROM today t
+       WHERE t.dow = ANY(t.standard_work_days)
+     )
+     SELECT r.id, r.first_name, r.last_name, r.team_id, r.eff_start,
+            r.shift_date AS reminder_date,
+            floor(extract(epoch FROM (
+              now() - ((r.shift_date + r.eff_start) AT TIME ZONE r.timezone)
+            )) / 60) AS minutes_late
+     FROM resolved r
+     WHERE r.eff_start IS NOT NULL
+       AND ((r.shift_date + r.eff_start) AT TIME ZONE r.timezone)
+             BETWEEN now() - interval '6 hours'
+                 AND now() - make_interval(mins => $1)
+       -- still inside the shift, so coverage can be recovered
+       AND ((r.shift_date + r.eff_end
+             + CASE WHEN r.eff_end <= r.eff_start THEN interval '1 day' ELSE interval '0' END
+            ) AT TIME ZONE r.timezone) > now()
+       AND NOT EXISTS (
+         SELECT 1 FROM profile_reminders pr
+         WHERE pr.profile_id = r.id
+           AND pr.reminder_type = 'late_escalation'
+           AND pr.reminder_date = r.shift_date
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM time_off_entries te
+         WHERE te.user_id = r.id
+           AND te.status <> 'cancelled'
+           AND r.shift_date BETWEEN (te.start_at AT TIME ZONE r.timezone)::date
+                                AND (te.end_at   AT TIME ZONE r.timezone)::date
+       )
+       -- Has not shown up at all for this work day.
+       --
+       -- The old rule was "no punch within 30 minutes before the start", which
+       -- reports an early arrival as absent: Menard clocks in at 07:29 for an
+       -- 08:00 start and missed the window by 27 seconds. Ask the real question
+       -- instead — is there a punch on this work day, or are they on the clock
+       -- right now? The open-shift arm is bounded so one forgotten punch-out
+       -- cannot suppress escalation for that person indefinitely.
+       AND NOT EXISTS (
+         SELECT 1 FROM shifts sh
+         WHERE sh.user_id = r.id
+           AND (
+             (sh.punch_out_at IS NULL AND sh.punch_in_at > now() - interval '18 hours')
+             OR (sh.punch_in_at AT TIME ZONE r.timezone)::date = r.shift_date
+           )
+       )`,
+    [thresholdMinutes],
+  );
+
+  return result.rows.map((r) => ({
+    profileId:    r.id,
+    firstName:    r.first_name,
+    lastName:     r.last_name,
+    teamId:       r.team_id,
+    startTime:    String(r.eff_start).slice(0, 5),
+    minutesLate:  Number(r.minutes_late),
+    reminderDate: toIsoDate(r.reminder_date),
+  }));
+}
+
 export async function recordProfileReminderSent(
   profileId: string,
   reminderDate: string,
-  reminderType: "check_in" | "check_out",
+  reminderType: "check_in" | "check_out" | "late_escalation",
   channelsSent: string[],
 ): Promise<void> {
   await query(
@@ -896,238 +875,15 @@ export async function recordProfileReminderSent(
 
 // ── Schedule rules ────────────────────────────────────────────────────────────
 
-export async function getScheduleRules(): Promise<ScheduleRule[]> {
-  const r = await query("SELECT * FROM schedule_rules ORDER BY effective_from, profile_id");
-  return r.rows.map((row) => mapScheduleRule(row));
-}
-
-export async function createScheduleRule(input: Omit<ScheduleRule, "id" | "createdAt" | "updatedAt">): Promise<ScheduleRule> {
-  const r = await query(
-    `INSERT INTO schedule_rules
-       (profile_id, start_time, end_time, label, notes, days_of_week, repeat_weeks,
-        effective_from, effective_until, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-    [
-      input.profileId, input.startTime, input.endTime,
-      input.label ?? null, input.notes ?? null,
-      input.daysOfWeek, input.repeatWeeks,
-      input.effectiveFrom, input.effectiveUntil ?? null,
-      input.createdBy ?? null,
-    ],
-  );
-  return mapScheduleRule(r.rows[0]);
-}
-
-export async function updateScheduleRule(id: string, patch: Partial<Omit<ScheduleRule, "id" | "createdAt" | "updatedAt">>): Promise<ScheduleRule> {
-  const r = await query(
-    `UPDATE schedule_rules SET
-       profile_id      = COALESCE($2, profile_id),
-       start_time      = COALESCE($3::time, start_time),
-       end_time        = COALESCE($4::time, end_time),
-       label           = COALESCE($5, label),
-       notes           = COALESCE($6, notes),
-       days_of_week    = COALESCE($7, days_of_week),
-       repeat_weeks    = COALESCE($8, repeat_weeks),
-       effective_from  = COALESCE($9::date, effective_from),
-       effective_until = $10
-     WHERE id = $1 RETURNING *`,
-    [id,
-      patch.profileId ?? null, patch.startTime ?? null, patch.endTime ?? null,
-      patch.label ?? null, patch.notes ?? null,
-      patch.daysOfWeek ?? null, patch.repeatWeeks ?? null,
-      patch.effectiveFrom ?? null, patch.effectiveUntil ?? null,
-    ],
-  );
-  return mapScheduleRule(r.rows[0]);
-}
-
-export async function deleteScheduleRule(id: string): Promise<boolean> {
-  const r = await query("DELETE FROM schedule_rules WHERE id = $1", [id]);
-  return (r.rowCount ?? 0) > 0;
-}
-
-/** Delete all future generated shifts for a rule (on or after fromDate). */
-export async function deleteFutureRuleShifts(ruleId: string, fromDate: string): Promise<number> {
-  const r = await query(
-    "DELETE FROM scheduled_shifts WHERE rule_id = $1 AND shift_date >= $2",
-    [ruleId, fromDate],
-  );
-  return r.rowCount ?? 0;
-}
-
-/** Bulk-insert generated shifts (skips duplicates by profile+date+start). */
-export async function insertGeneratedShifts(shifts: GeneratedShift[]): Promise<number> {
-  if (shifts.length === 0) return 0;
-  let inserted = 0;
-  for (const s of shifts) {
-    const r = await query(
-      `INSERT INTO scheduled_shifts
-         (profile_id, shift_date, start_time, end_time, label, notes, rule_id, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT DO NOTHING`,
-      [s.profileId, s.shiftDate, s.startTime, s.endTime, s.label, s.notes, s.ruleId, s.createdBy],
-    );
-    inserted += r.rowCount ?? 0;
-  }
-  return inserted;
-}
-
-/** Bulk-insert applied-template or copy-week shifts. */
-export async function insertAppliedShifts(shifts: AppliedTemplateShift[]): Promise<ScheduledShift[]> {
-  const result: ScheduledShift[] = [];
-  for (const s of shifts) {
-    const r = await query(
-      `INSERT INTO scheduled_shifts
-         (profile_id, shift_date, start_time, end_time, label, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
-       ON CONFLICT DO NOTHING RETURNING *`,
-      [s.profileId, s.shiftDate, s.startTime, s.endTime, s.label, s.notes, s.createdBy],
-    );
-    if (r.rows[0]) result.push(mapScheduledShift(r.rows[0]));
-  }
-  return result;
-}
-
 // ── Bulk operations ───────────────────────────────────────────────────────────
-
-export async function bulkReassignShifts(
-  fromProfileId: string,
-  toProfileId:   string,
-  fromDate:      string,
-  toDate:        string,
-): Promise<number> {
-  const r = await query(
-    `UPDATE scheduled_shifts
-     SET profile_id = $2
-     WHERE profile_id = $1 AND shift_date >= $3 AND shift_date <= $4`,
-    [fromProfileId, toProfileId, fromDate, toDate],
-  );
-  return r.rowCount ?? 0;
-}
 
 // ── Update a single shift ─────────────────────────────────────────────────────
 
-export async function patchScheduledShift(
-  id: string,
-  patch: Partial<Pick<ScheduledShift, "startTime" | "endTime" | "label" | "notes" | "isOpen" | "profileId">>,
-  detachFromRule = false,
-): Promise<ScheduledShift | null> {
-  const r = await query(
-    `UPDATE scheduled_shifts SET
-       start_time  = COALESCE($2::time, start_time),
-       end_time    = COALESCE($3::time, end_time),
-       label       = COALESCE($4, label),
-       notes       = COALESCE($5, notes),
-       is_open     = COALESCE($6, is_open),
-       profile_id  = COALESCE($7, profile_id),
-       rule_id     = CASE WHEN $8 THEN NULL ELSE rule_id END
-     WHERE id = $1 RETURNING *`,
-    [
-      id,
-      patch.startTime  ?? null,
-      patch.endTime    ?? null,
-      patch.label      ?? null,
-      patch.notes      ?? null,
-      patch.isOpen     ?? null,
-      patch.profileId  ?? null,
-      detachFromRule,
-    ],
-  );
-  return r.rows[0] ? mapScheduledShift(r.rows[0]) : null;
-}
-
 // ── Schedule templates ────────────────────────────────────────────────────────
-
-export async function getScheduleTemplates(): Promise<ScheduleTemplate[]> {
-  const r = await query("SELECT * FROM schedule_templates ORDER BY name");
-  return r.rows.map((row) => mapScheduleTemplate(row));
-}
-
-export async function createScheduleTemplate(input: {
-  name: string; description?: string; shifts: TemplateShift[]; createdBy?: string;
-}): Promise<ScheduleTemplate> {
-  const r = await query(
-    "INSERT INTO schedule_templates (name, description, shifts, created_by) VALUES ($1,$2,$3,$4) RETURNING *",
-    [input.name, input.description ?? null, JSON.stringify(input.shifts), input.createdBy ?? null],
-  );
-  return mapScheduleTemplate(r.rows[0]);
-}
-
-export async function deleteScheduleTemplate(id: string): Promise<boolean> {
-  const r = await query("DELETE FROM schedule_templates WHERE id = $1", [id]);
-  return (r.rowCount ?? 0) > 0;
-}
 
 // ── My schedule ───────────────────────────────────────────────────────────────
 
-export async function getMySchedule(profileId: string, from: string, to: string): Promise<ScheduledShift[]> {
-  const r = await query(
-    "SELECT * FROM scheduled_shifts WHERE profile_id = $1 AND shift_date >= $2 AND shift_date <= $3 ORDER BY shift_date, start_time",
-    [profileId, from, to],
-  );
-  return r.rows.map((row) => mapScheduledShift(row));
-}
-
 // ── Scheduled shifts ──────────────────────────────────────────────────────────
-
-export async function getScheduledShifts(from: string, to: string): Promise<ScheduledShift[]> {
-  const result = await query(
-    `select * from scheduled_shifts
-     where shift_date >= $1 and shift_date <= $2
-     order by shift_date asc, start_time asc`,
-    [from, to],
-  );
-  return result.rows.map((row) => mapScheduledShift(row));
-}
-
-export async function createScheduledShift(input: {
-  profileId: string;
-  shiftDate: string;
-  startTime: string;
-  endTime: string;
-  label?: string;
-  notes?: string;
-  createdBy?: string;
-}): Promise<ScheduledShift> {
-  const result = await query(
-    `insert into scheduled_shifts
-       (profile_id, shift_date, start_time, end_time, label, notes, created_by)
-     values ($1, $2, $3, $4, $5, $6, $7)
-     returning *`,
-    [
-      input.profileId,
-      input.shiftDate,
-      input.startTime,
-      input.endTime,
-      input.label ?? null,
-      input.notes ?? null,
-      input.createdBy ?? null,
-    ],
-  );
-  return mapScheduledShift(result.rows[0]);
-}
-
-export async function deleteScheduledShift(id: string): Promise<boolean> {
-  const result = await query("delete from scheduled_shifts where id = $1", [id]);
-  return (result.rowCount ?? 0) > 0;
-}
-
-export async function updateScheduledShift(
-  id: string,
-  patch: Partial<Pick<ScheduledShift, "startTime" | "endTime" | "label" | "notes">>,
-): Promise<ScheduledShift | null> {
-  const result = await query(
-    `update scheduled_shifts
-     set start_time = coalesce($2, start_time),
-         end_time   = coalesce($3, end_time),
-         label      = coalesce($4, label),
-         notes      = coalesce($5, notes)
-     where id = $1
-     returning *`,
-    [id, patch.startTime ?? null, patch.endTime ?? null, patch.label ?? null, patch.notes ?? null],
-  );
-  return result.rows[0] ? mapScheduledShift(result.rows[0]) : null;
-}
 
 // ── Company events ────────────────────────────────────────────────────────────
 
@@ -1360,58 +1116,6 @@ export interface LateShift {
   teamId: string | null;
   startTime: string;
   minutesLate: number;
-}
-
-/**
- * Scheduled shifts where the person is at least `thresholdMinutes` late, the shift
- * is still ongoing, they never clocked in, and no escalation has fired yet.
- * Bounded to shifts started within the last 6h so historical data can't spam.
- */
-export async function getLateShiftsForEscalation(thresholdMinutes: number, scheduleTz: string): Promise<LateShift[]> {
-  const result = await query<{
-    id: string; profile_id: string; first_name: string; last_name: string;
-    team_id: string | null; start_time: string; minutes_late: string;
-  }>(
-    `SELECT ss.id, ss.profile_id, ss.start_time, p.first_name, p.last_name, p.team_id,
-            floor(extract(epoch from (now() - ((ss.shift_date::timestamp + ss.start_time) AT TIME ZONE $2))) / 60) as minutes_late
-     FROM scheduled_shifts ss
-     JOIN profiles p ON p.id = ss.profile_id
-     WHERE p.show_on_dashboard = true
-       AND NOT EXISTS (
-         SELECT 1 FROM shift_reminders sr
-         WHERE sr.scheduled_shift_id = ss.id AND sr.reminder_type = 'late_escalation'
-       )
-       AND (ss.shift_date::timestamp + ss.start_time) AT TIME ZONE $2
-             between now() - interval '6 hours' and now() - make_interval(mins => $1)
-       AND CASE WHEN ss.end_time > ss.start_time
-                THEN (ss.shift_date::timestamp + ss.end_time) AT TIME ZONE $2
-                ELSE ((ss.shift_date::timestamp + interval '1 day') + ss.end_time) AT TIME ZONE $2
-           END > now()
-       AND NOT EXISTS (
-         SELECT 1 FROM shifts sh
-         WHERE sh.user_id = ss.profile_id
-           AND sh.punch_in_at >= (ss.shift_date::timestamp + ss.start_time) AT TIME ZONE $2 - interval '30 minutes'
-       )`,
-    [thresholdMinutes, scheduleTz],
-  );
-  return result.rows.map((r) => ({
-    scheduledShiftId: r.id,
-    profileId: r.profile_id,
-    firstName: r.first_name,
-    lastName: r.last_name,
-    teamId: r.team_id,
-    startTime: String(r.start_time).slice(0, 5),
-    minutesLate: Number(r.minutes_late),
-  }));
-}
-
-export async function recordEscalation(scheduledShiftId: string, profileId: string, channels: string[]): Promise<void> {
-  await query(
-    `INSERT INTO shift_reminders (scheduled_shift_id, profile_id, reminder_type, channels_sent)
-     VALUES ($1, $2, 'late_escalation', $3)
-     ON CONFLICT (scheduled_shift_id, reminder_type) DO NOTHING`,
-    [scheduledShiftId, profileId, channels],
-  );
 }
 
 export async function wasCoverageAlerted(date: string, hour: number): Promise<boolean> {

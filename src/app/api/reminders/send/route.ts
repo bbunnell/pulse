@@ -1,9 +1,12 @@
 /**
  * POST /api/reminders/send  (also GET for Vercel Cron)
  *
- * Checks scheduled shifts and sends email + Teams reminders when:
- *   - A person's scheduled shift started N minutes ago and they haven't clocked in
- *   - A person's scheduled shift ended N minutes ago and they haven't clocked out
+ * Reads each person's working hours from their profile (with per-weekday
+ * overrides) and sends email + Teams messages when:
+ *   - Their start time was N minutes ago and they haven't clocked in
+ *   - Their end time was N minutes ago and they're still clocked in
+ *   - They're past the escalation threshold with no clock-in (managers/admins)
+ *   - The current hour is below the configured staffing minimum
  *
  * Secured by CRON_SECRET env var when set (Vercel Cron passes it automatically).
  * Safe to call repeatedly — uses a unique DB constraint to prevent duplicate sends.
@@ -12,23 +15,18 @@
 import { NextResponse } from "next/server";
 import {
   getEscalationRecipients,
-  getLateShiftsForEscalation,
   getNotificationSettings,
   getProfilesDueForCheckIn,
   getProfilesDueForCheckOut,
-  getScheduledShifts,
-  getShiftsDueForCheckIn,
-  getShiftsDueForCheckOut,
+  getProfilesLateForEscalation,
   getStaffingRules,
   loadOrgDataFromDb,
   recordCoverageAlert,
-  recordEscalation,
   recordProfileReminderSent,
-  recordReminderSent,
   wasCoverageAlerted,
   type ProfileDueForReminder,
-  type ShiftDueForReminder,
 } from "@/lib/db-store";
+import { deriveStandardShifts } from "@/lib/derived-shifts";
 import { coverageCounts, requiredStaffPerHour } from "@/lib/status";
 import { localDateInZone } from "@/lib/timezone";
 import { sendTransactionalEmail } from "@/lib/email";
@@ -56,127 +54,11 @@ async function handler(request: Request) {
 
   const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const results = {
-    checkIn:         { sent: 0, skipped: 0, errors: [] as string[] },
-    checkOut:        { sent: 0, skipped: 0, errors: [] as string[] },
     standardCheckIn: { sent: 0, skipped: 0, errors: [] as string[] },
     standardCheckOut:{ sent: 0, skipped: 0, errors: [] as string[] },
     escalation:      { sent: 0, errors: [] as string[] },
     understaffing:   { sent: 0, errors: [] as string[] },
   };
-
-  // ── Check-in reminders ────────────────────────────────────────────────────────
-  if (cfg.checkInEnabled) {
-    let dueShifts: ShiftDueForReminder[] = [];
-    try {
-      dueShifts = await getShiftsDueForCheckIn(cfg.orgTimezone, cfg.checkInOffsetMinutes);
-    } catch (err) {
-      console.error("[reminders] check-in query failed:", err);
-    }
-
-    for (const shift of dueShifts) {
-      const channelsSent: string[] = [];
-      const scheduledTime = fmt12h(shift.startTime);
-      const subject = "Team Pulse — Please clock in";
-      const body    = buildCheckInBody(shift.firstName, scheduledTime, baseUrl);
-
-      // Email
-      try {
-        const emailResult = await sendTransactionalEmail({
-          to:      shift.email,
-          subject,
-          text:    body.text,
-          html:    body.html,
-        });
-        if (emailResult.status === "sent") channelsSent.push("email");
-        else results.checkIn.errors.push(`email to ${shift.email}: ${emailResult.errorMessage ?? emailResult.status}`);
-      } catch (err) {
-        results.checkIn.errors.push(`email exception: ${String(err)}`);
-      }
-
-      // Teams — personal webhook (DM) takes priority over global channel webhook
-      const teamsUrl = shift.teamsWebhookUrl || cfg.teamsWebhookUrl;
-      if (teamsUrl) {
-        const teamsResult = await sendTeamsMessage(teamsUrl, {
-          title:       "⏰ Please Clock In — Team Pulse",
-          text:        `Hi **${shift.firstName} ${shift.lastName}** — your shift was scheduled to start at **${scheduledTime}**. Please clock in.`,
-          facts:       [
-            { name: "Person",     value: `${shift.firstName} ${shift.lastName}` },
-            { name: "Scheduled",  value: scheduledTime },
-            { name: "Action",     value: "Please clock in" },
-          ],
-          actionLabel: "Open Team Pulse",
-          actionUrl:   baseUrl,
-        });
-        const label = shift.teamsWebhookUrl ? "teams-dm" : "teams-channel";
-        if (teamsResult.ok) channelsSent.push(label);
-        else results.checkIn.errors.push(`teams: ${teamsResult.error ?? "unknown"}`);
-      }
-
-      if (channelsSent.length > 0) {
-        await recordReminderSent(shift.scheduledShiftId, shift.profileId, "check_in", channelsSent);
-        results.checkIn.sent++;
-      } else {
-        results.checkIn.skipped++;
-      }
-    }
-  }
-
-  // ── Check-out reminders ───────────────────────────────────────────────────────
-  if (cfg.checkOutEnabled) {
-    let dueShifts: ShiftDueForReminder[] = [];
-    try {
-      dueShifts = await getShiftsDueForCheckOut(cfg.orgTimezone, cfg.checkOutOffsetMinutes);
-    } catch (err) {
-      console.error("[reminders] check-out query failed:", err);
-    }
-
-    for (const shift of dueShifts) {
-      const channelsSent: string[] = [];
-      const scheduledTime = fmt12h(shift.endTime);
-      const subject = "Team Pulse — Please clock out";
-      const body    = buildCheckOutBody(shift.firstName, scheduledTime, baseUrl);
-
-      // Email
-      try {
-        const emailResult = await sendTransactionalEmail({
-          to:      shift.email,
-          subject,
-          text:    body.text,
-          html:    body.html,
-        });
-        if (emailResult.status === "sent") channelsSent.push("email");
-        else results.checkOut.errors.push(`email to ${shift.email}: ${emailResult.errorMessage ?? emailResult.status}`);
-      } catch (err) {
-        results.checkOut.errors.push(`email exception: ${String(err)}`);
-      }
-
-      // Teams — personal webhook (DM) takes priority over global channel webhook
-      const teamsUrl = shift.teamsWebhookUrl || cfg.teamsWebhookUrl;
-      if (teamsUrl) {
-        const teamsResult = await sendTeamsMessage(teamsUrl, {
-          title:       "⏰ Please Clock Out — Team Pulse",
-          text:        `Hi **${shift.firstName} ${shift.lastName}** — your shift was scheduled to end at **${scheduledTime}**. Please clock out.`,
-          facts:       [
-            { name: "Person",     value: `${shift.firstName} ${shift.lastName}` },
-            { name: "Scheduled",  value: scheduledTime },
-            { name: "Action",     value: "Please clock out" },
-          ],
-          actionLabel: "Open Team Pulse",
-          actionUrl:   baseUrl,
-        });
-        const label = shift.teamsWebhookUrl ? "teams-dm" : "teams-channel";
-        if (teamsResult.ok) channelsSent.push(label);
-        else results.checkOut.errors.push(`teams: ${teamsResult.error ?? "unknown"}`);
-      }
-
-      if (channelsSent.length > 0) {
-        await recordReminderSent(shift.scheduledShiftId, shift.profileId, "check_out", channelsSent);
-        results.checkOut.sent++;
-      } else {
-        results.checkOut.skipped++;
-      }
-    }
-  }
 
   // ── Standard-schedule check-in reminders ─────────────────────────────────────
   if (cfg.checkInEnabled) {
@@ -285,8 +167,8 @@ async function handler(request: Request) {
   // ── Late escalation: notify managers + admins ──────────────────────────────────
   if (cfg.escalationEnabled) {
     try {
-      const lateShifts = await getLateShiftsForEscalation(cfg.escalationMinutes, cfg.orgTimezone);
-      for (const late of lateShifts) {
+      const lateProfiles = await getProfilesLateForEscalation(cfg.escalationMinutes);
+      for (const late of lateProfiles) {
         const recipients = await getEscalationRecipients(late.teamId);
         const channels: string[] = [];
         const subject = `Team Pulse — ${late.firstName} ${late.lastName} is ${late.minutesLate}m late`;
@@ -309,7 +191,7 @@ async function handler(request: Request) {
           });
           if (t.ok) channels.push("teams");
         }
-        await recordEscalation(late.scheduledShiftId, late.profileId, channels);
+        await recordProfileReminderSent(late.profileId, late.reminderDate, "late_escalation", channels);
         results.escalation.sent++;
       }
     } catch (err) {
@@ -329,10 +211,17 @@ async function handler(request: Request) {
           new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", hour12: false }).format(new Date()),
         ) % 24;
 
-        // Scheduled window: yesterday→today covers overnight carry-over for the current hour.
+        // Coverage derives from profile hours, the same source the schedule board
+        // and dashboard use. Yesterday is included so an overnight shift still
+        // counts toward the current hour.
         const dayBefore = new Date(); dayBefore.setUTCDate(dayBefore.getUTCDate() - 1);
-        const scheduled = await getScheduledShifts(dayBefore.toISOString().slice(0, 10), todayStr);
         const org = await loadOrgDataFromDb();
+        const scheduled = deriveStandardShifts({
+          profiles:   org.profiles,
+          timeOff:    org.timeOff,
+          dates:      [dayBefore.toISOString().slice(0, 10), todayStr],
+          scheduleTz: tz,
+        });
 
         const counts = coverageCounts(scheduled, org.profiles, tz, todayStr);
         const required = requiredStaffPerHour(todayStr, rules);
