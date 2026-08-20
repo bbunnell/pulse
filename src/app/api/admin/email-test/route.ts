@@ -28,6 +28,7 @@ export async function POST(request: Request) {
 
   const result = await sendTransactionalEmail({
     to,
+    type: "admin_test",
     subject: "Team Pulse — email test",
     text: [
       "This is a test message from Team Pulse.",

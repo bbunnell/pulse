@@ -78,6 +78,7 @@ async function handler(request: Request) {
       try {
         const emailResult = await sendTransactionalEmail({
           to: p.email, subject, text: body.text, html: body.html,
+          type: "reminder_check_in", userId: p.profileId,
         });
         if (emailResult.status === "sent") channelsSent.push("email");
         else results.standardCheckIn.errors.push(`email to ${p.email}: ${emailResult.errorMessage ?? emailResult.status}`);
@@ -130,6 +131,7 @@ async function handler(request: Request) {
       try {
         const emailResult = await sendTransactionalEmail({
           to: p.email, subject, text: body.text, html: body.html,
+          type: "reminder_check_out", userId: p.profileId,
         });
         if (emailResult.status === "sent") channelsSent.push("email");
         else results.standardCheckOut.errors.push(`email to ${p.email}: ${emailResult.errorMessage ?? emailResult.status}`);
@@ -178,6 +180,7 @@ async function handler(request: Request) {
             const res = await sendTransactionalEmail({
               to: r.email, subject, text,
               html: `<p>${text}</p><p><a href="${baseUrl}">Open Team Pulse</a></p>`,
+              type: "late_escalation",
             });
             if (res.status === "sent") channels.push(`email:${r.email}`);
           } catch (e) { results.escalation.errors.push(String(e)); }
@@ -233,7 +236,7 @@ async function handler(request: Request) {
           const text = `Coverage at ${label} is ${counts[nowHour]} of ${required[nowHour]} required. Action may be needed to maintain coverage.`;
           for (const r of recipients) {
             try {
-              await sendTransactionalEmail({ to: r.email, subject, text, html: `<p>${text}</p><p><a href="${baseUrl}">Open Team Pulse</a></p>` });
+              await sendTransactionalEmail({ to: r.email, subject, text, html: `<p>${text}</p><p><a href="${baseUrl}">Open Team Pulse</a></p>`, type: "understaffing" });
             } catch (e) { results.understaffing.errors.push(String(e)); }
           }
           if (cfg.teamsWebhookUrl) {

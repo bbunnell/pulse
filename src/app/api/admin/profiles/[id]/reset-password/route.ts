@@ -24,6 +24,8 @@ export async function POST(
   if (body.sendEmail) {
     await sendTransactionalEmail({
       to: profile.email,
+      type: "password_reset_admin",
+      userId: profile.id,
       subject: "Team Pulse — your password has been reset",
       text: [
         `Hi ${profile.firstName},`,

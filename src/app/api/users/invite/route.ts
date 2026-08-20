@@ -66,6 +66,7 @@ export async function POST(request: Request) {
 
   const result = await sendTransactionalEmail({
     to: body.email,
+    type: "invite",
     subject: "Welcome to Team Pulse — account details & Teams setup",
     text: buildPlainText(body.firstName, body.email, tempPassword, loginUrl),
     html: buildHtml(body.firstName, body.email, tempPassword, loginUrl),

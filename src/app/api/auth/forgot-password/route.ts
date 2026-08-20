@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     <p style="font-size:12px;color:#666;">If you didn't request this, you can safely ignore this email.</p>
   `;
 
-  const result = await sendTransactionalEmail({ to: user.email, subject, text, html });
+  const result = await sendTransactionalEmail({ to: user.email, subject, text, html, type: isFirstTime ? "password_setup" : "password_reset" });
 
   // In dev with no email provider configured, log the link to the console
   if (result.status === "queued") {

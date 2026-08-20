@@ -1,4 +1,5 @@
 import { getEmailSettings } from "@/lib/db-store";
+import { query } from "@/lib/db";
 
 export interface EmailAttachment {
   filename: string;
@@ -12,6 +13,10 @@ export interface OutboundEmail {
   text: string;
   html?: string;
   attachments?: EmailAttachment[];
+  /** Categorises the row written to `email_logs`. */
+  type?: string;
+  /** Recipient's profile id, when the send is aimed at a known user. */
+  userId?: string;
 }
 
 export interface EmailResult {
@@ -21,14 +26,53 @@ export interface EmailResult {
   errorMessage?: string;
 }
 
+/**
+ * Record the outcome of a send.
+ *
+ * `email_logs` existed from the start but nothing ever wrote to it, so a
+ * reminder that failed at the Graph API left no trace anywhere except the
+ * service journal — and the endpoint still returned HTTP 200. Logging is
+ * deliberately best-effort: a logging failure must never turn a delivered
+ * message into a reported error.
+ */
+async function logEmail(email: OutboundEmail, result: EmailResult): Promise<void> {
+  try {
+    await query(
+      `INSERT INTO email_logs
+         (user_id, email_type, recipient_email, subject, status, provider_message_id, sent_at, error_message)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        email.userId ?? null,
+        email.type ?? "transactional",
+        email.to,
+        email.subject,
+        result.status,
+        result.providerMessageId ?? null,
+        result.status === "sent" ? new Date() : null,
+        result.errorMessage ?? null,
+      ],
+    );
+  } catch (err) {
+    console.error("[email] could not write email_logs row:", err);
+  }
+}
+
 export async function sendTransactionalEmail(email: OutboundEmail): Promise<EmailResult> {
   const cfg = await getEmailSettings();
 
   if (!cfg.tenantId || !cfg.clientId || !cfg.clientSecret || !cfg.fromMailbox) {
-    return { status: "queued", provider: "graph" };
+    const result: EmailResult = {
+      status: "queued",
+      provider: "graph",
+      errorMessage: "Graph mail settings incomplete; nothing was sent.",
+    };
+    await logEmail(email, result);
+    return result;
   }
 
-  return sendGraph(email, cfg.tenantId, cfg.clientId, cfg.clientSecret, cfg.fromMailbox);
+  const result = await sendGraph(email, cfg.tenantId, cfg.clientId, cfg.clientSecret, cfg.fromMailbox);
+  await logEmail(email, result);
+  return result;
 }
 
 async function sendGraph(
