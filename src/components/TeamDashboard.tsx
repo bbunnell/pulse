@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDialogFocus } from "@/lib/use-dialog-focus";
 import {
   AlertTriangle,
   Coffee,
@@ -138,6 +139,12 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
   const offsetRef = useRef(0); // serverTime - clientTime (ms)
   const [now, setNow] = useState<Date | null>(null);
 
+  // Last successful poll. A board that keeps animating per-second timers over
+  // frozen data looks MORE live, not less — on a wall display nobody would
+  // notice for hours. Keeping the last good data is right; staying silent
+  // about it is not.
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+
   const refreshLive = useCallback(async () => {
     try {
       const res = await fetch("/api/dashboard/live", { cache: "no-store" });
@@ -152,7 +159,8 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
         timeOff: json.timeOff,
         staffingRules: json.staffingRules ?? [],
       });
-    } catch { /* keep last good data */ }
+      setLastSyncAt(Date.now());
+    } catch { /* keep last good data — staleness is surfaced below */ }
   }, []);
 
   // Tick the displayed clock every second (cheap, local).
@@ -173,20 +181,35 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
     return () => { if (timer) window.clearInterval(timer); document.removeEventListener("visibilitychange", onVis); };
   }, [refreshLive]);
 
-  // Escape closes whichever modal is open. Both were previously dismissable only by
-  // clicking the overlay or the close button, which left keyboard users stuck.
+  // Escape closes whichever modal is open. All three were previously dismissable
+  // only by clicking the overlay or the close button, which left keyboard users
+  // stuck — and the confirm dialog was missing from this handler entirely.
   useEffect(() => {
-    if (!markingTimeOff && !editingTimeOff) return;
+    if (!markingTimeOff && !editingTimeOff && !confirmAsk) return;
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
       setMarkingTimeOff(null);
       setEditingTimeOff(null);
+      setConfirmAsk(null);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [markingTimeOff, editingTimeOff]);
+  }, [markingTimeOff, editingTimeOff, confirmAsk]);
+
+  // Focus enters each dialog on open, is confined while it is open, and returns
+  // to the trigger on close.
+  const markDialogRef    = useDialogFocus<HTMLDivElement>(Boolean(markingTimeOff));
+  const editDialogRef    = useDialogFocus<HTMLDivElement>(Boolean(editingTimeOff));
+  const confirmDialogRef = useDialogFocus<HTMLDivElement>(Boolean(confirmAsk));
 
   const nowSafe = now ?? new Date();
+
+  // Stale only after several missed polls, not one blip — a single failed
+  // request on a flaky connection is normal and self-heals on the next tick.
+  const STALE_AFTER_MS = POLL_MS * 3;
+  const staleMs = lastSyncAt === null ? 0 : nowSafe.getTime() - lastSyncAt;
+  const isStale = staleMs > STALE_AFTER_MS;
+  const staleMinutes = Math.max(1, Math.round(staleMs / 60_000));
 
   // Build snapshots for ALL profiles (so the clock widget works even for hidden users).
   const allSnapshots = useMemo(
@@ -476,6 +499,26 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
 
   return (
     <section className="page-shell">
+      {/* The route had no h1 at all — heading order started at 2, so screen-reader
+          users navigating by heading had no page-level anchor. Not shown: the
+          visible design deliberately leads with the summary bar. */}
+      <h1 className="sr-only">Team dashboard</h1>
+
+      {/* Status messages. Announced politely so a screen reader hears coverage
+          problems and staleness, which are otherwise conveyed only by colour and
+          a banner appearing silently mid-session. Deliberately NOT wrapping the
+          per-second timers — that would produce constant chatter. */}
+      <div aria-live="polite" className="sr-only">
+        {isStale
+          ? `Live data is ${staleMinutes} minute${staleMinutes === 1 ? "" : "s"} out of date.`
+          : ""}
+        {coverage.gapHours.length > 0
+          ? ` Coverage gap today at ${coverage.gapHours.map((h) => fmt12(`${String(h).padStart(2, "0")}:00`)).join(", ")}.`
+          : ""}
+        {summary.late > 0 ? ` ${summary.late} late.` : ""}
+        {` ${groups.notIn.length} not clocked in.`}
+      </div>
+
       {/* Summary stat bar + pop-out button */}
       <div className="dash-summary-row" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 0 }}>
         <div className="dash-summary-bar" style={{ flex: 1, marginBottom: 0 }}>
@@ -486,6 +529,12 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
           {canManage && <SummaryStat label="Late" value={summary.late} tone={summary.late > 0 ? "red" : "gray"} />}
           {canManage && <SummaryStat label="Missing punch" value={summary.missingPunches} tone={summary.missingPunches > 0 ? "amber" : "gray"} />}
         </div>
+        {isStale && (
+          <span className="dash-stale-chip" title="The live feed stopped responding. Figures below are the last known values.">
+            <AlertTriangle size={12} aria-hidden="true" />
+            Last updated {staleMinutes}m ago
+          </span>
+        )}
         <button
           type="button"
           className="button secondary monitor-popout-btn"
@@ -538,7 +587,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
         </div>
       )}
 
-<div className={`dash-body${userRole === "employee" ? " clock-first" : ""}`}>
+<div className={`dash-body${userRole === "employee" ? " clock-first" : ""}${isStale ? " is-stale" : ""}`}>
         <div className="dash-main">
           {/* Clocked In — everyone actively on the clock, including on break/lunch.
               First on every viewport: who IS working is the board's headline. */}
@@ -827,6 +876,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
       {markingTimeOff && (
         <div className="schedule-modal-overlay" onClick={() => setMarkingTimeOff(null)}>
           <div className="schedule-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}
+               ref={markDialogRef} tabIndex={-1}
                role="dialog" aria-modal="true" aria-labelledby="mark-timeoff-title">
             <div className="schedule-modal-header">
               <h3 id="mark-timeoff-title">Mark Time Off — {markingTimeOff.profile.firstName} {markingTimeOff.profile.lastName}</h3>
@@ -909,6 +959,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
       {editingTimeOff && (
         <div className="schedule-modal-overlay" onClick={() => setEditingTimeOff(null)}>
           <div className="schedule-modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}
+               ref={editDialogRef} tabIndex={-1}
                role="dialog" aria-modal="true" aria-labelledby="edit-timeoff-title">
             <div className="schedule-modal-header">
               <h3 id="edit-timeoff-title">Edit Time Off</h3>
@@ -962,6 +1013,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
       {confirmAsk && (
         <div className="schedule-modal-overlay" onClick={() => setConfirmAsk(null)}>
           <div className="schedule-modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}
+               ref={confirmDialogRef} tabIndex={-1}
                role="dialog" aria-modal="true" aria-labelledby="confirm-title">
             <div className="schedule-modal-header">
               <h3 id="confirm-title">Are you sure?</h3>

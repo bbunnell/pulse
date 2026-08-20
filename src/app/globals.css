@@ -19,8 +19,12 @@
   /* Text */
   --ink:              #162334;
   --ink-2:            #2D4459;
-  --muted:            #5A7A96;
-  --muted-2:          #8DAABF;
+  /* Both tiers clear WCAG AA (4.5:1) against --canvas, the harder of the two
+     surfaces they sit on. --muted is held at 6.0:1 rather than the 4.5 minimum
+     so the two tiers stay visually distinct (1.33:1 apart); pushing both to the
+     floor collapses the hierarchy they exist to express. */
+  --muted:            #486178;
+  --muted-2:          #517690;
 
   /* Sidebar / nav — Dark Navy base */
   --nav-bg:           #162334;
@@ -153,8 +157,8 @@
   /* Text */
   --ink:              #E8F1FA;
   --ink-2:            #A8C5DE;
-  --muted:            #6B93B0;
-  --muted-2:          #4A6F8A;
+  --muted:            #82A4BC;
+  --muted-2:          #648EAC;
 
   /* Primary interactive */
   --primary-soft:     rgba(0, 87, 157, 0.25);
@@ -189,6 +193,35 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow:    0 1px 3px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.30);
 }
+
+/* Available to assistive tech, absent from the visual design. Used for the page
+   heading and for status text that would be noise on a wall display. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Stale-data chip. Only rendered once the poll has actually fallen behind. */
+.dash-stale-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--amber-soft);
+  color: var(--amber-text);
+  border: 1px solid var(--amber-border);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* The live timers keep counting off frozen data, so desaturate them to say so. */
+.dash-body.is-stale .coverage-status.online { opacity: 0.55; }
 
 /* ─── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after {
@@ -1119,6 +1152,38 @@ h2 {
   .dash-events-day { flex-direction: column; gap: 5px; }
   .dash-events-day-label { min-width: unset; }
   .dash-events-pills { flex-wrap: wrap; }
+
+  /* Person rows wrap instead of clipping.
+     The desktop list row is 210px + 170px of flex-shrink: 0 plus 28px padding
+     — a 408px floor inside roughly 343px here. The footer is flex: 1, so it
+     absorbed the whole shortfall and resolved to 0px, and .attend-grid.list-view
+     sets overflow: hidden, so it could not even be scrolled to. That footer
+     holds the clocked-in duration, the break and lunch chips, and every manager
+     action, so the phone silently lost all three. Release the two fixed widths
+     and let the footer take its own line. */
+  .attend-grid.list-view .attend-card { flex-wrap: wrap; row-gap: 6px; }
+  .attend-grid.list-view .attend-card-top {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;          /* let a long name ellipsis rather than push the row */
+  }
+  .attend-grid.list-view .attend-card-sched {
+    width: auto;
+    flex: 0 0 auto;
+    text-align: right;
+  }
+  .attend-grid.list-view .attend-card-footer {
+    flex: 1 0 100%;        /* own line, full width */
+    min-width: 0;
+  }
+}
+
+/* Touch input, which is not the same question as screen width: a laptop with a
+   touchscreen needs the bigger target too. .btn-punch already gets 44px under
+   768px; this covers the primary punch control, which never did. */
+@media (pointer: coarse) {
+  .button { min-height: 44px; }
+  .btn-punch { width: 44px; height: 44px; }
 }
 
 .dash-main {
