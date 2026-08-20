@@ -45,70 +45,70 @@ colors:
   scrim-45: "rgba(0,0,0,0.45)"
 typography:
   avatar-xl:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "28px"
     fontWeight: 600
     lineHeight: 1
   display:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "24px"
     fontWeight: 700
     lineHeight: 1
   headline:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "22px"
     fontWeight: 700
     lineHeight: 1.2
   headline-sm:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "20px"
     fontWeight: 600
     lineHeight: 1.3
   title:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "18px"
     fontWeight: 600
     lineHeight: 1.3
   subtitle:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "16px"
     fontWeight: 700
   body-lg:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "15px"
     fontWeight: 500
     lineHeight: 1.5
   body:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
   body-sm:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "13px"
     fontWeight: 500
     lineHeight: 1.4
   caption:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "12px"
     fontWeight: 500
     lineHeight: 1.4
   label:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "11px"
     fontWeight: 500
     letterSpacing: "0.06em"
   micro:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "10px"
     fontWeight: 600
   micro-xs:
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "9px"
     fontWeight: 700
     letterSpacing: "0.04em"
   mono:
-    fontFamily: "ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace"
+    fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
     fontSize: "12px"
     fontWeight: 400
     fontFeature: "slashed-zero tabular-nums"
