@@ -223,6 +223,46 @@
 /* The live timers keep counting off frozen data, so desaturate them to say so. */
 .dash-body.is-stale .coverage-status.online { opacity: 0.55; }
 
+/* ─── Numerals ──────────────────────────────────────────────
+   This product is almost entirely numbers: clock times, durations, counts,
+   hour totals. Proportional digits are the wrong default for all of it —
+   a "1" is narrower than a "0", so a per-second timer physically changes
+   width as it counts and the row twitches, and a column of times never
+   aligns on the colon. Tabular figures are same-width by construction.
+
+   Applied to the numeric roles rather than globally: prose keeps proportional
+   figures, where they read better. `slashed-zero` only helps where a zero
+   could be misread as an O — the monospace/credential contexts below. */
+.clock-kv,
+.clock-bar-stats,
+.dash-sidebar-datetime,
+.status-count,
+.monitor-time,
+.monitor-date,
+.monitor-count-num,
+.dash-summary-value,
+.coverage-status,
+.attend-card-sched,
+.scheduled-time-block,
+.shift-tz-secondary,
+.segment-timer,
+.activity-time,
+.break-chip,
+.audit-table td,
+.sched-month-num,
+.coverage-cell {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Time ranges and durations read better with the digits held slightly tighter
+   than the face's default letter-spacing, which is tuned for words. */
+.monitor-time,
+.monitor-count-num,
+.dash-summary-value {
+  letter-spacing: -0.01em;
+}
+
 /* ─── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -1391,7 +1431,9 @@ body.monitor-mode              { background: #0f172a; }
   height: 100vh;
   background: #0f172a;
   color: var(--on-dark-ink);
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  /* Was a divergent stack that dropped the app face entirely, so the wall
+     display rendered in a different typeface from every other screen. */
+  font-family: inherit;
   font-size: 13px;
   overflow: hidden;
 }
@@ -2998,7 +3040,8 @@ body.monitor-mode              { background: #0f172a; }
   letter-spacing: 3px;
   color: var(--ink);
   margin-bottom: 6px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-variant-numeric: slashed-zero tabular-nums;
 }
 .temp-password-note {
   font-size: 11px;
@@ -3499,7 +3542,8 @@ body.monitor-mode              { background: #0f172a; }
 }
 
 .entra-steps code {
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-variant-numeric: slashed-zero tabular-nums;
   font-size: 12px;
   background: var(--surface);
   border: 1px solid var(--border);

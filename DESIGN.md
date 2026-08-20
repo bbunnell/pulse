@@ -107,6 +107,11 @@ typography:
     fontSize: "9px"
     fontWeight: 700
     letterSpacing: "0.04em"
+  mono:
+    fontFamily: "ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace"
+    fontSize: "12px"
+    fontWeight: 400
+    fontFeature: "slashed-zero tabular-nums"
 rounded:
   # The sub-6px steps are load-bearing in a board this dense: a 3px radius on a
   # 16px status dot reads as intentional where 6px reads as a blob.
