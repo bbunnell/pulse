@@ -1,5 +1,6 @@
 import { getEmailSettings } from "@/lib/db-store";
 import { query } from "@/lib/db";
+import { zonedTimeToUtc } from "@/lib/timezone";
 
 export interface OofSyncResult {
   checkedProfiles: number;
@@ -52,7 +53,7 @@ async function checkOofPermissions(email: string, token: string): Promise<string
   return missing;
 }
 
-async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]> {
+async function getOofPeriods(email: string, token: string, tz: string): Promise<OofPeriod[]> {
   const periods: OofPeriod[] = [];
   const now     = new Date();
   const horizon = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1_000); // 60 days ahead
@@ -70,14 +71,20 @@ async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]>
         scheduledEndDateTime?:   { dateTime: string; timeZone: string };
       };
       if (d.status === "scheduled" && d.scheduledStartDateTime && d.scheduledEndDateTime) {
-        const start = parseGraphDate(d.scheduledStartDateTime);
-        const end   = parseGraphDate(d.scheduledEndDateTime);
+        const start = parseGraphDate(d.scheduledStartDateTime, tz);
+        const end   = parseGraphDate(d.scheduledEndDateTime, tz);
         if (end > now) {
-          periods.push({
-            startDate: toDateStr(start < now ? now : start),
-            endDate:   toDateStr(end),
-            notes:     "Out of office (auto-reply)",
-          });
+          // The scheduled end is the moment the auto-reply STOPS — the moment
+          // they are back — not the last day away. Someone off Wednesday and
+          // Thursday sets the window to end Friday 00:00. Backing off one second
+          // gives the last day actually covered, so Friday is not booked as
+          // leave. A window ending mid-afternoon still counts that day.
+          const lastCovered = new Date(end.getTime() - 1000);
+          const startDate = toDateStr(start < now ? now : start, tz);
+          const endDate   = toDateStr(lastCovered, tz);
+          if (endDate >= startDate) {
+            periods.push({ startDate, endDate, notes: "Out of office (auto-reply)" });
+          }
         }
       }
       // status === "alwaysEnabled" is deliberately ignored. An auto-reply with no
@@ -119,10 +126,18 @@ async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]>
         const start = new Date(ev.start.dateTime.endsWith("Z") ? ev.start.dateTime : ev.start.dateTime + "Z");
         const end   = new Date(ev.end.dateTime.endsWith("Z")   ? ev.end.dateTime   : ev.end.dateTime   + "Z");
         if (end <= now) continue;
+        // An all-day Outlook event ends at midnight on the day AFTER the last
+        // day off — Wednesday and Thursday off is stored as Wed 00:00 to Fri
+        // 00:00. Taking that end date literally booked the Friday as leave too,
+        // which is how a two-day PTO event showed as away Tue through Fri.
+        const lastCovered = new Date(end.getTime() - 1000);
+        const startDate = toDateStr(start < now ? now : start, tz);
+        const endDate   = toDateStr(lastCovered, tz);
+        if (endDate < startDate) continue;
         periods.push({
-          startDate: toDateStr(start < now ? now : start),
-          endDate:   toDateStr(end),
-          notes:     `Out of office: ${ev.subject?.trim() || "calendar event"}`,
+          startDate,
+          endDate,
+          notes: `Out of office: ${ev.subject?.trim() || "calendar event"}`,
         });
       }
     }
@@ -133,15 +148,31 @@ async function getOofPeriods(email: string, token: string): Promise<OofPeriod[]>
   return dedup(periods);
 }
 
-function parseGraphDate(dt: { dateTime: string; timeZone: string }): Date {
-  const str = dt.timeZone.toUpperCase() === "UTC"
-    ? dt.dateTime.endsWith("Z") ? dt.dateTime : dt.dateTime + "Z"
-    : dt.dateTime + "Z"; // treat non-UTC as UTC for simplicity (close enough for date-level sync)
-  return new Date(str);
+/**
+ * Graph returns the auto-reply window as a naive wall-clock string plus a
+ * WINDOWS timezone name ("Central Standard Time"), which Node cannot parse.
+ *
+ * This used to append "Z" and call it "close enough for date-level sync". It is
+ * not: for anyone west of UTC that shifts the instant back 5-8 hours, and since
+ * people set out-of-office windows to start at midnight, it lands on the
+ * previous day. Armando set Wed-Thu and the board showed him away from Tuesday.
+ *
+ * The employee's IANA timezone on their profile is the reliable source — the
+ * window was set by them, in their own mailbox. A window Graph explicitly marks
+ * UTC is still honoured as UTC.
+ */
+function parseGraphDate(dt: { dateTime: string; timeZone: string }, tz: string): Date {
+  const raw = dt.dateTime.replace(/Z$/, "");
+  if (dt.timeZone.toUpperCase() === "UTC") return new Date(raw + "Z");
+  const [datePart, timePart = "00:00:00"] = raw.split("T");
+  return zonedTimeToUtc(datePart, timePart.slice(0, 8), tz);
 }
 
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+/** Calendar date of an instant, read in the employee's own zone. */
+function toDateStr(d: Date, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(d);
 }
 
 function dedup(periods: OofPeriod[]): OofPeriod[] {
@@ -154,8 +185,15 @@ function dedup(periods: OofPeriod[]): OofPeriod[] {
   });
 }
 
+/**
+ * Days covered, counting both ends. `endDate` is the last day away, so Wed->Thu
+ * is two days. The previous version treated the end as exclusive while the row
+ * it wrote treated it as inclusive, so a record could claim 16 hours of leave
+ * across a three-day span and disagree with itself.
+ */
 function daysBetween(start: string, end: string): number {
-  return Math.max(1, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000));
+  const ms = new Date(end + "T00:00:00Z").getTime() - new Date(start + "T00:00:00Z").getTime();
+  return Math.max(1, Math.round(ms / 86_400_000) + 1);
 }
 
 // ── Main sync ─────────────────────────────────────────────────────────────────
@@ -182,8 +220,8 @@ export async function runOofSync(): Promise<OofSyncResult> {
     };
   }
 
-  const profilesRes = await query<{ id: string; email: string }>(
-    "SELECT id, email FROM profiles WHERE status = 'active' AND email IS NOT NULL AND email != '' ORDER BY email",
+  const profilesRes = await query<{ id: string; email: string; timezone: string }>(
+    "SELECT id, email, timezone FROM profiles WHERE status = 'active' AND email IS NOT NULL AND email != '' ORDER BY email",
   );
 
   // Permission probe using the first available profile
@@ -208,16 +246,20 @@ export async function runOofSync(): Promise<OofSyncResult> {
 
   for (const profile of profilesRes.rows) {
     try {
-      const oofPeriods = await getOofPeriods(profile.email, token);
+      const ptz = profile.timezone || "America/Chicago";
+      const oofPeriods = await getOofPeriods(profile.email, token, ptz);
 
       // Existing oof_sync entries that haven't ended yet
       const existingRes = await query<{ id: string; start_at: string; end_at: string }>(
+        // Read back in the employee's zone, matching how these are now written.
+        // Reading at UTC while writing at local midnight would make every row
+        // look like a mismatch and churn a delete + insert on every run.
         `SELECT id,
-                to_char(start_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS start_at,
-                to_char(end_at   AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS end_at
+                to_char(start_at AT TIME ZONE $2, 'YYYY-MM-DD') AS start_at,
+                to_char(end_at   AT TIME ZONE $2, 'YYYY-MM-DD') AS end_at
            FROM time_off_entries
           WHERE user_id = $1 AND source = 'oof_sync' AND end_at >= now()`,
-        [profile.id],
+        [profile.id, profile.timezone || "America/Chicago"],
       );
 
       const existingByKey = new Map(existingRes.rows.map((r) => [`${r.start_at}|${r.end_at}`, r.id]));
@@ -229,10 +271,20 @@ export async function runOofSync(): Promise<OofSyncResult> {
         if (!existingByKey.has(key)) {
           const hours = daysBetween(period.startDate, period.endDate) * 8;
           await query(
+            // Anchored to midnight in the EMPLOYEE's zone. Casting a date
+            // straight into a timestamptz column resolves at the server zone,
+            // which is UTC here, so a Chicago employee's day began at 7pm the
+            // evening before and the board showed them off a day early.
             `INSERT INTO time_off_entries
                (user_id, time_off_type, start_at, end_at, full_day, hours, status, notes, source)
-             VALUES ($1, 'vacation', $2::date, $3::date + interval '23 hours 59 minutes 59 seconds', true, $4, 'approved', $5, 'oof_sync')`,
-            [profile.id, period.startDate, period.endDate, hours, period.notes],
+             VALUES ($1, 'vacation', $2, $3, true, $4, 'approved', $5, 'oof_sync')`,
+            [
+              profile.id,
+              zonedTimeToUtc(period.startDate, "00:00", ptz),
+              zonedTimeToUtc(period.endDate, "23:59:59", ptz),
+              hours,
+              period.notes,
+            ],
           );
           synced++;
         }
