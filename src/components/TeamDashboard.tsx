@@ -202,6 +202,16 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
   const editDialogRef    = useDialogFocus<HTMLDivElement>(Boolean(editingTimeOff));
   const confirmDialogRef = useDialogFocus<HTMLDivElement>(Boolean(confirmAsk));
 
+  // Team Events was handed the server-rendered `data` while everything else on
+  // the board reads `live`, so it kept showing the time-off snapshot from page
+  // load and never picked up a change. On a tab left open all day — which is how
+  // this is used — a corrected or cancelled absence stayed on screen indefinitely
+  // while the rest of the board updated around it, so it looked live and was not.
+  const scheduleData = useMemo(
+    () => ({ ...data, timeOff: live.timeOff }),
+    [data, live.timeOff],
+  );
+
   const nowSafe = now ?? new Date();
 
   // Stale only after several missed polls, not one blip — a single failed
@@ -743,7 +753,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
           )}
 
           {/* Team Events */}
-          <DashboardSchedule data={data} />
+          <DashboardSchedule data={scheduleData} />
         </div>
 
         {/* Sidebar */}
