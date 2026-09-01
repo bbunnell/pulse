@@ -32,6 +32,28 @@ function yearsAgo(isoDate: string, year: number): number {
 }
 
 function sod(d: Date) { const c = new Date(d); c.setHours(0,0,0,0); return c; }
+
+/**
+ * The calendar date an instant falls on, read in a named zone.
+ *
+ * Time off is stored as an instant anchored to midnight in the EMPLOYEE's zone.
+ * Rendering it with `new Date(iso)` and `setHours(0,0,0,0)` resolves in the
+ * VIEWER's zone instead, which slides any employee east of the viewer back a
+ * day: Steven's Chicago vacation starting Tue Sep 8 is stored 05:00 UTC, which
+ * is Mon Sep 7 in Pacific, so it rendered a day early and collided with his
+ * previous booking — the same person twice on one row.
+ */
+function dateInZone(iso: string, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(iso));
+}
+
+/** A YYYY-MM-DD as a plain calendar anchor on the viewer's grid. */
+function calendarDay(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 function eod(d: Date) { const c = new Date(d); c.setHours(23,59,59,999); return c; }
 
 function entriesOnDay(day: Date, entries: Entry[]): Entry[] {
@@ -63,7 +85,7 @@ function dayLabel(day: Date): string {
   return format(day, "EEE, MMM d");
 }
 
-export function DashboardSchedule({ data }: { data: OrgData }) {
+export function DashboardSchedule({ data, scheduleTz = "America/Los_Angeles" }: { data: OrgData; scheduleTz?: string }) {
   const [calDate, setCalDate] = useState(() => new Date());
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [companyEvents, setCompanyEvents] = useState<CompanyEvent[]>([]);
@@ -88,12 +110,14 @@ export function DashboardSchedule({ data }: { data: OrgData }) {
       if (t.status === "cancelled") continue;
       const profile = data.profiles.find(p => p.id === t.userId);
       const name = profile ? profileName(profile) : "Employee";
+      // Their zone, not the viewer's — the days off belong to the person taking them.
+      const tz = profile?.timezone || scheduleTz;
       all.push({
         id: t.id,
         kind: t.timeOffType as EntryKind,
         label: `${KIND_EMOJI[t.timeOffType as EntryKind]} ${name}`,
-        start: sod(new Date(t.startAt)),
-        end:   eod(new Date(t.endAt)),
+        start: calendarDay(dateInZone(t.startAt, tz)),
+        end:   eod(calendarDay(dateInZone(t.endAt, tz))),
       });
     }
 

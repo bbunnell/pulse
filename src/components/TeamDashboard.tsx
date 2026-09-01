@@ -753,7 +753,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
           )}
 
           {/* Team Events */}
-          <DashboardSchedule data={scheduleData} />
+          <DashboardSchedule data={scheduleData} scheduleTz={orgTimezone} />
         </div>
 
         {/* Sidebar */}
