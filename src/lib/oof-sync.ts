@@ -104,7 +104,7 @@ async function getOofPeriods(email: string, token: string, tz: string): Promise<
       startDateTime: now.toISOString(),
       endDateTime:   horizon.toISOString(),
       $filter:       "showAs eq 'oof'",
-      $select:       "subject,start,end,showAs,isCancelled,responseStatus",
+      $select:       "subject,start,end,showAs,isAllDay,isCancelled,responseStatus",
       $top:          "50",
     });
     const res = await fetch(
@@ -114,7 +114,7 @@ async function getOofPeriods(email: string, token: string, tz: string): Promise<
     if (res.ok) {
       const d = (await res.json()) as { value?: Array<{
         subject?: string; start: { dateTime: string }; end: { dateTime: string };
-        isCancelled?: boolean; responseStatus?: { response?: string };
+        isAllDay?: boolean; isCancelled?: boolean; responseStatus?: { response?: string };
       }> };
       for (const ev of d.value ?? []) {
         // calendarView returns events the user cancelled or declined; those are not
@@ -123,16 +123,33 @@ async function getOofPeriods(email: string, token: string, tz: string): Promise<
         if (ev.isCancelled) continue;
         const resp = ev.responseStatus?.response;
         if (resp === "declined") continue;
-        const start = new Date(ev.start.dateTime.endsWith("Z") ? ev.start.dateTime : ev.start.dateTime + "Z");
-        const end   = new Date(ev.end.dateTime.endsWith("Z")   ? ev.end.dateTime   : ev.end.dateTime   + "Z");
-        if (end <= now) continue;
-        // An all-day Outlook event ends at midnight on the day AFTER the last
-        // day off — Wednesday and Thursday off is stored as Wed 00:00 to Fri
-        // 00:00. Taking that end date literally booked the Friday as leave too,
-        // which is how a two-day PTO event showed as away Tue through Fri.
-        const lastCovered = new Date(end.getTime() - 1000);
-        const startDate = toDateStr(start < now ? now : start, tz);
-        const endDate   = toDateStr(lastCovered, tz);
+        const todayLocal = toDateStr(now, tz);
+        let startDate: string;
+        let endDate: string;
+
+        if (ev.isAllDay) {
+          // An all-day event carries FLOATING dates, not instants — "Sep 2" means
+          // the 2nd wherever you are. Converting it to a zone is what broke this:
+          // Sep 2 00:00 read as UTC lands on Sep 1 in Chicago, so a Wednesday
+          // start showed as Tuesday. Take the date part as written.
+          //
+          // Its end is exclusive: Wednesday and Thursday off is stored Sep 2 ->
+          // Sep 4, so the last day off is the day before the end.
+          startDate = ev.start.dateTime.slice(0, 10);
+          endDate   = addDaysIso(ev.end.dateTime.slice(0, 10), -1);
+        } else {
+          // A timed event is a real instant, so the employee's zone decides which
+          // calendar day it falls on. One second back off the end keeps a window
+          // that stops at midnight from claiming the next day.
+          const start = new Date(ev.start.dateTime.endsWith("Z") ? ev.start.dateTime : ev.start.dateTime + "Z");
+          const end   = new Date(ev.end.dateTime.endsWith("Z")   ? ev.end.dateTime   : ev.end.dateTime   + "Z");
+          if (end <= now) continue;
+          startDate = toDateStr(start, tz);
+          endDate   = toDateStr(new Date(end.getTime() - 1000), tz);
+        }
+
+        if (endDate < todayLocal) continue;              // wholly in the past
+        if (startDate < todayLocal) startDate = todayLocal;  // already under way
         if (endDate < startDate) continue;
         periods.push({
           startDate,
@@ -166,6 +183,13 @@ function parseGraphDate(dt: { dateTime: string; timeZone: string }, tz: string):
   if (dt.timeZone.toUpperCase() === "UTC") return new Date(raw + "Z");
   const [datePart, timePart = "00:00:00"] = raw.split("T");
   return zonedTimeToUtc(datePart, timePart.slice(0, 8), tz);
+}
+
+/** Shift a YYYY-MM-DD string by whole days without touching timezones. */
+function addDaysIso(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 /** Calendar date of an instant, read in the employee's own zone. */
