@@ -12,9 +12,11 @@ import { formatClock, formatShortDate, minutesToHours } from "@/lib/time";
 interface Props {
   data: OrgData;
   currentUserId?: string;
+  /** Org schedule zone. Punch times render here, not in the device's zone. */
+  scheduleTz?: string;
 }
 
-export function MyTimeView({ data, currentUserId }: Props) {
+export function MyTimeView({ data, currentUserId, scheduleTz = "America/Los_Angeles" }: Props) {
   const defaultId = currentUserId ?? data.profiles[0]?.id ?? "";
   const [userId] = useState(defaultId);
   const [now, setNow] = useState<Date | null>(null);
@@ -93,8 +95,8 @@ export function MyTimeView({ data, currentUserId }: Props) {
                   {rows.map((row) => (
                     <tr key={`${row.employeeId}-${row.date}`}>
                       <td style={{ fontWeight: 500 }}>{formatShortDate(row.date)}</td>
-                      <td>{formatClock(row.punchIn)}</td>
-                      <td>{formatClock(row.punchOut)}</td>
+                      <td>{formatClock(row.punchIn, scheduleTz)}</td>
+                      <td>{formatClock(row.punchOut, scheduleTz)}</td>
                       <td className="subtle">{minutesToHours(row.breakMinutes).toFixed(2)}</td>
                       <td className="subtle">{minutesToHours(row.lunchMinutes).toFixed(2)}</td>
                       <td style={{ fontWeight: 600 }}>{minutesToHours(row.payableMinutes).toFixed(2)}</td>

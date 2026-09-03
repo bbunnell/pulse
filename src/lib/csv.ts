@@ -17,15 +17,21 @@ const headers = [
   "Edited Warnings",
 ];
 
-export function weeklyRowsToCsv(rows: WeeklyReportRow[]) {
+/**
+ * `scheduleTz` is required in practice: an exported timesheet whose punch times
+ * depend on the exporter's device zone is not a payroll record. Two managers in
+ * different zones exporting the same week would produce different times for the
+ * same shift.
+ */
+export function weeklyRowsToCsv(rows: WeeklyReportRow[], scheduleTz = "America/Los_Angeles") {
   const csvRows = [
     headers,
     ...rows.map((row) => [
       row.employeeName,
       row.teamName,
       row.date,
-      row.punchIn ? formatClock(row.punchIn) : "",
-      row.punchOut ? formatClock(row.punchOut) : "",
+      row.punchIn ? formatClock(row.punchIn, scheduleTz) : "",
+      row.punchOut ? formatClock(row.punchOut, scheduleTz) : "",
       minutesToHours(row.grossMinutes).toFixed(2),
       minutesToHours(row.breakMinutes).toFixed(2),
       minutesToHours(row.lunchMinutes).toFixed(2),

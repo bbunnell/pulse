@@ -719,7 +719,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
                     <span>{profileName(s.profile)}</span>
                     {s.todayShift?.punchOutAt && (
                       <small className="subtle" style={{ fontSize: 10 }}>
-                        {formatClock(s.todayShift.punchOutAt)}
+                        {formatClock(s.todayShift.punchOutAt, orgTimezone)}
                       </small>
                     )}
                   </div>
@@ -762,9 +762,12 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
             {now && (
               <div className="dash-sidebar-datetime">
                 <Clock size={13} />
-                <span>{formatClock(now)}</span>
+                {/* The board's clock, in the board's zone. Left in the viewer's
+                    zone it disagreed with every punch time under it — a viewer in
+                    UTC read "9:18 PM" above breaks that happened at 10:01 AM. */}
+                <span>{formatClock(now, orgTimezone)} <span className="shift-tz-label">{tzAbbr(orgTimezone)}</span></span>
                 <span className="dash-sidebar-date">
-                  {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                  {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: orgTimezone })}
                 </span>
               </div>
             )}
@@ -801,10 +804,11 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
                         style={{ fontSize: 12, fontWeight: 600, color: "var(--green-text)", display: "block" }}
                         suppressHydrationWarning
                       >
-                        {/* `now` is null until mount, so the time only ever renders in
-                            the browser's zone. Server-rendering it produced UTC, which
-                            suppressHydrationWarning then froze in place. */}
-                        {now ? `Punched in at ${formatClock(activeShift.punchInAt)}` : "Punched in"}
+                        {/* `now` is null until mount, so this never renders on the
+                            server, where it produced UTC that suppressHydrationWarning
+                            then froze in place. The zone is the board's, not the
+                            device's, so it still reads correctly when travelling. */}
+                        {now ? `Punched in at ${formatClock(activeShift.punchInAt, orgTimezone)}` : "Punched in"}
                       </strong>
                     ) : (
                       <small style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>
@@ -1170,7 +1174,7 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, segm
             {isOut
               ? (snapshot.timeOffToday ? formatShortDate(snapshot.timeOffToday.startAt) : "—")
               /* Same UTC-on-server trap as the clock widget: only format once mounted. */
-              : (now ? formatClock(clockIn) : "")}
+              : (now ? formatClock(clockIn, orgTimezone) : "")}
           </small>
         </div>
         {snapshot.missingPunch && (
@@ -1213,14 +1217,14 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, segm
                     <span key={sg.id}
                           className={`break-chip ${sg.segmentType === "lunch" ? "lunch" : "brk"}${running ? " running" : ""}`}
                           title={running
-                            ? `${kind} started ${formatClock(sg.startAt)} — still out`
-                            : `${kind} ${formatClock(sg.startAt)}, ${mins}m`}>
+                            ? `${kind} started ${formatClock(sg.startAt, orgTimezone)} — still out`
+                            : `${kind} ${formatClock(sg.startAt, orgTimezone)}, ${mins}m`}>
                       {sg.segmentType === "lunch"
                         ? <Utensils size={11} aria-hidden="true" />
                         : <Coffee size={11} aria-hidden="true" />}
                       {/* The icon carries the kind visually; name it for screen readers. */}
                       <span className="sr-only">{kind} </span>
-                      <span suppressHydrationWarning>{now ? formatClock(sg.startAt) : ""}</span>
+                      <span suppressHydrationWarning>{now ? formatClock(sg.startAt, orgTimezone) : ""}</span>
                       <small suppressHydrationWarning>
                         {mins < 1 ? "<1m" : `${mins}m`}{running ? " · now" : ""}
                       </small>

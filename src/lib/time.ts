@@ -42,9 +42,25 @@ export function formatShortDate(date: string | Date) {
   return format(d, "EEE, MMM d");
 }
 
-export function formatClock(date?: string | Date) {
+/**
+ * Clock time of an instant, in a named zone.
+ *
+ * `tz` is not optional in spirit: without it this renders in whatever zone the
+ * VIEWER's device is set to, so the same punch reads 10:01 AM to one person and
+ * 9:01 PM to another. A recorded time belongs to the shift it was recorded on,
+ * not to whoever happens to be looking, and the board already displays
+ * scheduled hours in the org's schedule zone — these have to agree.
+ *
+ * Omitting `tz` is only correct for a clock showing the viewer's own present
+ * moment.
+ */
+export function formatClock(date?: string | Date, tz?: string) {
   if (!date) return "Missing";
-  return format(new Date(date), "h:mm a");
+  const d = new Date(date);
+  if (!tz) return format(d, "h:mm a");
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true,
+  }).format(d);
 }
 
 export function todayInterval(now = new Date()) {

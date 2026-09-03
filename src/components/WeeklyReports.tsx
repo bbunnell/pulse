@@ -9,7 +9,7 @@ import { buildWeeklyReport } from "@/lib/reports";
 import { profileName } from "@/lib/status";
 import { formatClock, formatShortDate, isoDateOnly, minutesToHours, parseDateInput } from "@/lib/time";
 
-export function WeeklyReports({ data }: { data: OrgData }) {
+export function WeeklyReports({ data, scheduleTz = "America/Los_Angeles" }: { data: OrgData; scheduleTz?: string }) {
   const [week, setWeek] = useState(isoDateOnly(new Date()));
   const [teamId, setTeamId] = useState("all");
   const [employeeId, setEmployeeId] = useState("all");
@@ -26,7 +26,7 @@ export function WeeklyReports({ data }: { data: OrgData }) {
     return (teamId === "all" || profile?.teamId === teamId) && (employeeId === "all" || total.employeeId === employeeId);
   });
 
-  const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(weeklyRowsToCsv(rows))}`;
+  const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(weeklyRowsToCsv(rows, scheduleTz))}`;
 
   const totalPayable = totals.reduce((s, t) => s + t.payableMinutes, 0);
   const totalVacation = totals.reduce((s, t) => s + t.vacationHours, 0);
@@ -121,8 +121,8 @@ export function WeeklyReports({ data }: { data: OrgData }) {
                         <div className="subtle">{row.teamName}</div>
                       </td>
                       <td style={{ whiteSpace: "nowrap" }}>{formatShortDate(row.date)}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>{formatClock(row.punchIn)}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>{formatClock(row.punchOut)}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>{formatClock(row.punchIn, scheduleTz)}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>{formatClock(row.punchOut, scheduleTz)}</td>
                       <td>{minutesToHours(row.grossMinutes).toFixed(2)}</td>
                       <td className="subtle">{minutesToHours(row.breakMinutes).toFixed(2)}</td>
                       <td className="subtle">{minutesToHours(row.lunchMinutes).toFixed(2)}</td>
