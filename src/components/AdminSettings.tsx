@@ -1660,11 +1660,7 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <h2>Single sign-on — Microsoft Entra</h2>
               {ssoLoaded && (
-                <span style={{
-                  fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 12,
-                  background: ssoEnabled ? "var(--green-bg, #d1fae5)" : "var(--surface-2)",
-                  color: ssoEnabled ? "var(--green, #059669)" : "var(--muted)",
-                }}>
+                <span className={`email-status-chip${ssoEnabled ? " configured" : ""}`}>
                   {ssoEnabled ? "Enabled" : "Disabled"}
                 </span>
               )}

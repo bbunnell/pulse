@@ -9,6 +9,7 @@ colors:
   sky: "#59BFEF"
   surface: "#FFFFFF"
   canvas: "#F4F7FA"
+  surface-2: "#EEF3F8"
   border: "#D6E2EE"
   border-strong: "#B3C8DC"
   ink: "#162334"

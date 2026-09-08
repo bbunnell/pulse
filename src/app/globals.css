@@ -59,6 +59,10 @@
   --blue-text:        #133F62;
 
   --gray-soft:        #EEF3F8;
+  /* A second surface level, one step off --surface. Six call sites already
+     referenced this name and it was never defined, so an un-configured status
+     chip had no background at all and one gradient interpolated from nothing. */
+  --surface-2:        #EEF3F8;
   --gray-text:        #2D4459;
 
   /* Accent (Yellow) — chips, badges, highlights */
@@ -183,6 +187,7 @@
   --blue-text:        #60A5FA;
 
   --gray-soft:        #1A2D40;
+  --surface-2:        #1A2D40;
   --gray-text:        #A8C5DE;
 
   --accent-soft:      rgba(255, 191, 29, 0.12);
