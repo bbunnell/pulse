@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { HolidayManager, type Holiday } from "@/components/HolidayManager";
 import { Bell, Building2, ChevronDown, ChevronUp, Download, Eye, EyeOff, KeyRound, Lock, Mail, MessageSquare, Pencil, Plus, RefreshCw, Save, Shield, Trash2, Upload, UserPlus, X } from "lucide-react";
 
 import type { OrgData, Profile, Role, Team } from "@/lib/types";
@@ -819,9 +820,10 @@ function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
 interface Props {
   data: OrgData;
   currentUserId: string;
+  holidays?: Holiday[];
 }
 
-export function AdminSettings({ data, currentUserId }: Props) {
+export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
   const router = useRouter();
 
   const [profiles, setProfiles] = useState(data.profiles);
@@ -1947,7 +1949,9 @@ export function AdminSettings({ data, currentUserId }: Props) {
         </div>
 
         {/* OOF Sync panel */}
-        <div className="panel">
+        <HolidayManager profiles={profiles} holidays={holidays} />
+
+          <div className="panel">
           <div className="panel-header">
             <div>
               <h2>Calendar Out-of-Office Sync</h2>

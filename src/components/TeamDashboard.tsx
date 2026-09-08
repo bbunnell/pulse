@@ -28,7 +28,7 @@ import type {
   ShiftSegment,
   TimeOffEntry,
 } from "@/lib/types";
-import { buildAttendanceSnapshots, buildCoverage, buildSummary, profileName, type StaffingRuleLike } from "@/lib/status";
+import { buildAttendanceSnapshots, buildCoverage, buildSummary, profileName, type StaffingRuleLike, timeOffLabel, timeOffTone } from "@/lib/status";
 import { InfoTooltip } from "@/components/InfoTooltip";
 import { activeSegmentForShift, buildDateTime, formatClock, formatDuration, formatShortDate, openShiftForUser } from "@/lib/time";
 import { convertShiftTime, localDateInZone, tzAbbr } from "@/lib/timezone";
@@ -291,7 +291,7 @@ export function TeamDashboard({ data, staffingRules, currentUserId, userRole, or
     for (const s of boardSnapshots) {
       if (s.status === "available") working.push(s);
       else if (s.status === "on_break" || s.status === "at_lunch") onBreak.push(s);
-      else if (s.status === "out_sick" || s.status === "on_vacation" || s.status === "on_business_trip") out.push(s);
+      else if (s.status === "out_sick" || s.status === "on_vacation" || s.status === "on_business_trip" || s.status === "on_holiday") out.push(s);
       else if (s.isLate) {
         // Don't flag "late" for people who should only appear when active
         if (!s.profile.hideWhenNotActive) late.push(s);
@@ -1192,8 +1192,8 @@ function AttendCard({ snapshot, orgTimezone, canManage, actionLoading, now, segm
       <div className="attend-card-footer">
         {isOut && snapshot.timeOffToday ? (
           <div className="attend-card-tags">
-            <span className={`status-badge ${snapshot.timeOffToday.timeOffType === "vacation" ? "blue" : snapshot.timeOffToday.timeOffType === "business_trip" ? "amber" : "red"}`} style={{ fontSize: 11, padding: "2px 7px" }}>
-              {snapshot.timeOffToday.timeOffType === "vacation" ? "Vacation" : snapshot.timeOffToday.timeOffType === "business_trip" ? "Business Trip" : "Sick"}
+            <span className={`status-badge ${timeOffTone(snapshot.timeOffToday.timeOffType)}`} style={{ fontSize: 11, padding: "2px 7px" }}>
+              {timeOffLabel(snapshot.timeOffToday.timeOffType)}
             </span>
           </div>
         ) : (isWorking || isOnBreak) ? (

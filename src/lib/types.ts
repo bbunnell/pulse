@@ -1,7 +1,7 @@
 export type Role = "employee" | "manager" | "admin";
 export type ProfileStatus = "active" | "inactive";
 export type SegmentType = "break" | "lunch";
-export type TimeOffType = "vacation" | "sick" | "business_trip";
+export type TimeOffType = "vacation" | "sick" | "business_trip" | "holiday";
 export type TimeOffStatus = "submitted" | "approved" | "rejected" | "cancelled";
 export type AttendanceStatus =
   | "available"
@@ -11,7 +11,8 @@ export type AttendanceStatus =
   | "punched_out"
   | "out_sick"
   | "on_vacation"
-  | "on_business_trip";
+  | "on_business_trip"
+  | "on_holiday";
 
 export type ReminderType =
   | "punch_in"

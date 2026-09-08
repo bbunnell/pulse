@@ -8,6 +8,7 @@ import type {
   ShiftSegment,
   Team,
   TimeOffEntry,
+  TimeOffType,
 } from "@/lib/types";
 import {
   activeSegmentForShift,
@@ -27,6 +28,7 @@ export const statusLabels: Record<AttendanceStatus, string> = {
   out_sick: "Out Sick",
   on_vacation: "On Vacation",
   on_business_trip: "Business Trip",
+  on_holiday: "Holiday",
 };
 
 export const statusTone: Record<AttendanceStatus, "green" | "amber" | "red" | "blue" | "gray"> = {
@@ -38,6 +40,9 @@ export const statusTone: Record<AttendanceStatus, "green" | "amber" | "red" | "b
   out_sick: "red",
   on_vacation: "blue",
   on_business_trip: "amber",
+  // Blue like vacation: a planned, expected absence that needs no action. The
+  // label carries the difference; the tone should not imply a problem.
+  on_holiday: "blue",
 };
 
 /** Minutes past scheduled start before someone counts as "late". Matches the reminder offset. */
@@ -101,6 +106,7 @@ export function attendanceStatusFromState(
   if (timeOffToday?.timeOffType === "sick") return "out_sick";
   if (timeOffToday?.timeOffType === "vacation") return "on_vacation";
   if (timeOffToday?.timeOffType === "business_trip") return "on_business_trip";
+  if (timeOffToday?.timeOffType === "holiday") return "on_holiday";
 
   // Did they work earlier in their local day and punch out?
   const todayShift = shiftForLocalToday(shifts, profile.id, profile.timezone, now);
@@ -383,4 +389,37 @@ export function buildSummary(snapshots: AttendanceSnapshot[]) {
     late: snapshots.filter((s) => s.isLate).length,
     missingPunches: snapshots.filter((s) => s.missingPunch).length,
   };
+}
+
+// ── Time-off type presentation ────────────────────────────────────────────────
+//
+// These were open-coded as ternary chains in six components:
+//   entry.timeOffType === "vacation" ? "Vacation"
+//     : entry.timeOffType === "business_trip" ? "Business Trip" : "Sick time"
+//
+// A chain like that has no exhaustiveness check, so adding a fourth type made
+// every one of them silently label a holiday "Sick time" and paint it red.
+// Keeping this in one exhaustive Record means the compiler now reports each
+// gap the next time a type is added.
+
+export const timeOffLabels: Record<TimeOffType, string> = {
+  vacation:      "Vacation",
+  sick:          "Sick time",
+  business_trip: "Business Trip",
+  holiday:       "Holiday",
+};
+
+export const timeOffTones: Record<TimeOffType, "green" | "amber" | "red" | "blue" | "gray"> = {
+  vacation:      "blue",
+  sick:          "red",
+  business_trip: "amber",
+  holiday:       "blue",
+};
+
+export function timeOffLabel(t: TimeOffType): string {
+  return timeOffLabels[t] ?? "Time off";
+}
+
+export function timeOffTone(t: TimeOffType): string {
+  return timeOffTones[t] ?? "gray";
 }

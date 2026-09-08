@@ -6,7 +6,7 @@ import { CalendarPlus, CheckCircle, Paperclip, Pencil, Trash2 } from "lucide-rea
 
 import type { OrgData, TimeOffEntry, TimeOffType } from "@/lib/types";
 import { buildClientIcs, icsFileName } from "@/lib/ics";
-import { profileName } from "@/lib/status";
+import { profileName, timeOffLabel, timeOffTone } from "@/lib/status";
 import { buildDateTime, formatShortDate, isoDateOnly } from "@/lib/time";
 
 interface Props {
@@ -327,14 +327,14 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
                   <div className="time-off-entry-card" key={entry.id}>
                     <span>
                       <strong style={{ fontSize: 13 }}>
-                        {entry.timeOffType === "vacation" ? "Vacation" : entry.timeOffType === "business_trip" ? "Business Trip" : "Sick time"}
+                        {timeOffLabel(entry.timeOffType)}
                       </strong>
                       <small className="subtle">
                         {formatShortDate(entry.startAt)} → {formatShortDate(entry.endAt)}
                       </small>
                     </span>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
+                      <span className={`status-badge ${timeOffTone(entry.timeOffType)}`}>
                         {entry.hours}h
                       </span>
                       {/* Own entries are editable regardless of role — plans change.
@@ -418,13 +418,13 @@ export function TimeOffForm({ data, currentUserId, userRole }: Props) {
                             {entryProfile ? profileName(entryProfile) : "Unknown"}
                           </strong>
                           <small className="subtle">
-                            {entry.timeOffType === "vacation" ? "Vacation" : entry.timeOffType === "business_trip" ? "Business Trip" : "Sick time"}
+                            {timeOffLabel(entry.timeOffType)}
                             {" · "}
                             {formatShortDate(entry.startAt)} → {formatShortDate(entry.endAt)}
                           </small>
                         </span>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
+                          <span className={`status-badge ${timeOffTone(entry.timeOffType)}`}>
                             {entry.hours}h
                           </span>
                           <button

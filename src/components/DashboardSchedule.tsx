@@ -10,7 +10,7 @@ import { profileName } from "@/lib/status";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-type EntryKind = "vacation" | "sick" | "business_trip" | "birthday" | "anniversary" | "company";
+type EntryKind = "vacation" | "sick" | "business_trip" | "holiday" | "birthday" | "anniversary" | "company";
 
 interface Entry {
   id: string;
@@ -65,6 +65,7 @@ const KIND_COLOR: Record<EntryKind, string> = {
   vacation:      "event-vacation",
   sick:          "event-sick",
   business_trip: "event-business-trip",
+  holiday:       "event-holiday",
   birthday:      "event-birthday",
   anniversary:   "event-anniversary",
   company:       "event-company",
@@ -74,6 +75,7 @@ const KIND_EMOJI: Record<EntryKind, string> = {
   vacation:      "🌴",
   sick:          "🤒",
   business_trip: "✈️",
+  holiday:       "🎉",
   birthday:      "🎂",
   anniversary:   "🎉",
   company:       "📌",

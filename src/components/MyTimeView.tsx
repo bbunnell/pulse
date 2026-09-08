@@ -6,7 +6,7 @@ import { AlertTriangle, CheckCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { OrgData } from "@/lib/types";
 import { buildWeeklyReport } from "@/lib/reports";
-import { buildAttendanceSnapshots, profileName } from "@/lib/status";
+import { buildAttendanceSnapshots, profileName, timeOffLabel, timeOffTone } from "@/lib/status";
 import { formatClock, formatShortDate, minutesToHours } from "@/lib/time";
 
 interface Props {
@@ -137,13 +137,13 @@ export function MyTimeView({ data, currentUserId, scheduleTz = "America/Los_Ange
                   <div className="time-off-entry-card" key={entry.id}>
                     <span>
                       <strong style={{ fontSize: 13 }}>
-                        {entry.timeOffType === "vacation" ? "Vacation" : entry.timeOffType === "business_trip" ? "Business Trip" : "Sick time"}
+                        {timeOffLabel(entry.timeOffType)}
                       </strong>
                       <small className="subtle">
                         {formatShortDate(entry.startAt)} → {formatShortDate(entry.endAt)}
                       </small>
                     </span>
-                    <span className={`status-badge ${entry.timeOffType === "vacation" ? "blue" : entry.timeOffType === "business_trip" ? "amber" : "red"}`}>
+                    <span className={`status-badge ${timeOffTone(entry.timeOffType)}`}>
                       {entry.hours}h
                     </span>
                   </div>

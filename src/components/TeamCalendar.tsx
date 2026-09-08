@@ -242,6 +242,13 @@ interface Props {
   canManage: boolean;
 }
 
+const TIMEOFF_CAL_LABEL: Record<string, string> = {
+  vacation:      "🌴 Vacation",
+  sick:          "🤒 Sick",
+  business_trip: "✈️ Business Trip",
+  holiday:       "🎉 Holiday",
+};
+
 export function TeamCalendar({ data, canManage }: Props) {
   const [date, setDate]             = useState(new Date());
   const [view, setView]             = useState<View>("month");
@@ -271,7 +278,7 @@ export function TeamCalendar({ data, canManage }: Props) {
       if (entry.status === "cancelled") continue;
       const profile = data.profiles.find((p) => p.id === entry.userId);
       all.push({
-        title: `${entry.timeOffType === "vacation" ? "🌴 Vacation" : entry.timeOffType === "business_trip" ? "✈️ Business Trip" : "🤒 Sick"} – ${profile ? profileName(profile) : "Employee"}`,
+        title: `${TIMEOFF_CAL_LABEL[entry.timeOffType] ?? "Time off"} – ${profile ? profileName(profile) : "Employee"}`,
         start: new Date(entry.startAt),
         end: new Date(entry.endAt),
         resource: { kind: entry.timeOffType as EventKind, userId: entry.userId, teamId: profile?.teamId ?? "" },

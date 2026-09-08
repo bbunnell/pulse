@@ -112,6 +112,11 @@
   --event-birthday-border:  #7E22CE;
   --event-company:          #0891B2;
   --event-company-border:   #0E7490;
+  /* Rose, chosen because every neighbouring event hue was taken: blue is
+     vacation, amber a business trip, red sick, violet a birthday, cyan a
+     company event. 6.04:1 against the white chip text. */
+  --event-holiday:          #BE185D;
+  --event-holiday-border:   #9D174D;
 
   /* Coverage heatmap */
   --coverage-covered: #22C55E;
@@ -261,6 +266,45 @@
 .monitor-count-num,
 .dash-summary-value {
   letter-spacing: -0.01em;
+}
+
+/* Holiday participation picker. A wrapping chip list rather than a multi-select:
+   at 28 people the whole team is visible at once, so choosing a skeleton crew is
+   a few clicks instead of a scroll-and-ctrl-click. */
+.holiday-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 190px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+}
+.holiday-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.holiday-person:hover { border-color: var(--border-strong); }
+.holiday-person.picked {
+  background: var(--blue-soft);
+  border-color: var(--primary);
+  color: var(--blue-text);
+}
+.holiday-person:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }
 
 /* ─── Reset ─────────────────────────────────────────────────── */
@@ -2582,7 +2626,8 @@ body.monitor-mode              { background: #0f172a; }
 }
 .dash-events-pill.event-vacation      { background: var(--blue); }
 .dash-events-pill.event-sick          { background: var(--red); }
-.dash-events-pill.event-business-trip { background: #d97706; }
+.dash-events-pill.event-business-trip { background: var(--amber); }
+.dash-events-pill.event-holiday       { background: var(--event-holiday); }
 .dash-events-pill.event-birthday      { background: var(--event-birthday); }
 .dash-events-pill.event-anniversary   { background: #d97706; }
 .dash-events-pill.event-company       { background: var(--event-company); }
@@ -2663,7 +2708,8 @@ body.monitor-mode              { background: #0f172a; }
 
 .dash-sched-pill.event-vacation      { background: var(--blue); }
 .dash-sched-pill.event-sick          { background: var(--red); }
-.dash-sched-pill.event-business-trip { background: #d97706; }
+.dash-sched-pill.event-business-trip { background: var(--amber); }
+.dash-sched-pill.event-holiday      { background: var(--event-holiday); }
 .dash-sched-pill.event-birthday      { background: var(--event-birthday); }
 .dash-sched-pill.event-anniversary   { background: #d97706; }
 .dash-sched-pill.event-company       { background: var(--event-company); }
@@ -4745,7 +4791,8 @@ input[type="checkbox"] {
 
 .event-vacation      { background: var(--blue) !important;    border-color: var(--blue) !important; }
 .event-sick          { background: var(--red) !important;     border-color: var(--red) !important; }
-.event-business-trip { background: #d97706 !important;        border-color: var(--amber-hover) !important;    color: #fff !important; }
+.event-business-trip { background: var(--amber) !important;         border-color: var(--amber-hover) !important;    color: #fff !important; }
+.event-holiday     { background: var(--event-holiday) !important; border-color: var(--event-holiday-border) !important; color: #fff !important; }
 .event-shift       { background: var(--green) !important;   border-color: var(--green) !important; }
 .event-birthday    { background: var(--event-birthday) !important;        border-color: var(--event-birthday-border) !important; color: #fff !important; }
 .event-anniversary { background: #d97706 !important;        border-color: var(--amber-hover) !important; color: #fff !important; }

@@ -29,6 +29,8 @@ colors:
   event-birthday-border: "#7E22CE"
   event-company: "#0891B2"
   event-company-border: "#0E7490"
+  event-holiday: "#BE185D"
+  event-holiday-border: "#9D174D"
   coverage-covered: "#22C55E"
   on-dark-line: "#1E293B"
   on-dark-ink: "#E2E8F0"

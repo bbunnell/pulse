@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 
 import { query, withTransaction } from "@/lib/db";
 import { isUuid } from "@/lib/uuid";
+import { zonedTimeToUtc } from "@/lib/timezone";
 import { mapProfile, mapReminderRule, mapSegment, mapShift, mapTeam, mapTimeOff } from "@/lib/supabase/mappers";
 import type { OrgData, Profile, Role, Shift, ShiftSegment, Team, TimeOffEntry } from "@/lib/types";
 
@@ -559,6 +560,11 @@ export async function deleteProfile(profileId: string): Promise<boolean> {
  * `String(v).slice(0, 10)` yields "Thu Aug 20" — which then goes back into the
  * dedupe key and breaks it. UTC accessors avoid any local-offset shift.
  */
+/** Timestamp column -> ISO string. pg hands these back as Date objects. */
+function toIso(v: unknown): string {
+  return v instanceof Date ? v.toISOString() : String(v);
+}
+
 function toIsoDate(val: unknown): string {
   if (val instanceof Date) {
     const y = val.getUTCFullYear();
@@ -1142,4 +1148,177 @@ export async function getEscalationRecipients(teamId?: string | null): Promise<P
     [teamId ?? null],
   );
   return result.rows.map((row) => mapProfile(row));
+}
+
+// ── Holidays ──────────────────────────────────────────────────────────────────
+
+export interface Holiday {
+  id: string;
+  name: string;
+  startDate: string;                          // YYYY-MM-DD
+  endDate: string;                            // YYYY-MM-DD (same as start for one day)
+  /** 'off' = closed, exceptions WORK. 'working' = open, exceptions are OFF. */
+  defaultParticipation: "off" | "working";
+  notes?: string;
+  /** Whoever differs from the default. */
+  exceptionIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapHoliday(row: Record<string, unknown>): Holiday {
+  return {
+    id:   row.id as string,
+    name: row.name as string,
+    startDate: toIsoDate(row.start_date),
+    endDate:   toIsoDate(row.end_date),
+    defaultParticipation: row.default_participation as "off" | "working",
+    notes: (row.notes as string | null) ?? undefined,
+    exceptionIds: (row.exception_ids as string[] | null) ?? [],
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
+  };
+}
+
+export async function getHolidays(from?: string, to?: string): Promise<Holiday[]> {
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (from) { params.push(from); clauses.push(`h.end_date >= $${params.length}`); }
+  if (to)   { params.push(to);   clauses.push(`h.start_date <= $${params.length}`); }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  const r = await query(
+    `SELECT h.*,
+            COALESCE(
+              (SELECT array_agg(he.profile_id) FROM holiday_exceptions he WHERE he.holiday_id = h.id),
+              '{}'
+            ) AS exception_ids
+       FROM holidays h
+       ${where}
+      ORDER BY h.start_date DESC`,
+    params,
+  );
+  return r.rows.map(mapHoliday);
+}
+
+/**
+ * Rewrite the time-off rows a holiday implies.
+ *
+ * Deletes this holiday's previous rows and inserts fresh ones, so an edit — a
+ * moved date, a flipped default, someone added to the crew — always converges
+ * rather than layering corrections. Rows people entered by hand are untouched:
+ * only `source = 'holiday'` with this holiday's id in notes is replaced.
+ *
+ * Boundaries are anchored to midnight in each EMPLOYEE's zone. Casting a date
+ * into a timestamptz column resolves at the server zone, which is UTC here, and
+ * that is exactly what made a Chicago employee's day off start at 7pm the
+ * evening before when the Outlook sync did it.
+ */
+async function materialiseHoliday(client: PoolClient, holiday: Holiday): Promise<number> {
+  const tag = `holiday:${holiday.id}`;
+
+  await client.query(
+    "DELETE FROM time_off_entries WHERE source = 'holiday' AND notes LIKE $1",
+    [`%${tag}%`],
+  );
+
+  const profiles = await client.query<{ id: string; timezone: string }>(
+    `SELECT id, timezone FROM profiles
+      WHERE status = 'active' AND show_on_dashboard = true`,
+  );
+
+  const exceptions = new Set(holiday.exceptionIds);
+  const days = Math.max(
+    1,
+    Math.round(
+      (new Date(holiday.endDate + "T00:00:00Z").getTime()
+        - new Date(holiday.startDate + "T00:00:00Z").getTime()) / 86_400_000,
+    ) + 1,
+  );
+
+  let written = 0;
+  for (const p of profiles.rows) {
+    // Closed by default → the listed people work. Open by default → they are off.
+    const isException = exceptions.has(p.id);
+    const isOff = holiday.defaultParticipation === "off" ? !isException : isException;
+    if (!isOff) continue;
+
+    const tz = p.timezone || "America/Chicago";
+    await client.query(
+      `INSERT INTO time_off_entries
+         (user_id, time_off_type, start_at, end_at, full_day, hours, status, notes, source)
+       VALUES ($1, 'holiday', $2, $3, true, $4, 'approved', $5, 'holiday')`,
+      [
+        p.id,
+        zonedTimeToUtc(holiday.startDate, "00:00", tz),
+        zonedTimeToUtc(holiday.endDate, "23:59:59", tz),
+        days * 8,
+        `${holiday.name} [${tag}]`,
+      ],
+    );
+    written++;
+  }
+  return written;
+}
+
+export async function saveHoliday(input: {
+  id?: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  defaultParticipation: "off" | "working";
+  notes?: string;
+  exceptionIds: string[];
+  createdBy?: string;
+}): Promise<{ holiday: Holiday; entriesWritten: number }> {
+  return withTransaction(async (client) => {
+    let id = input.id;
+    if (id) {
+      await client.query(
+        `UPDATE holidays SET name = $2, start_date = $3, end_date = $4,
+                             default_participation = $5, notes = $6, updated_at = now()
+          WHERE id = $1`,
+        [id, input.name.trim(), input.startDate, input.endDate, input.defaultParticipation, input.notes ?? null],
+      );
+    } else {
+      const r = await client.query<{ id: string }>(
+        `INSERT INTO holidays (name, start_date, end_date, default_participation, notes, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+        [input.name.trim(), input.startDate, input.endDate, input.defaultParticipation,
+         input.notes ?? null, input.createdBy ?? null],
+      );
+      id = r.rows[0].id;
+    }
+
+    await client.query("DELETE FROM holiday_exceptions WHERE holiday_id = $1", [id]);
+    for (const pid of input.exceptionIds) {
+      await client.query(
+        "INSERT INTO holiday_exceptions (holiday_id, profile_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",
+        [id, pid],
+      );
+    }
+
+    const r = await client.query(
+      `SELECT h.*, COALESCE(
+                (SELECT array_agg(he.profile_id) FROM holiday_exceptions he WHERE he.holiday_id = h.id),
+                '{}') AS exception_ids
+         FROM holidays h WHERE h.id = $1`,
+      [id],
+    );
+    const holiday = mapHoliday(r.rows[0]);
+    const entriesWritten = await materialiseHoliday(client, holiday);
+    return { holiday, entriesWritten };
+  });
+}
+
+export async function deleteHoliday(id: string): Promise<boolean> {
+  return withTransaction(async (client) => {
+    // Drop the generated time off with it, or people stay marked off for a
+    // holiday that no longer exists.
+    await client.query(
+      "DELETE FROM time_off_entries WHERE source = 'holiday' AND notes LIKE $1",
+      [`%holiday:${id}%`],
+    );
+    const r = await client.query("DELETE FROM holidays WHERE id = $1", [id]);
+    return (r.rowCount ?? 0) > 0;
+  });
 }
