@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { InfoTooltip } from "@/components/InfoTooltip";
 import { HolidayManager, type Holiday } from "@/components/HolidayManager";
-import { Bell, Building2, ChevronDown, ChevronUp, Download, Eye, EyeOff, KeyRound, Lock, Mail, MessageSquare, Pencil, Plus, RefreshCw, Save, Shield, Trash2, Upload, UserPlus, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronUp, Download, Eye, EyeOff, KeyRound, Lock, Mail, MessageSquare, Pencil, Plus, RefreshCw, Save, Shield, Trash2, Upload, UserPlus, X } from "lucide-react";
 
 import type { OrgData, Profile, Role, Team } from "@/lib/types";
 import { profileName } from "@/lib/status";
@@ -817,6 +818,14 @@ function NewUserModal({ teams, onClose, onCreated }: NewUserModalProps) {
   );
 }
 
+const TABS = [
+  ["people",        "People"],
+  ["schedule",      "Schedule"],
+  ["notifications", "Notifications"],
+  ["integrations",  "Integrations"],
+] as const;
+type TabId = (typeof TABS)[number][0];
+
 interface Props {
   data: OrgData;
   currentUserId: string;
@@ -825,6 +834,10 @@ interface Props {
 
 export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
   const router = useRouter();
+
+  /** Which settings group is showing. Four short pages beat one long scroll:
+      nobody edits users and mail credentials in the same sitting. */
+  const [tab, setTab] = useState<TabId>("people");
 
   const [profiles, setProfiles] = useState(data.profiles);
   const [teams, setTeams] = useState<Team[]>(data.teams);
@@ -910,7 +923,6 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
   const [graphConfigured,       setGraphConfigured]       = useState(false);
   const [graphLoaded,           setGraphLoaded]           = useState(false);
   const [graphSaving,           setGraphSaving]           = useState(false);
-  const [showEmailInstructions, setShowEmailInstructions] = useState(false);
   const [graphSaveResult,  setGraphSaveResult]   = useState<{ ok?: boolean; error?: string } | null>(null);
   const [showGraphSecret,  setShowGraphSecret]   = useState(false);
 
@@ -1308,7 +1320,8 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
     <section className="page-shell">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Admin controls</p>
+          {/* An "Admin controls" eyebrow sat above this heading, saying nothing
+              the heading and the URL did not already say. */}
           <h1>Settings</h1>
         </div>
         <a className="button secondary" href="/admin/audit">
@@ -1317,7 +1330,18 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
       </header>
 
       <div className="page-content">
-        {/* Settings panels */}
+        <div className="settings-tabs" role="tablist" aria-label="Settings sections">
+          {TABS.map(([id, label]) => (
+            <button key={id} type="button" role="tab" id={`settings-tab-${id}`}
+                    aria-selected={tab === id} aria-controls="settings-panel"
+                    className="settings-tab" onClick={() => setTab(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${tab}`}>
+        {tab === "people" && (<>
         <div className="settings-grid">
 
           {/* Users */}
@@ -1653,7 +1677,9 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
             </form>
           </div>
         </div>
+        </>)}
 
+        {tab === "integrations" && (<>
         {/* SSO panel — full width */}
         <form className="panel" onSubmit={saveSsoSettings}>
           <div className="panel-header">
@@ -1767,41 +1793,14 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
             </p>
           </div>
         </form>
+        </>)}
 
+        {tab === "notifications" && (<>
         {/* Bottom row: Reminders + Email config */}
         <div className="grid-2">
-          <div className="panel">
-            <div className="panel-header">
-              <div>
-                <h2>Reminder Timing</h2>
-                <p className="subtle">How reminders are scheduled per employee type.</p>
-              </div>
-              <Bell size={17} style={{ color: "var(--muted)" }} />
-            </div>
-            <div className="settings-list">
-              <div className="setting-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
-                <div>
-                  <strong>Shift-based employees</strong>
-                  <p className="subtle" style={{ marginTop: 2 }}>
-                    Reminders fire relative to each scheduled shift start/end time, using the offset minutes configured above.
-                  </p>
-                </div>
-                <div>
-                  <strong>Standard-schedule employees</strong>
-                  <p className="subtle" style={{ marginTop: 2 }}>
-                    Reminders fire relative to each person&rsquo;s expected start/end time (set on their profile), using the same offset minutes. Only fires on their configured work days.
-                  </p>
-                </div>
-                <div>
-                  <strong>Deduplication</strong>
-                  <p className="subtle" style={{ marginTop: 2 }}>
-                    Each reminder fires at most once per person per day. Sending the cron more than once per minute is safe.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
+          {/* A "Reminder Timing" panel sat here with no controls at all — three
+              paragraphs about how reminders fire, a whole panel away from the
+              offset fields they described. That text moved onto those fields. */}
           <div className="panel">
             <div className="panel-header">
               <div>
@@ -1815,16 +1814,11 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
               <Mail size={17} style={{ color: "var(--muted)" }} />
             </div>
 
-            <div className="entra-setup-guide">
-              <button
-                type="button"
-                className="teams-instructions-toggle"
-                onClick={() => setShowEmailInstructions(v => !v)}
-              >
-                Setup instructions
-                {showEmailInstructions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-              {showEmailInstructions && (
+            {/* Was a button plus a piece of state. <details> does the same job
+                natively and keyboard-operably, matching the OOF guide. */}
+            <details className="setup-guide-fold" style={{ margin: "0 18px" }}>
+              <summary>Setup instructions</summary>
+              <div className="entra-setup-guide">
                 <>
                   <p style={{ marginBottom: 10, marginTop: 10 }}>
                     Reminders send through Microsoft 365 via the Microsoft Graph API. Follow these steps
@@ -1853,8 +1847,8 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
                     </li>
                   </ol>
                 </>
-              )}
-            </div>
+              </div>
+            </details>
 
             <form onSubmit={saveGraphSettings}>
               <div className="form-grid" style={{ padding: "0 18px" }}>
@@ -1943,9 +1937,13 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
             )}
           </div>
         </div>
+        </>)}
 
+        {tab === "schedule" && (<>
         {/* OOF Sync panel */}
         <HolidayManager profiles={profiles} holidays={holidays} />
+        </>)}
+        {tab === "integrations" && (<>
 
           <div className="panel">
           <div className="panel-header">
@@ -1956,7 +1954,11 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
             <RefreshCw size={17} style={{ color: "var(--muted)" }} />
           </div>
 
-          <div className="entra-setup-guide" style={{ margin: "0 18px 18px" }}>
+          {/* One-time Azure steps: needed once at setup, then never again, yet
+              they were the tallest thing on this page. */}
+          <details className="setup-guide-fold" style={{ margin: "0 18px 14px" }}>
+            <summary>Azure setup — permissions this sync requires</summary>
+          <div className="entra-setup-guide" style={{ marginTop: 12 }}>
             <p style={{ marginBottom: 12 }}>
               This sync reads each employee's Outlook calendar and automatic-reply settings using
               the same Entra app registration configured under Email. Two additional{" "}
@@ -1991,6 +1993,7 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
               test immediately — it will confirm permissions are correct before running.
             </p>
           </div>
+          </details>
 
           <div style={{ padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
             {oofLastAt && (
@@ -2024,7 +2027,9 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
             </div>
           </div>
         </div>
+        </>)}
 
+        {tab === "notifications" && (<>
         {/* Notifications panel — full width */}
         <form className="panel" onSubmit={saveNotifSettings}>
           <div className="panel-header">
@@ -2049,6 +2054,7 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
                     <small className="subtle">Send if not clocked in after shift starts</small>
                   </span>
                 </label>
+                <InfoTooltip text="Fires this many minutes after the person's expected start time, taken from their profile, and only on their configured work days. At most one per person per day." />
                 <div className="notif-offset-wrap">
                   <input className="input notif-offset-input" type="number" min={1} max={60}
                          value={checkInOffset} onChange={(e) => setCheckInOffset(Number(e.target.value))}
@@ -2066,6 +2072,7 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
                     <small className="subtle">Send if still clocked in after shift ends</small>
                   </span>
                 </label>
+                <InfoTooltip text="Fires this many minutes after the person's expected end time. Only sent to someone still on the clock, and at most once per person per day." />
                 <div className="notif-offset-wrap">
                   <input className="input notif-offset-input" type="number" min={1} max={60}
                          value={checkOutOffset} onChange={(e) => setCheckOutOffset(Number(e.target.value))}
@@ -2156,9 +2163,12 @@ export function AdminSettings({ data, currentUserId, holidays = [] }: Props) {
             )}
           </div>
         </form>
+        </>)}
 
-        {/* Coverage requirements (minimum staffing) */}
+        {tab === "schedule" && (<>
         <StaffingRulesPanel />
+        </>)}
+        </div>
 
       </div>
     </section>
