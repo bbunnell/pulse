@@ -101,11 +101,30 @@ export function SeasonalCanvas({ todayIso, dismissedId, preview }: {
       parts = Array.from({ length: effect.density }, () => spawnFall(false));
     }
 
-    let nextBurst = 0;
-    const burst = (t: number) => {
-      const cx = rnd(w * 0.15, w * 0.85);
-      const cy = rnd(h * 0.12, h * 0.5);
-      const hue = Math.floor(rnd(0, 360));
+    // Shells climbing from the bottom. Kept separate from `parts` because they
+    // obey different physics — one strong upward impulse against gravity — and
+    // because the burst has to happen exactly when a shell runs out of climb.
+    const SHELL_G = 380;
+    let shells: { x: number; y: number; vx: number; vy: number; hue: number }[] = [];
+    let nextLaunch = 0;
+
+    const launch = (t: number) => {
+      const startY = h + 8;
+      const apexY  = rnd(h * 0.10, h * 0.42);
+      // Solve for the exact impulse that runs out of climb at apexY, so the
+      // shell bursts at the top of its arc rather than at an arbitrary moment.
+      const vy = -Math.sqrt(2 * SHELL_G * (startY - apexY));
+      shells.push({
+        x: rnd(w * 0.12, w * 0.88),
+        y: startY,
+        vx: rnd(-45, 45),
+        vy,
+        hue: Math.floor(rnd(0, 360)),
+      });
+      nextLaunch = t + rnd(650, 1700);
+    };
+
+    const burst = (cx: number, cy: number, hue: number) => {
       const n = 38;
       for (let i = 0; i < n; i++) {
         const a = (Math.PI * 2 * i) / n + rnd(-0.06, 0.06);
@@ -117,7 +136,6 @@ export function SeasonalCanvas({ todayIso, dismissedId, preview }: {
           life: 1, hue, sprite: "",
         });
       }
-      nextBurst = t + rnd(700, 1800);
     };
 
     let raf = 0;
@@ -148,7 +166,18 @@ export function SeasonalCanvas({ todayIso, dismissedId, preview }: {
           ctx.restore();
         }
       } else {
-        if (t >= nextBurst) burst(t);
+        if (t >= nextLaunch) launch(t);
+
+        // Climb, then burst at the top of the arc.
+        for (const sh of shells) {
+          sh.vy += SHELL_G * dt;
+          sh.x  += sh.vx * dt;
+          sh.y  += sh.vy * dt;
+        }
+        const spent = shells.filter((sh) => sh.vy >= 0);
+        for (const sh of spent) burst(sh.x, sh.y, sh.hue);
+        shells = shells.filter((sh) => sh.vy < 0);
+
         for (const p of parts) {
           p.vy += 110 * dt;              // gravity
           p.x += p.vx * dt;
@@ -162,6 +191,19 @@ export function SeasonalCanvas({ todayIso, dismissedId, preview }: {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fill();
+        }
+
+        // A short streak behind each shell, so the climb reads as a rocket
+        // rather than a dot sliding up the screen.
+        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        for (const sh of shells) {
+          ctx.strokeStyle = `hsl(${sh.hue} 90% 70%)`;
+          ctx.beginPath();
+          ctx.moveTo(sh.x, sh.y);
+          ctx.lineTo(sh.x - sh.vx * 0.045, sh.y - sh.vy * 0.045);
+          ctx.stroke();
         }
         ctx.globalAlpha = 1;
       }
